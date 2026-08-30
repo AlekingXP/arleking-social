@@ -74,10 +74,18 @@
     return a;
   }
 
+  function getSlug() {
+    return window.location.pathname.replace(/^\/+|\/+$/g, '');
+  }
+
   async function loadData() {
+    const slug = getSlug();
+    const profileRes = await fetch(`/api/public/${slug}/profile`);
+    if (!profileRes.ok) return { notFound: true };
+
     const [profile, links] = await Promise.all([
-      fetch('/api/public/profile').then((r) => r.json()),
-      fetch('/api/public/links').then((r) => r.json()),
+      profileRes.json(),
+      fetch(`/api/public/${slug}/links`).then((r) => r.json()),
     ]);
     return { profile, links };
   }
@@ -151,7 +159,13 @@
   }
 
   async function init() {
-    const { profile, links } = await loadData();
+    const { profile, links, notFound } = await loadData();
+
+    if (notFound) {
+      document.body.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#f5eef0;font-family:sans-serif;text-align:center;padding:24px;"><h1 style="margin:0;">Página no encontrada</h1><p style="opacity:.6;margin:0;">Este usuario no existe o cambió de dirección.</p></div>';
+      return;
+    }
+
     applyTheme(profile);
     fillProfile(profile);
     renderLinks(links);

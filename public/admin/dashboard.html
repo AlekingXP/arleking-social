@@ -16,7 +16,7 @@
   <div class="topbar">
     <h1 class="brand-name topbar-title">✨ Dashboard</h1>
     <div class="topbar-actions">
-      <a href="/" target="_blank" class="btn-outline btn-sm">Ver página pública ↗</a>
+      <a href="/" id="view-public-link" target="_blank" class="btn-outline btn-sm">Ver página pública ↗</a>
       <button id="logout-btn" class="btn-outline btn-sm">Cerrar sesión</button>
     </div>
   </div>
@@ -58,6 +58,14 @@
         <label class="field">
           <span>Nombre</span>
           <input type="text" id="p-name" required />
+        </label>
+
+        <label class="field">
+          <span>URL de tu página</span>
+          <div class="slug-input-row">
+            <span class="slug-prefix" id="slug-prefix">arleking-social.onrender.com/</span>
+            <input type="text" id="p-slug" />
+          </div>
         </label>
 
         <label class="field">

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bio Links</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <div class="bg-hero" aria-hidden="true"></div>
+  <canvas id="particles-canvas" class="particles-canvas" aria-hidden="true"></canvas>
+
+  <!-- Age gate -->
+  <section id="age-gate" class="gate hidden">
+    <div class="gate-card">
+      <div class="avatar-wrap">
+        <img id="gate-avatar" class="avatar" src="" alt="avatar" />
+      </div>
+      <h1 id="gate-title" class="brand-name"></h1>
+      <p id="gate-subtitle" class="tagline"></p>
+      <button id="enter-btn" class="btn-pill btn-gradient">
+        <span>Entrar</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <p id="gate-confirm" class="fine-print"></p>
+    </div>
+  </section>
+
+  <!-- Main page -->
+  <main id="main-page" class="hidden">
+    <header class="profile-header">
+      <div class="avatar-wrap small">
+        <img id="main-avatar" class="avatar" src="" alt="avatar" />
+      </div>
+      <h1 id="main-name" class="brand-name"></h1>
+      <p id="main-tagline" class="tagline"></p>
+    </header>
+
+    <nav id="links-list" class="links-list"></nav>
+
+    <footer class="site-footer">
+      <span id="footer-text"></span>
+    </footer>
+  </main>
+
+  <!-- Outbound link warning -->
+  <div id="warn-overlay" class="overlay hidden">
+    <div class="warn-card">
+      <h2>Vas a salir de esta página</h2>
+      <div class="warn-actions">
+        <button id="warn-back" class="btn-outline">Volver</button>
+        <button id="warn-continue" class="btn-pill btn-gradient">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/button-fx.js"></script>
+  <script src="/js/particles.js"></script>
+</body>
+</html>

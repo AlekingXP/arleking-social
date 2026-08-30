@@ -7,15 +7,26 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const db = new Database(path.join(dataDir, 'app.db'));
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT,
+    google_id TEXT UNIQUE,
+    google_email TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS profile (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     tagline TEXT NOT NULL,
     avatar_path TEXT,
     background_path TEXT,
-    age_gate_enabled INTEGER NOT NULL DEFAULT 1,
+    age_gate_enabled INTEGER NOT NULL DEFAULT 0,
     age_gate_title TEXT NOT NULL,
     age_gate_subtitle TEXT NOT NULL,
     age_gate_confirm TEXT NOT NULL,
@@ -27,16 +38,9 @@ db.exec(`
     particles_density INTEGER NOT NULL DEFAULT 60
   );
 
-  CREATE TABLE IF NOT EXISTS admin (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password_hash TEXT,
-    google_id TEXT UNIQUE,
-    google_email TEXT
-  );
-
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     order_index INTEGER NOT NULL,
     type TEXT NOT NULL DEFAULT 'simple',
     platform TEXT NOT NULL DEFAULT 'custom',
@@ -51,61 +55,143 @@ db.exec(`
   );
 `);
 
-const profileColumns = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
-if (!profileColumns.includes('background_path')) {
-  db.exec('ALTER TABLE profile ADD COLUMN background_path TEXT');
-}
-if (!profileColumns.includes('particles_enabled')) {
-  db.exec("ALTER TABLE profile ADD COLUMN particles_enabled INTEGER NOT NULL DEFAULT 1");
-}
-if (!profileColumns.includes('particles_color')) {
-  db.exec("ALTER TABLE profile ADD COLUMN particles_color TEXT NOT NULL DEFAULT '#ffffff'");
-}
-if (!profileColumns.includes('particles_density')) {
-  db.exec("ALTER TABLE profile ADD COLUMN particles_density INTEGER NOT NULL DEFAULT 60");
+const RESERVED_SLUGS = [
+  'admin', 'api', 'login', 'signup', 'register', 'logout',
+  'images', 'uploads', 'css', 'js', 'u', 'static', 'app',
+  'favicon.ico', 'robots.txt', 'sitemap.xml', 'ale-king-xp',
+];
+
+function slugify(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'usuario';
 }
 
-const adminColumns = db.prepare('PRAGMA table_info(admin)').all().map((c) => c.name);
-if (!adminColumns.includes('google_id')) {
-  db.exec('ALTER TABLE admin ADD COLUMN google_id TEXT');
-}
-if (!adminColumns.includes('google_email')) {
-  db.exec('ALTER TABLE admin ADD COLUMN google_email TEXT');
+// ---- One-time migration: single-tenant (admin/profile id=1) -> multi-tenant ----
+const tableNames = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((t) => t.name);
+const profileColumnsNow = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
+const needsTenantMigration = tableNames.includes('admin') && !profileColumnsNow.includes('user_id');
+
+if (needsTenantMigration) {
+  console.log('Migrando base de datos a modo multiusuario...');
+
+  const migrate = db.transaction(() => {
+    const oldAdmins = db.prepare('SELECT * FROM admin').all();
+    const insertUser = db.prepare(`
+      INSERT INTO users (id, username, password_hash, google_id, google_email)
+      VALUES (@id, @username, @password_hash, @google_id, @google_email)
+    `);
+    oldAdmins.forEach((a) => insertUser.run(a));
+
+    const oldProfile = db.prepare('SELECT * FROM profile_legacy WHERE id = 1').get();
+    if (oldProfile && oldAdmins[0]) {
+      let slug = 'ale-king';
+      if (RESERVED_SLUGS.includes(slug)) slug = 'ale-king-social';
+      db.prepare(`
+        INSERT INTO profile (
+          user_id, slug, name, tagline, avatar_path, background_path,
+          age_gate_enabled, age_gate_title, age_gate_subtitle, age_gate_confirm,
+          footer_text, accent_from, accent_to, particles_enabled, particles_color, particles_density
+        ) VALUES (
+          @user_id, @slug, @name, @tagline, @avatar_path, @background_path,
+          @age_gate_enabled, @age_gate_title, @age_gate_subtitle, @age_gate_confirm,
+          @footer_text, @accent_from, @accent_to, @particles_enabled, @particles_color, @particles_density
+        )
+      `).run({ ...oldProfile, user_id: oldAdmins[0].id, slug });
+
+      const oldLinks = db.prepare('SELECT * FROM links_legacy').all();
+      const insertLink = db.prepare(`
+        INSERT INTO links (
+          id, user_id, order_index, type, platform, label, subtitle,
+          badge_left, badge_right, url, image_path, icon, enabled
+        ) VALUES (
+          @id, @user_id, @order_index, @type, @platform, @label, @subtitle,
+          @badge_left, @badge_right, @url, @image_path, @icon, @enabled
+        )
+      `);
+      oldLinks.forEach((l) => insertLink.run({ ...l, user_id: oldAdmins[0].id }));
+    }
+
+    db.exec('DROP TABLE admin');
+    db.exec('DROP TABLE profile_legacy');
+    db.exec('DROP TABLE links_legacy');
+  });
+
+  db.exec('ALTER TABLE profile RENAME TO profile_legacy');
+  db.exec('ALTER TABLE links RENAME TO links_legacy');
+  db.exec(`
+    CREATE TABLE profile (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      slug TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      tagline TEXT NOT NULL,
+      avatar_path TEXT,
+      background_path TEXT,
+      age_gate_enabled INTEGER NOT NULL DEFAULT 0,
+      age_gate_title TEXT NOT NULL,
+      age_gate_subtitle TEXT NOT NULL,
+      age_gate_confirm TEXT NOT NULL,
+      footer_text TEXT NOT NULL,
+      accent_from TEXT NOT NULL DEFAULT '#ff5f8f',
+      accent_to TEXT NOT NULL DEFAULT '#ff9a5a',
+      particles_enabled INTEGER NOT NULL DEFAULT 1,
+      particles_color TEXT NOT NULL DEFAULT '#ffffff',
+      particles_density INTEGER NOT NULL DEFAULT 60
+    );
+    CREATE TABLE links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      order_index INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'simple',
+      platform TEXT NOT NULL DEFAULT 'custom',
+      label TEXT NOT NULL,
+      subtitle TEXT,
+      badge_left TEXT,
+      badge_right TEXT,
+      url TEXT NOT NULL,
+      image_path TEXT,
+      icon TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1
+    );
+  `);
+
+  migrate();
+  console.log('Migración completa.');
 }
 
-const profileExists = db.prepare('SELECT COUNT(*) AS c FROM profile').get().c;
-if (!profileExists) {
+function createUserWithProfile({ username, passwordHash, googleId, googleEmail, name, slug }) {
+  const insertUser = db.prepare(`
+    INSERT INTO users (username, password_hash, google_id, google_email)
+    VALUES (?, ?, ?, ?)
+  `);
+  const info = insertUser.run(username, passwordHash || null, googleId || null, googleEmail || null);
+  const userId = info.lastInsertRowid;
+
   db.prepare(`
-    INSERT INTO profile (id, name, tagline, avatar_path, background_path, age_gate_enabled, age_gate_title, age_gate_subtitle, age_gate_confirm, footer_text, accent_from, accent_to)
-    VALUES (1, ?, ?, NULL, NULL, 0, ?, ?, ?, ?, ?, ?)
+    INSERT INTO profile (
+      user_id, slug, name, tagline, age_gate_enabled, age_gate_title,
+      age_gate_subtitle, age_gate_confirm, footer_text, accent_from, accent_to
+    ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
   `).run(
-    'Ale King',
-    '✨ mis redes sociales',
-    'Ale King',
-    '✨ mis redes sociales',
-    'Al continuar confirmas que eres mayor de edad',
-    '✨ Ale King',
-    '#ff5f8f',
-    '#ff9a5a'
+    userId, slug, name, '✨ mis redes sociales', name, '✨ mis redes sociales',
+    'Al continuar confirmas que eres mayor de edad', name, '#ff5f8f', '#ff9a5a'
   );
-}
 
-const linkCount = db.prepare('SELECT COUNT(*) AS c FROM links').get().c;
-if (!linkCount) {
-  const insert = db.prepare(`
-    INSERT INTO links (order_index, type, platform, label, subtitle, badge_left, badge_right, url, image_path, icon, enabled)
-    VALUES (@order_index, @type, @platform, @label, @subtitle, @badge_left, @badge_right, @url, @image_path, @icon, @enabled)
+  const insertLink = db.prepare(`
+    INSERT INTO links (user_id, order_index, type, platform, label, subtitle, badge_left, badge_right, url, image_path, icon, enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
   `);
   const seedLinks = [
-    { order_index: 0, type: 'featured', platform: 'custom', label: 'Ale King', subtitle: 'todo mi contenido y redes ✨', badge_left: 'DESTACADO', badge_right: 'Ale King XP', url: 'https://example.com/ale-king-xp', image_path: null, icon: null, enabled: 1 },
-    { order_index: 1, type: 'simple', platform: 'twitch', label: 'Twitch', subtitle: 'en vivo', badge_left: null, badge_right: null, url: 'https://twitch.tv/tu_usuario', image_path: null, icon: '🎮', enabled: 1 },
-    { order_index: 2, type: 'simple', platform: 'telegram', label: 'Telegram', subtitle: 'canal de avisos', badge_left: null, badge_right: null, url: 'https://t.me/tu_usuario', image_path: null, icon: '✈️', enabled: 1 },
-    { order_index: 3, type: 'simple', platform: 'discord', label: 'Discord', subtitle: 'únete al server', badge_left: null, badge_right: null, url: 'https://discord.com/invite/tu-invite', image_path: null, icon: '💬', enabled: 1 },
-    { order_index: 4, type: 'simple', platform: 'twitter', label: 'Twitter', subtitle: '@tu_usuario', badge_left: null, badge_right: null, url: 'https://x.com/tu_usuario', image_path: null, icon: '🐦', enabled: 1 },
-    { order_index: 5, type: 'simple', platform: 'wishlist', label: 'Wishlist', subtitle: 'apóyame con un regalo 🎁', badge_left: null, badge_right: null, url: 'https://example.com/tu-wishlist', image_path: null, icon: '🎁', enabled: 1 },
+    { type: 'simple', platform: 'instagram', label: 'Instagram', subtitle: '@tu_usuario', icon: '📸', url: 'https://instagram.com/tu_usuario' },
+    { type: 'simple', platform: 'twitter', label: 'Twitter', subtitle: '@tu_usuario', icon: '🐦', url: 'https://x.com/tu_usuario' },
+    { type: 'simple', platform: 'tiktok', label: 'TikTok', subtitle: '@tu_usuario', icon: '🎵', url: 'https://tiktok.com/@tu_usuario' },
   ];
-  const insertMany = db.transaction((rows) => rows.forEach((r) => insert.run(r)));
-  insertMany(seedLinks);
+  seedLinks.forEach((l, idx) => insertLink.run(userId, idx, l.type, l.platform, l.label, l.subtitle, null, null, l.url, l.icon, 1));
+
+  return userId;
 }
 
-module.exports = { db };
+module.exports = { db, slugify, RESERVED_SLUGS, createUserWithProfile };

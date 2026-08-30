@@ -138,11 +138,27 @@
     mouse.active = false;
   }
 
-  fetch('/api/public/profile')
-    .then((r) => r.json())
-    .then((profile) => {
-      if (!profile.particles_enabled) return;
-      start(profile);
-    })
-    .catch(() => {});
+  const DEFAULTS = { particles_enabled: 1, particles_color: '#ffffff', particles_density: 60 };
+
+  async function resolveSettings() {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+
+    if (path === '/' || path === '/admin/login.html') return DEFAULTS;
+
+    if (path === '/admin/dashboard.html') {
+      const res = await fetch('/api/profile').catch(() => null);
+      if (res && res.ok) return res.json();
+      return DEFAULTS;
+    }
+
+    const slug = path.replace(/^\/+/, '');
+    const res = await fetch(`/api/public/${slug}/profile`).catch(() => null);
+    if (res && res.ok) return res.json();
+    return DEFAULTS;
+  }
+
+  resolveSettings().then((profile) => {
+    if (!profile.particles_enabled) return;
+    start(profile);
+  });
 })();

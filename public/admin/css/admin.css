@@ -205,6 +205,15 @@ body {
 .login-card .brand-name { font-size: 1.6rem; margin-bottom: 6px; }
 .login-sub { font-size: 0.85rem; color: var(--text-dim); margin: 0 0 24px; }
 
+.mode-toggle {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 20px 0 0;
+}
+.mode-toggle a { color: var(--accent-from); font-weight: 600; text-decoration: none; }
+.mode-toggle a:hover { text-decoration: underline; }
+
 .orb-divider {
   display: flex;
   align-items: center;
@@ -338,6 +347,27 @@ body {
   margin: 4px 0 0;
   text-align: left;
 }
+
+.slug-input-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.slug-prefix {
+  padding: 11px 0 11px 12px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.slug-input-row input {
+  border: none !important;
+  background: transparent !important;
+  padding-left: 2px !important;
+}
+.slug-input-row input:focus { outline: none; }
 
 /* Fields */
 

@@ -1,5 +1,6 @@
 (function () {
   let currentLinks = [];
+  document.getElementById('slug-prefix').textContent = window.location.host + '/';
 
   function showToast(message, type) {
     const toast = document.getElementById('toast');
@@ -47,6 +48,8 @@
     document.getElementById('avatar-preview').src = profile.avatar_path || placeholder(profile.name);
     document.getElementById('background-preview').src = profile.background_path || '/images/hero-bg.jpg';
     document.getElementById('p-name').value = profile.name || '';
+    document.getElementById('p-slug').value = profile.slug || '';
+    document.getElementById('view-public-link').href = '/' + (profile.slug || '');
     document.getElementById('p-tagline').value = profile.tagline || '';
     document.getElementById('p-footer').value = profile.footer_text || '';
     document.getElementById('p-accent-from').value = profile.accent_from || '#ff5f8f';
@@ -83,6 +86,7 @@
         method: 'PUT',
         body: JSON.stringify({
           name: document.getElementById('p-name').value.trim(),
+          slug: document.getElementById('p-slug').value.trim(),
           tagline: document.getElementById('p-tagline').value.trim(),
           footer_text: document.getElementById('p-footer').value.trim(),
           accent_from: document.getElementById('p-accent-from').value,

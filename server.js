@@ -48,6 +48,11 @@ app.use('/api', googleRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/:slug', (req, res, next) => {
+  if (req.params.slug.includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: err.message || 'Error interno' });

@@ -8,16 +8,15 @@
   const confirmInput = document.getElementById('password-confirm');
   const googleDivider = document.getElementById('google-divider');
   const googleBtn = document.getElementById('google-btn');
-  const googleLabel = document.getElementById('google-label');
+  const modeToggle = document.getElementById('mode-toggle');
+  const modeToggleLink = document.getElementById('mode-toggle-link');
 
   let mode = 'login';
 
   const ERROR_MESSAGES = {
-    google_not_linked: 'Esa cuenta de Google no está vinculada a ningún administrador.',
     google_failed: 'No se pudo completar el inicio de sesión con Google.',
     google_state: 'La sesión de Google expiró, intenta de nuevo.',
     google_not_configured: 'El inicio de sesión con Google no está configurado.',
-    setup_closed: 'Ya existe una cuenta de administrador.',
     must_login: 'Inicia sesión primero.',
   };
 
@@ -27,7 +26,38 @@
     errorEl.textContent = ERROR_MESSAGES[errorCode];
     errorEl.classList.remove('hidden');
   }
-  if (errorCode) window.history.replaceState({}, '', '/admin/login.html');
+
+  function setMode(newMode) {
+    mode = newMode;
+    form.reset();
+    errorEl.classList.add('hidden');
+
+    if (mode === 'register') {
+      subtitleEl.textContent = 'Crea tu página en segundos';
+      orbLabelEl.textContent = 'Crear cuenta';
+      submitBtn.textContent = 'Crear cuenta';
+      confirmField.classList.remove('hidden');
+      confirmInput.setAttribute('required', 'required');
+      document.getElementById('password').setAttribute('minlength', '6');
+      document.getElementById('password').setAttribute('autocomplete', 'new-password');
+      modeToggle.innerHTML = '¿Ya tienes cuenta? <a href="#" id="mode-toggle-link">Inicia sesión</a>';
+    } else {
+      subtitleEl.textContent = 'Inicia sesión para administrar tu página';
+      orbLabelEl.textContent = 'Iniciar sesión';
+      submitBtn.textContent = 'Entrar';
+      confirmField.classList.add('hidden');
+      confirmInput.removeAttribute('required');
+      document.getElementById('password').setAttribute('autocomplete', 'current-password');
+      modeToggle.innerHTML = '¿No tienes cuenta? <a href="#" id="mode-toggle-link">Crea una</a>';
+    }
+
+    document.getElementById('mode-toggle-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      setMode(mode === 'register' ? 'login' : 'register');
+    });
+  }
+
+  window.history.replaceState({}, '', '/admin/login.html');
 
   fetch('/api/auth/me')
     .then((r) => r.json())
@@ -36,31 +66,15 @@
         window.location.href = '/admin/dashboard.html';
         return;
       }
-      return fetch('/api/auth/setup-status').then((r) => r.json());
-    })
-    .then((setup) => {
-      if (setup && setup.needsSetup) enableSetupMode();
+      setMode(params.get('mode') === 'register' ? 'register' : 'login');
       return fetch('/api/auth/google/status').then((r) => r.json());
     })
     .then((googleStatus) => {
       if (googleStatus && googleStatus.configured) {
         googleDivider.classList.remove('hidden');
         googleBtn.classList.remove('hidden');
-        googleBtn.href = mode === 'register' ? '/api/auth/google?intent=register' : '/api/auth/google?intent=login';
-        googleLabel.textContent = mode === 'register' ? 'Crear cuenta con Google' : 'Continuar con Google';
       }
     });
-
-  function enableSetupMode() {
-    mode = 'register';
-    subtitleEl.textContent = 'Crea tu cuenta de administrador para empezar';
-    orbLabelEl.textContent = 'Crear cuenta';
-    submitBtn.textContent = 'Crear cuenta';
-    confirmField.classList.remove('hidden');
-    confirmInput.setAttribute('required', 'required');
-    document.getElementById('password').setAttribute('minlength', '6');
-    document.getElementById('password').setAttribute('autocomplete', 'new-password');
-  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

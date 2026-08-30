@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
-const { db } = require('../db');
+const { db, slugify, RESERVED_SLUGS, createUserWithProfile } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,6 +15,18 @@ function isConfigured() {
 
 function getRedirectUri(req) {
   return `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+}
+
+function uniqueSlugFrom(base) {
+  let slug = slugify(base);
+  if (RESERVED_SLUGS.includes(slug)) slug = `${slug}-user`;
+  let candidate = slug;
+  let n = 2;
+  while (db.prepare('SELECT 1 FROM profile WHERE slug = ?').get(candidate)) {
+    candidate = `${slug}-${n}`;
+    n += 1;
+  }
+  return candidate;
 }
 
 const oauthLimiter = rateLimit({
@@ -31,12 +43,8 @@ router.get('/auth/google/status', (req, res) => {
 router.get('/auth/google', oauthLimiter, (req, res) => {
   if (!isConfigured()) return res.status(503).send('Google Sign-In no está configurado en este servidor.');
 
-  const intent = ['login', 'register', 'link'].includes(req.query.intent) ? req.query.intent : 'login';
+  const intent = req.query.intent === 'link' ? 'link' : 'login';
 
-  if (intent === 'register') {
-    const count = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
-    if (count > 0) return res.redirect('/admin/login.html?error=setup_closed');
-  }
   if (intent === 'link' && !(req.session && req.session.userId)) {
     return res.redirect('/admin/login.html?error=must_login');
   }
@@ -93,43 +101,48 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
     const profile = await userRes.json();
     if (!userRes.ok || !profile.sub) throw new Error('No se pudo obtener el perfil de Google');
 
-    if (intent === 'register') {
-      const count = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
-      if (count > 0) return res.redirect('/admin/login.html?error=setup_closed');
-
-      const username = profile.email || `google_${profile.sub}`;
-      const info = db.prepare(
-        'INSERT INTO admin (username, password_hash, google_id, google_email) VALUES (?, NULL, ?, ?)'
-      ).run(username, profile.sub, profile.email || null);
-
-      return req.session.regenerate((err) => {
-        if (err) return res.redirect('/admin/login.html?error=session');
-        req.session.userId = info.lastInsertRowid;
-        req.session.username = username;
-        res.redirect('/admin/dashboard.html');
-      });
-    }
-
     if (intent === 'link') {
       if (!linkAdminId) return res.redirect('/admin/login.html?error=must_login');
 
-      const taken = db.prepare('SELECT id FROM admin WHERE google_id = ? AND id != ?').get(profile.sub, linkAdminId);
+      const taken = db.prepare('SELECT id FROM users WHERE google_id = ? AND id != ?').get(profile.sub, linkAdminId);
       if (taken) return res.redirect('/admin/dashboard.html?error=google_taken');
 
-      db.prepare('UPDATE admin SET google_id = ?, google_email = ? WHERE id = ?')
+      db.prepare('UPDATE users SET google_id = ?, google_email = ? WHERE id = ?')
         .run(profile.sub, profile.email || null, linkAdminId);
       return res.redirect('/admin/dashboard.html?linked=1');
     }
 
-    // intent === 'login'
-    const admin = db.prepare('SELECT * FROM admin WHERE google_id = ?').get(profile.sub);
-    if (!admin) return res.redirect('/admin/login.html?error=google_not_linked');
+    // intent === 'login' — find existing, or create a brand new account (open signup)
+    let user = db.prepare('SELECT * FROM users WHERE google_id = ?').get(profile.sub);
+    let isNew = false;
+
+    if (!user) {
+      const baseUsername = (profile.email ? profile.email.split('@')[0] : `user${profile.sub}`).replace(/[^a-zA-Z0-9_.-]/g, '');
+      let username = baseUsername || `user${profile.sub}`;
+      let suffix = 2;
+      while (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) {
+        username = `${baseUsername}${suffix}`;
+        suffix += 1;
+      }
+      const slug = uniqueSlugFrom(profile.name || baseUsername);
+      const displayName = profile.name || baseUsername;
+
+      const userId = createUserWithProfile({
+        username,
+        googleId: profile.sub,
+        googleEmail: profile.email || null,
+        name: displayName,
+        slug,
+      });
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      isNew = true;
+    }
 
     req.session.regenerate((err) => {
       if (err) return res.redirect('/admin/login.html?error=session');
-      req.session.userId = admin.id;
-      req.session.username = admin.username;
-      res.redirect('/admin/dashboard.html');
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      res.redirect(isNew ? '/admin/dashboard.html?welcome=1' : '/admin/dashboard.html');
     });
   } catch (err) {
     console.error('Google OAuth error:', err.message);
@@ -138,11 +151,11 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
 });
 
 router.delete('/auth/google-link', requireAuth, (req, res) => {
-  const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.userId);
-  if (!admin.password_hash) {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  if (!user.password_hash) {
     return res.status(400).json({ error: 'Configura una contraseña antes de desvincular Google, o perderás el acceso' });
   }
-  db.prepare('UPDATE admin SET google_id = NULL, google_email = NULL WHERE id = ?').run(admin.id);
+  db.prepare('UPDATE users SET google_id = NULL, google_email = NULL WHERE id = ?').run(user.id);
   res.json({ ok: true });
 });
 
