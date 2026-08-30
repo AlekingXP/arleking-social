@@ -4,11 +4,20 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' },
+});
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -38,7 +47,7 @@ router.get('/auth/setup-status', (req, res) => {
   res.json({ needsSetup: count === 0 });
 });
 
-router.post('/auth/register', (req, res) => {
+router.post('/auth/register', authLimiter, (req, res) => {
   const count = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
   if (count > 0) return res.status(403).json({ error: 'Ya existe una cuenta de administrador' });
 
@@ -50,23 +59,29 @@ router.post('/auth/register', (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const info = db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(username.trim(), hash);
 
-  req.session.userId = info.lastInsertRowid;
-  req.session.username = username.trim();
-  res.status(201).json({ ok: true, username: username.trim() });
+  req.session.regenerate((err) => {
+    if (err) return res.status(500).json({ error: 'Error de sesión' });
+    req.session.userId = info.lastInsertRowid;
+    req.session.username = username.trim();
+    res.status(201).json({ ok: true, username: username.trim() });
+  });
 });
 
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', authLimiter, (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan credenciales' });
 
   const admin = db.prepare('SELECT * FROM admin WHERE username = ?').get(username);
-  if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+  if (!admin || !admin.password_hash || !bcrypt.compareSync(password, admin.password_hash)) {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
   }
 
-  req.session.userId = admin.id;
-  req.session.username = admin.username;
-  res.json({ ok: true, username: admin.username });
+  req.session.regenerate((err) => {
+    if (err) return res.status(500).json({ error: 'Error de sesión' });
+    req.session.userId = admin.id;
+    req.session.username = admin.username;
+    res.json({ ok: true, username: admin.username });
+  });
 });
 
 router.post('/auth/logout', (req, res) => {
@@ -75,19 +90,28 @@ router.post('/auth/logout', (req, res) => {
 
 router.get('/auth/me', (req, res) => {
   if (req.session && req.session.userId) {
-    return res.json({ authenticated: true, username: req.session.username });
+    const admin = db.prepare('SELECT username, password_hash, google_email FROM admin WHERE id = ?').get(req.session.userId);
+    return res.json({
+      authenticated: true,
+      username: req.session.username,
+      hasPassword: !!(admin && admin.password_hash),
+      googleEmail: admin ? admin.google_email : null,
+    });
   }
   res.json({ authenticated: false });
 });
 
 router.put('/auth/password', requireAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
-  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Faltan datos' });
+  if (!newPassword) return res.status(400).json({ error: 'Faltan datos' });
   if (newPassword.length < 6) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
 
   const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.userId);
-  if (!bcrypt.compareSync(currentPassword, admin.password_hash)) {
-    return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+
+  if (admin.password_hash) {
+    if (!currentPassword || !bcrypt.compareSync(currentPassword, admin.password_hash)) {
+      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    }
   }
 
   const hash = bcrypt.hashSync(newPassword, 10);

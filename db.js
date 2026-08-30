@@ -30,7 +30,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS admin (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL
+    password_hash TEXT,
+    google_id TEXT UNIQUE,
+    google_email TEXT
   );
 
   CREATE TABLE IF NOT EXISTS links (
@@ -61,6 +63,14 @@ if (!profileColumns.includes('particles_color')) {
 }
 if (!profileColumns.includes('particles_density')) {
   db.exec("ALTER TABLE profile ADD COLUMN particles_density INTEGER NOT NULL DEFAULT 60");
+}
+
+const adminColumns = db.prepare('PRAGMA table_info(admin)').all().map((c) => c.name);
+if (!adminColumns.includes('google_id')) {
+  db.exec('ALTER TABLE admin ADD COLUMN google_id TEXT');
+}
+if (!adminColumns.includes('google_email')) {
+  db.exec('ALTER TABLE admin ADD COLUMN google_email TEXT');
 }
 
 const profileExists = db.prepare('SELECT COUNT(*) AS c FROM profile').get().c;

@@ -6,8 +6,28 @@
   const submitBtn = document.getElementById('submit-btn');
   const confirmField = document.getElementById('password-confirm-field');
   const confirmInput = document.getElementById('password-confirm');
+  const googleDivider = document.getElementById('google-divider');
+  const googleBtn = document.getElementById('google-btn');
+  const googleLabel = document.getElementById('google-label');
 
   let mode = 'login';
+
+  const ERROR_MESSAGES = {
+    google_not_linked: 'Esa cuenta de Google no está vinculada a ningún administrador.',
+    google_failed: 'No se pudo completar el inicio de sesión con Google.',
+    google_state: 'La sesión de Google expiró, intenta de nuevo.',
+    google_not_configured: 'El inicio de sesión con Google no está configurado.',
+    setup_closed: 'Ya existe una cuenta de administrador.',
+    must_login: 'Inicia sesión primero.',
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  const errorCode = params.get('error');
+  if (errorCode && ERROR_MESSAGES[errorCode]) {
+    errorEl.textContent = ERROR_MESSAGES[errorCode];
+    errorEl.classList.remove('hidden');
+  }
+  if (errorCode) window.history.replaceState({}, '', '/admin/login.html');
 
   fetch('/api/auth/me')
     .then((r) => r.json())
@@ -20,6 +40,15 @@
     })
     .then((setup) => {
       if (setup && setup.needsSetup) enableSetupMode();
+      return fetch('/api/auth/google/status').then((r) => r.json());
+    })
+    .then((googleStatus) => {
+      if (googleStatus && googleStatus.configured) {
+        googleDivider.classList.remove('hidden');
+        googleBtn.classList.remove('hidden');
+        googleBtn.href = mode === 'register' ? '/api/auth/google?intent=register' : '/api/auth/google?intent=login';
+        googleLabel.textContent = mode === 'register' ? 'Crear cuenta con Google' : 'Continuar con Google';
+      }
     });
 
   function enableSetupMode() {

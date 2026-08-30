@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -8,6 +10,7 @@ require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
+const googleRoutes = require('./routes/google');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +44,7 @@ app.use(session({
 app.use('/uploads', express.static(uploadsDir));
 app.use('/api/public', publicRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', googleRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

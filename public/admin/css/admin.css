@@ -27,6 +27,16 @@ body {
 
 .hidden { display: none !important; }
 
+.particles-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
 .brand-name {
   font-family: 'Playfair Display', serif;
   font-style: italic;
@@ -194,6 +204,45 @@ body {
 
 .login-card .brand-name { font-size: 1.6rem; margin-bottom: 6px; }
 .login-sub { font-size: 0.85rem; color: var(--text-dim); margin: 0 0 24px; }
+
+.orb-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+.orb-divider::before,
+.orb-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.google-btn {
+  text-decoration: none;
+  background: #ffffff;
+  color: #1f1f1f;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.google-btn:hover { background: #f2f2f2; }
+
+.google-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.google-status-text {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
 
 /* Expanding login orb */
 

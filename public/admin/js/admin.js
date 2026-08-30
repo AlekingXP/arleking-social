@@ -160,10 +160,62 @@
       });
       document.getElementById('password-form').reset();
       showToast('Contraseña actualizada', 'success');
+      loadAccountStatus();
     } catch (err) {
       showToast(err.message, 'error');
     }
   });
+
+  // ---- Google account ----
+
+  async function loadAccountStatus() {
+    const data = await fetch('/api/auth/me').then((r) => r.json());
+    if (!data.authenticated) return;
+
+    document.getElementById('pw-current-field').classList.toggle('hidden', !data.hasPassword);
+    document.getElementById('pw-new-label').textContent = data.hasPassword ? 'Contraseña nueva' : 'Crear contraseña';
+
+    const googleStatus = await fetch('/api/auth/google/status').then((r) => r.json());
+    const section = document.getElementById('google-link-section');
+    if (!googleStatus.configured) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+
+    const statusText = document.getElementById('google-status-text');
+    const linkBtn = document.getElementById('google-link-btn');
+    const unlinkBtn = document.getElementById('google-unlink-btn');
+
+    if (data.googleEmail) {
+      statusText.textContent = `Vinculada: ${data.googleEmail}`;
+      linkBtn.classList.add('hidden');
+      unlinkBtn.classList.remove('hidden');
+    } else {
+      statusText.textContent = 'No vinculada';
+      linkBtn.classList.remove('hidden');
+      unlinkBtn.classList.add('hidden');
+    }
+  }
+
+  document.getElementById('google-unlink-btn').addEventListener('click', async () => {
+    try {
+      await api('/api/auth/google-link', { method: 'DELETE' });
+      showToast('Cuenta de Google desvinculada', 'success');
+      loadAccountStatus();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  (function handleGoogleQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('linked') === '1') showToast('Cuenta de Google vinculada', 'success');
+    if (params.get('error') === 'google_taken') showToast('Esa cuenta de Google ya está vinculada a otra sesión', 'error');
+    if (params.has('linked') || params.has('error')) {
+      window.history.replaceState({}, '', '/admin/dashboard.html');
+    }
+  })();
 
   // ---- Links ----
 
@@ -390,5 +442,6 @@
     if (!ok) return;
     await loadProfile();
     await loadLinks();
+    await loadAccountStatus();
   })();
 })();

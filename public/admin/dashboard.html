@@ -11,6 +11,8 @@
 </head>
 <body>
 
+  <canvas id="particles-canvas" class="particles-canvas" aria-hidden="true"></canvas>
+
   <div class="topbar">
     <h1 class="brand-name topbar-title">✨ Dashboard</h1>
     <div class="topbar-actions">
@@ -136,13 +138,26 @@
     <!-- Seguridad -->
     <section class="card">
       <h2 class="card-title">Seguridad</h2>
+
+      <div id="google-link-section" class="hidden">
+        <div class="google-status-row">
+          <div>
+            <p class="hint" style="margin:0 0 4px;">Cuenta de Google</p>
+            <p id="google-status-text" class="google-status-text">No vinculada</p>
+          </div>
+          <a id="google-link-btn" href="/api/auth/google?intent=link" class="btn-outline btn-sm">Vincular con Google</a>
+          <button type="button" id="google-unlink-btn" class="btn-outline btn-sm hidden">Desvincular</button>
+        </div>
+        <hr class="divider" />
+      </div>
+
       <form id="password-form" class="form-grid">
-        <label class="field">
+        <label class="field" id="pw-current-field">
           <span>Contraseña actual</span>
-          <input type="password" id="pw-current" required />
+          <input type="password" id="pw-current" />
         </label>
         <label class="field">
-          <span>Contraseña nueva</span>
+          <span id="pw-new-label">Contraseña nueva</span>
           <input type="password" id="pw-new" required minlength="6" />
         </label>
         <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
@@ -234,6 +249,7 @@
     </div>
   </div>
 
+  <script src="/js/particles.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/admin/js/admin.js"></script>
 </body>
