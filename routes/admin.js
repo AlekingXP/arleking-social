@@ -33,6 +33,28 @@ const upload = multer({
 
 // ---- Auth ----
 
+router.get('/auth/setup-status', (req, res) => {
+  const count = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
+  res.json({ needsSetup: count === 0 });
+});
+
+router.post('/auth/register', (req, res) => {
+  const count = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
+  if (count > 0) return res.status(403).json({ error: 'Ya existe una cuenta de administrador' });
+
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
+  if (username.trim().length < 3) return res.status(400).json({ error: 'El usuario debe tener al menos 3 caracteres' });
+  if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+  const hash = bcrypt.hashSync(password, 10);
+  const info = db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(username.trim(), hash);
+
+  req.session.userId = info.lastInsertRowid;
+  req.session.username = username.trim();
+  res.status(201).json({ ok: true, username: username.trim() });
+});
+
 router.post('/auth/login', (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan credenciales' });
@@ -109,6 +131,28 @@ router.post('/profile/avatar', requireAuth, upload.single('avatar'), (req, res) 
   db.prepare('UPDATE profile SET avatar_path = ? WHERE id = 1').run('/uploads/' + req.file.filename);
   if (prev && prev.avatar_path) {
     fs.unlink(path.join(uploadsDir, path.basename(prev.avatar_path)), () => {});
+  }
+
+  res.json(db.prepare('SELECT * FROM profile WHERE id = 1').get());
+});
+
+router.post('/profile/background', requireAuth, upload.single('background'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen' });
+
+  const prev = db.prepare('SELECT background_path FROM profile WHERE id = 1').get();
+  db.prepare('UPDATE profile SET background_path = ? WHERE id = 1').run('/uploads/' + req.file.filename);
+  if (prev && prev.background_path) {
+    fs.unlink(path.join(uploadsDir, path.basename(prev.background_path)), () => {});
+  }
+
+  res.json(db.prepare('SELECT * FROM profile WHERE id = 1').get());
+});
+
+router.delete('/profile/background', requireAuth, (req, res) => {
+  const prev = db.prepare('SELECT background_path FROM profile WHERE id = 1').get();
+  db.prepare('UPDATE profile SET background_path = NULL WHERE id = 1').run();
+  if (prev && prev.background_path) {
+    fs.unlink(path.join(uploadsDir, path.basename(prev.background_path)), () => {});
   }
 
   res.json(db.prepare('SELECT * FROM profile WHERE id = 1').get());

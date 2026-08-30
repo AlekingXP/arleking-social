@@ -6,6 +6,7 @@
   --border: rgba(255, 255, 255, 0.07);
   --text: #f5eef0;
   --text-dim: rgba(245, 238, 240, 0.6);
+  --hero-bg: url('/images/hero-bg.jpg');
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +33,7 @@ body {
   background:
     radial-gradient(ellipse 650px 420px at 50% 0%, color-mix(in srgb, var(--accent-from) 22%, transparent), transparent 70%) no-repeat,
     linear-gradient(180deg, rgba(11, 5, 9, 0.55) 0%, rgba(11, 5, 9, 0.82) 55%, rgba(11, 5, 9, 0.96) 100%) no-repeat,
-    url('/images/hero-bg.jpg') center / cover no-repeat,
+    var(--hero-bg) center / cover no-repeat,
     var(--bg);
 }
 

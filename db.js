@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcryptjs');
 const Database = require('better-sqlite3');
 const { dataDir } = require('./paths');
 
@@ -15,6 +14,7 @@ db.exec(`
     name TEXT NOT NULL,
     tagline TEXT NOT NULL,
     avatar_path TEXT,
+    background_path TEXT,
     age_gate_enabled INTEGER NOT NULL DEFAULT 1,
     age_gate_title TEXT NOT NULL,
     age_gate_subtitle TEXT NOT NULL,
@@ -46,11 +46,16 @@ db.exec(`
   );
 `);
 
+const profileColumns = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
+if (!profileColumns.includes('background_path')) {
+  db.exec('ALTER TABLE profile ADD COLUMN background_path TEXT');
+}
+
 const profileExists = db.prepare('SELECT COUNT(*) AS c FROM profile').get().c;
 if (!profileExists) {
   db.prepare(`
-    INSERT INTO profile (id, name, tagline, avatar_path, age_gate_enabled, age_gate_title, age_gate_subtitle, age_gate_confirm, footer_text, accent_from, accent_to)
-    VALUES (1, ?, ?, NULL, 0, ?, ?, ?, ?, ?, ?)
+    INSERT INTO profile (id, name, tagline, avatar_path, background_path, age_gate_enabled, age_gate_title, age_gate_subtitle, age_gate_confirm, footer_text, accent_from, accent_to)
+    VALUES (1, ?, ?, NULL, NULL, 0, ?, ?, ?, ?, ?, ?)
   `).run(
     'Ale King',
     '✨ mis redes sociales',
@@ -81,12 +86,4 @@ if (!linkCount) {
   insertMany(seedLinks);
 }
 
-const adminExists = db.prepare('SELECT COUNT(*) AS c FROM admin').get().c;
-let generatedPassword = null;
-if (!adminExists) {
-  generatedPassword = 'changeme123';
-  const hash = bcrypt.hashSync(generatedPassword, 10);
-  db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run('admin', hash);
-}
-
-module.exports = { db, generatedPassword };
+module.exports = { db };

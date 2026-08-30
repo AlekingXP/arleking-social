@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 
-const { generatedPassword } = require('./db');
+require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -52,8 +52,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`\nServidor corriendo en http://localhost:${PORT}`);
   console.log(`Dashboard admin en http://localhost:${PORT}/admin/login.html`);
-  if (generatedPassword) {
-    console.log(`\nUsuario admin creado -> usuario: admin | contraseña: ${generatedPassword}`);
-    console.log('Cámbiala desde el dashboard después de iniciar sesión.\n');
-  }
 });

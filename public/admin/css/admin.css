@@ -436,6 +436,29 @@ body {
   background: #241019;
 }
 
+.bg-editor {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.background-preview {
+  width: 96px;
+  height: 60px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  background: #241019;
+  flex-shrink: 0;
+}
+
+.bg-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* Links admin list */
 
 .links-admin-list {

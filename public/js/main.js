@@ -85,6 +85,8 @@
   function applyTheme(profile) {
     document.documentElement.style.setProperty('--accent-from', profile.accent_from);
     document.documentElement.style.setProperty('--accent-to', profile.accent_to);
+    const bgUrl = profile.background_path || '/images/hero-bg.jpg';
+    document.documentElement.style.setProperty('--hero-bg', `url('${bgUrl}')`);
   }
 
   function fillProfile(profile) {

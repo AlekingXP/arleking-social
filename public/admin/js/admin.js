@@ -45,6 +45,7 @@
 
   function fillProfileForm(profile) {
     document.getElementById('avatar-preview').src = profile.avatar_path || placeholder(profile.name);
+    document.getElementById('background-preview').src = profile.background_path || '/images/hero-bg.jpg';
     document.getElementById('p-name').value = profile.name || '';
     document.getElementById('p-tagline').value = profile.tagline || '';
     document.getElementById('p-footer').value = profile.footer_text || '';
@@ -107,6 +108,31 @@
       showToast(err.message, 'error');
     }
     e.target.value = '';
+  });
+
+  document.getElementById('background-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('background', file);
+    try {
+      const profile = await api('/api/profile/background', { method: 'POST', body: formData });
+      document.getElementById('background-preview').src = profile.background_path;
+      showToast('Fondo actualizado', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('background-remove-btn').addEventListener('click', async () => {
+    try {
+      await api('/api/profile/background', { method: 'DELETE' });
+      document.getElementById('background-preview').src = '/images/hero-bg.jpg';
+      showToast('Fondo restablecido al predeterminado', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   });
 
   // ---- Password ----
