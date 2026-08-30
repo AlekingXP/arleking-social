@@ -204,12 +204,11 @@ body {
   padding: 2px;
   border-radius: 999px;
   overflow: hidden;
-  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), border-radius 0.5s ease, transform 0.2s ease;
+  transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), border-radius 0.45s ease;
 }
 
-.login-orb:not(.expanded):hover { transform: scale(1.03); }
-
-.login-orb.expanded {
+.login-orb:hover,
+.login-orb:focus-within {
   width: 100%;
   border-radius: 24px;
 }
@@ -225,7 +224,8 @@ body {
   animation: orb-spin 4s linear infinite;
 }
 
-.login-orb:not(.expanded):hover .orb-ring { animation-duration: 1.4s; }
+.login-orb:hover .orb-ring,
+.login-orb:focus-within .orb-ring { animation-duration: 1.4s; }
 
 @keyframes orb-spin {
   to { transform: translate(-50%, -50%) rotate(360deg); }
@@ -245,6 +245,7 @@ body {
   justify-content: center;
   gap: 8px;
   width: 100%;
+  max-height: 48px;
   padding: 12px 20px;
   background: transparent;
   border: none;
@@ -253,22 +254,33 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s ease;
+  cursor: default;
+  overflow: hidden;
+  opacity: 1;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
 }
 
-.orb-trigger:hover { background: rgba(255, 255, 255, 0.06); }
+.login-orb:hover .orb-trigger,
+.login-orb:focus-within .orb-trigger {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
 
 .orb-form {
-  padding: 14px 12px 6px;
-  animation: orb-form-in 0.35s ease;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  transition: max-height 0.45s ease 0.05s, opacity 0.3s ease 0.1s, padding 0.35s ease;
 }
 
-.orb-form.hidden { display: none; }
-
-@keyframes orb-form-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+.login-orb:hover .orb-form,
+.login-orb:focus-within .orb-form {
+  max-height: 320px;
+  opacity: 1;
+  padding: 14px 12px 6px;
 }
 
 .error-text {

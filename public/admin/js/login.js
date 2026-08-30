@@ -1,21 +1,12 @@
 (function () {
   const form = document.getElementById('login-form');
   const errorEl = document.getElementById('login-error');
-  const orb = document.getElementById('login-orb');
-  const trigger = document.getElementById('orb-trigger');
 
   fetch('/api/auth/me')
     .then((r) => r.json())
     .then((data) => {
       if (data.authenticated) window.location.href = '/admin/dashboard.html';
     });
-
-  trigger.addEventListener('click', () => {
-    orb.classList.add('expanded');
-    trigger.classList.add('hidden');
-    form.classList.remove('hidden');
-    setTimeout(() => document.getElementById('username').focus(), 300);
-  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
