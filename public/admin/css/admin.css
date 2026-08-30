@@ -335,6 +335,15 @@ body {
   cursor: pointer;
 }
 
+.field input[type="range"] {
+  padding: 0;
+  height: 42px;
+  accent-color: var(--accent-from);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
 .field-row {
   display: flex;
   gap: 12px;

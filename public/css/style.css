@@ -37,6 +37,16 @@ body {
     var(--bg);
 }
 
+.particles-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
 .hidden { display: none !important; }
 
 .brand-name {

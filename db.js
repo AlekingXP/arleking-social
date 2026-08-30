@@ -21,7 +21,10 @@ db.exec(`
     age_gate_confirm TEXT NOT NULL,
     footer_text TEXT NOT NULL,
     accent_from TEXT NOT NULL DEFAULT '#ff5f8f',
-    accent_to TEXT NOT NULL DEFAULT '#ff9a5a'
+    accent_to TEXT NOT NULL DEFAULT '#ff9a5a',
+    particles_enabled INTEGER NOT NULL DEFAULT 1,
+    particles_color TEXT NOT NULL DEFAULT '#ffffff',
+    particles_density INTEGER NOT NULL DEFAULT 60
   );
 
   CREATE TABLE IF NOT EXISTS admin (
@@ -49,6 +52,15 @@ db.exec(`
 const profileColumns = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
 if (!profileColumns.includes('background_path')) {
   db.exec('ALTER TABLE profile ADD COLUMN background_path TEXT');
+}
+if (!profileColumns.includes('particles_enabled')) {
+  db.exec("ALTER TABLE profile ADD COLUMN particles_enabled INTEGER NOT NULL DEFAULT 1");
+}
+if (!profileColumns.includes('particles_color')) {
+  db.exec("ALTER TABLE profile ADD COLUMN particles_color TEXT NOT NULL DEFAULT '#ffffff'");
+}
+if (!profileColumns.includes('particles_density')) {
+  db.exec("ALTER TABLE profile ADD COLUMN particles_density INTEGER NOT NULL DEFAULT 60");
 }
 
 const profileExists = db.prepare('SELECT COUNT(*) AS c FROM profile').get().c;

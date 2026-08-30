@@ -105,20 +105,25 @@ router.put('/profile', requireAuth, (req, res) => {
   const {
     name, tagline, age_gate_enabled, age_gate_title, age_gate_subtitle,
     age_gate_confirm, footer_text, accent_from, accent_to,
+    particles_enabled, particles_color, particles_density,
   } = req.body || {};
 
   if (!name || !tagline) return res.status(400).json({ error: 'Nombre y tagline son obligatorios' });
+
+  const density = Math.min(150, Math.max(0, parseInt(particles_density, 10) || 60));
 
   db.prepare(`
     UPDATE profile SET
       name = ?, tagline = ?, age_gate_enabled = ?, age_gate_title = ?,
       age_gate_subtitle = ?, age_gate_confirm = ?, footer_text = ?,
-      accent_from = ?, accent_to = ?
+      accent_from = ?, accent_to = ?,
+      particles_enabled = ?, particles_color = ?, particles_density = ?
     WHERE id = 1
   `).run(
     name, tagline, age_gate_enabled ? 1 : 0, age_gate_title || name,
     age_gate_subtitle || tagline, age_gate_confirm || 'Al continuar confirmas que eres mayor de edad',
-    footer_text || name, accent_from || '#ff5f8f', accent_to || '#ff9a5a'
+    footer_text || name, accent_from || '#ff5f8f', accent_to || '#ff9a5a',
+    particles_enabled ? 1 : 0, particles_color || '#ffffff', density
   );
 
   res.json(db.prepare('SELECT * FROM profile WHERE id = 1').get());

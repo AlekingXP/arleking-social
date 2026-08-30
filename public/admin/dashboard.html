@@ -82,6 +82,24 @@
         <hr class="divider" />
 
         <label class="switch-row">
+          <input type="checkbox" id="p-particles-enabled" />
+          <span>Mostrar nodos interactivos de fondo</span>
+        </label>
+
+        <div class="field-row">
+          <label class="field small">
+            <span>Color de los nodos</span>
+            <input type="color" id="p-particles-color" />
+          </label>
+          <label class="field small">
+            <span>Cantidad de nodos: <span id="p-particles-density-value">60</span></span>
+            <input type="range" id="p-particles-density" min="0" max="150" step="5" />
+          </label>
+        </div>
+
+        <hr class="divider" />
+
+        <label class="switch-row">
           <input type="checkbox" id="p-gate-enabled" />
           <span>Mostrar verificación de edad antes de entrar</span>
         </label>
