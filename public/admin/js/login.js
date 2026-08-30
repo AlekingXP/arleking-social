@@ -57,13 +57,13 @@
     });
   }
 
-  window.history.replaceState({}, '', '/admin/login.html');
+  window.history.replaceState({}, '', '/admin/login');
 
   fetch('/api/auth/me')
     .then((r) => r.json())
     .then((data) => {
       if (data.authenticated) {
-        window.location.href = '/admin/dashboard.html';
+        window.location.href = '/admin/dashboard';
         return;
       }
       setMode(params.get('mode') === 'register' ? 'register' : 'login');
@@ -105,7 +105,7 @@
         return;
       }
 
-      window.location.href = '/admin/dashboard.html';
+      window.location.href = '/admin/dashboard';
     } catch (err) {
       errorEl.textContent = 'Error de conexión con el servidor';
       errorEl.classList.remove('hidden');

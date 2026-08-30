@@ -48,6 +48,14 @@ app.use('/api', googleRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/admin/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+
+app.get('/admin/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'dashboard.html'));
+});
+
 app.get('/:slug', (req, res, next) => {
   if (req.params.slug.includes('.')) return next();
   res.sendFile(path.join(__dirname, 'public', 'profile.html'));
@@ -60,5 +68,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`\nServidor corriendo en http://localhost:${PORT}`);
-  console.log(`Dashboard admin en http://localhost:${PORT}/admin/login.html`);
+  console.log(`Dashboard admin en http://localhost:${PORT}/admin/login`);
 });

@@ -46,7 +46,7 @@ router.get('/auth/google', oauthLimiter, (req, res) => {
   const intent = req.query.intent === 'link' ? 'link' : 'login';
 
   if (intent === 'link' && !(req.session && req.session.userId)) {
-    return res.redirect('/admin/login.html?error=must_login');
+    return res.redirect('/admin/login?error=must_login');
   }
 
   const state = crypto.randomBytes(24).toString('hex');
@@ -67,11 +67,11 @@ router.get('/auth/google', oauthLimiter, (req, res) => {
 });
 
 router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
-  if (!isConfigured()) return res.redirect('/admin/login.html?error=google_not_configured');
+  if (!isConfigured()) return res.redirect('/admin/login?error=google_not_configured');
 
   const { code, state } = req.query;
   if (!code || !state || state !== req.session.oauthState) {
-    return res.redirect('/admin/login.html?error=google_state');
+    return res.redirect('/admin/login?error=google_state');
   }
 
   const intent = req.session.oauthIntent || 'login';
@@ -102,14 +102,14 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
     if (!userRes.ok || !profile.sub) throw new Error('No se pudo obtener el perfil de Google');
 
     if (intent === 'link') {
-      if (!linkAdminId) return res.redirect('/admin/login.html?error=must_login');
+      if (!linkAdminId) return res.redirect('/admin/login?error=must_login');
 
       const taken = db.prepare('SELECT id FROM users WHERE google_id = ? AND id != ?').get(profile.sub, linkAdminId);
-      if (taken) return res.redirect('/admin/dashboard.html?error=google_taken');
+      if (taken) return res.redirect('/admin/dashboard?error=google_taken');
 
       db.prepare('UPDATE users SET google_id = ?, google_email = ? WHERE id = ?')
         .run(profile.sub, profile.email || null, linkAdminId);
-      return res.redirect('/admin/dashboard.html?linked=1');
+      return res.redirect('/admin/dashboard?linked=1');
     }
 
     // intent === 'login' — find existing, or create a brand new account (open signup)
@@ -139,14 +139,14 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
     }
 
     req.session.regenerate((err) => {
-      if (err) return res.redirect('/admin/login.html?error=session');
+      if (err) return res.redirect('/admin/login?error=session');
       req.session.userId = user.id;
       req.session.username = user.username;
-      res.redirect(isNew ? '/admin/dashboard.html?welcome=1' : '/admin/dashboard.html');
+      res.redirect(isNew ? '/admin/dashboard?welcome=1' : '/admin/dashboard');
     });
   } catch (err) {
     console.error('Google OAuth error:', err.message);
-    res.redirect('/admin/login.html?error=google_failed');
+    res.redirect('/admin/login?error=google_failed');
   }
 });
 

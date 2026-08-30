@@ -143,9 +143,9 @@
   async function resolveSettings() {
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
-    if (path === '/' || path === '/admin/login.html') return DEFAULTS;
+    if (path === '/' || path === '/admin/login') return DEFAULTS;
 
-    if (path === '/admin/dashboard.html') {
+    if (path === '/admin/dashboard') {
       const res = await fetch('/api/profile').catch(() => null);
       if (res && res.ok) return res.json();
       return DEFAULTS;

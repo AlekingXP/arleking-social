@@ -18,7 +18,7 @@
       ...options,
     });
     if (res.status === 401) {
-      window.location.href = '/admin/login.html';
+      window.location.href = '/admin/login';
       throw new Error('No autenticado');
     }
     const data = await res.json();
@@ -31,7 +31,7 @@
   async function checkAuth() {
     const data = await fetch('/api/auth/me').then((r) => r.json());
     if (!data.authenticated) {
-      window.location.href = '/admin/login.html';
+      window.location.href = '/admin/login';
       return false;
     }
     return true;
@@ -39,7 +39,7 @@
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await api('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/admin/login.html';
+    window.location.href = '/admin/login';
   });
 
   // ---- Profile ----
@@ -217,7 +217,7 @@
     if (params.get('linked') === '1') showToast('Cuenta de Google vinculada', 'success');
     if (params.get('error') === 'google_taken') showToast('Esa cuenta de Google ya está vinculada a otra sesión', 'error');
     if (params.has('linked') || params.has('error')) {
-      window.history.replaceState({}, '', '/admin/dashboard.html');
+      window.history.replaceState({}, '', '/admin/dashboard');
     }
   })();
 
