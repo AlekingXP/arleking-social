@@ -10,24 +10,36 @@
 <link rel="stylesheet" href="/admin/css/admin.css" />
 </head>
 <body class="login-body">
-  <form id="login-form" class="login-card">
+  <div class="login-card">
     <h1 class="brand-name">✨ Dashboard</h1>
     <p class="login-sub">Inicia sesión para administrar tu página</p>
 
-    <label class="field">
-      <span>Usuario</span>
-      <input type="text" id="username" name="username" autocomplete="username" required />
-    </label>
+    <div class="login-orb" id="login-orb">
+      <div class="orb-ring"></div>
+      <div class="orb-body">
+        <button type="button" class="orb-trigger" id="orb-trigger">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          <span>Iniciar sesión</span>
+        </button>
 
-    <label class="field">
-      <span>Contraseña</span>
-      <input type="password" id="password" name="password" autocomplete="current-password" required />
-    </label>
+        <form id="login-form" class="orb-form hidden">
+          <label class="field">
+            <span>Usuario</span>
+            <input type="text" id="username" name="username" autocomplete="username" required />
+          </label>
 
-    <p id="login-error" class="error-text hidden"></p>
+          <label class="field">
+            <span>Contraseña</span>
+            <input type="password" id="password" name="password" autocomplete="current-password" required />
+          </label>
 
-    <button type="submit" class="btn-pill btn-gradient" style="width:100%; margin-top:8px;">Entrar</button>
-  </form>
+          <p id="login-error" class="error-text hidden"></p>
+
+          <button type="submit" class="btn-pill btn-gradient" style="width:100%;">Entrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/button-fx.js"></script>
   <script src="/admin/js/login.js"></script>
