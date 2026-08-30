@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Iniciar sesión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/admin/css/admin.css" />
+</head>
+<body class="login-body">
+  <form id="login-form" class="login-card">
+    <h1 class="brand-name">✨ Dashboard</h1>
+    <p class="login-sub">Inicia sesión para administrar tu página</p>
+
+    <label class="field">
+      <span>Usuario</span>
+      <input type="text" id="username" name="username" autocomplete="username" required />
+    </label>
+
+    <label class="field">
+      <span>Contraseña</span>
+      <input type="password" id="password" name="password" autocomplete="current-password" required />
+    </label>
+
+    <p id="login-error" class="error-text hidden"></p>
+
+    <button type="submit" class="btn-pill btn-gradient" style="width:100%; margin-top:8px;">Entrar</button>
+  </form>
+
+  <script src="/js/button-fx.js"></script>
+  <script src="/admin/js/login.js"></script>
+</body>
+</html>

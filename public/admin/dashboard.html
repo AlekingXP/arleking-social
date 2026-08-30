@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/admin/css/admin.css" />
+</head>
+<body>
+
+  <div class="topbar">
+    <h1 class="brand-name topbar-title">✨ Dashboard</h1>
+    <div class="topbar-actions">
+      <a href="/" target="_blank" class="btn-outline btn-sm">Ver página pública ↗</a>
+      <button id="logout-btn" class="btn-outline btn-sm">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <main class="dash-main">
+
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Perfil -->
+    <section class="card">
+      <h2 class="card-title">Perfil</h2>
+
+      <div class="avatar-editor">
+        <img id="avatar-preview" class="avatar-preview" src="" alt="avatar" />
+        <div>
+          <label class="btn-outline btn-sm file-btn">
+            Cambiar foto
+            <input type="file" id="avatar-input" accept="image/*" hidden />
+          </label>
+          <p class="hint">PNG, JPG o WEBP. Máx 5MB.</p>
+        </div>
+      </div>
+
+      <form id="profile-form" class="form-grid">
+        <label class="field">
+          <span>Nombre</span>
+          <input type="text" id="p-name" required />
+        </label>
+
+        <label class="field">
+          <span>Tagline</span>
+          <input type="text" id="p-tagline" required />
+        </label>
+
+        <label class="field">
+          <span>Texto del footer</span>
+          <input type="text" id="p-footer" />
+        </label>
+
+        <div class="field-row">
+          <label class="field small">
+            <span>Color inicio (degradado)</span>
+            <input type="color" id="p-accent-from" />
+          </label>
+          <label class="field small">
+            <span>Color final (degradado)</span>
+            <input type="color" id="p-accent-to" />
+          </label>
+        </div>
+
+        <hr class="divider" />
+
+        <label class="switch-row">
+          <input type="checkbox" id="p-gate-enabled" />
+          <span>Mostrar verificación de edad antes de entrar</span>
+        </label>
+
+        <label class="field">
+          <span>Título en la verificación</span>
+          <input type="text" id="p-gate-title" />
+        </label>
+
+        <label class="field">
+          <span>Subtítulo en la verificación</span>
+          <input type="text" id="p-gate-subtitle" />
+        </label>
+
+        <label class="field">
+          <span>Texto de confirmación</span>
+          <input type="text" id="p-gate-confirm" />
+        </label>
+
+        <button type="submit" class="btn-pill btn-gradient">Guardar perfil</button>
+      </form>
+    </section>
+
+    <!-- Enlaces -->
+    <section class="card">
+      <div class="card-title-row">
+        <h2 class="card-title">Enlaces</h2>
+        <button id="add-link-btn" class="btn-pill btn-gradient btn-sm">+ Agregar enlace</button>
+      </div>
+
+      <div id="links-admin-list" class="links-admin-list"></div>
+    </section>
+
+    <!-- Seguridad -->
+    <section class="card">
+      <h2 class="card-title">Seguridad</h2>
+      <form id="password-form" class="form-grid">
+        <label class="field">
+          <span>Contraseña actual</span>
+          <input type="password" id="pw-current" required />
+        </label>
+        <label class="field">
+          <span>Contraseña nueva</span>
+          <input type="password" id="pw-new" required minlength="6" />
+        </label>
+        <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- Modal edición de enlace -->
+  <div id="link-modal" class="overlay hidden">
+    <div class="modal-card">
+      <h2 id="link-modal-title">Nuevo enlace</h2>
+
+      <form id="link-form" class="form-grid">
+        <input type="hidden" id="l-id" />
+
+        <label class="field">
+          <span>Tipo</span>
+          <select id="l-type">
+            <option value="simple">Fila simple</option>
+            <option value="featured">Tarjeta destacada (con imagen)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Plataforma</span>
+          <select id="l-platform">
+            <option value="youtube">YouTube</option>
+            <option value="twitch">Twitch</option>
+            <option value="telegram">Telegram</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter / X</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="wishlist">Wishlist</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Ícono (emoji, solo fila simple)</span>
+          <input type="text" id="l-icon" maxlength="4" placeholder="🔗" />
+        </label>
+
+        <label class="field">
+          <span>Etiqueta</span>
+          <input type="text" id="l-label" required />
+        </label>
+
+        <label class="field">
+          <span>Subtítulo</span>
+          <input type="text" id="l-subtitle" />
+        </label>
+
+        <label class="field">
+          <span>URL de destino</span>
+          <input type="url" id="l-url" placeholder="https://" required />
+        </label>
+
+        <div class="field-row">
+          <label class="field small">
+            <span>Badge izquierdo (tarjeta destacada)</span>
+            <input type="text" id="l-badge-left" placeholder="DESTACADO" />
+          </label>
+          <label class="field small">
+            <span>Badge derecho (tarjeta destacada)</span>
+            <input type="text" id="l-badge-right" placeholder="Ale King XP" />
+          </label>
+        </div>
+
+        <div id="l-image-row" class="field hidden">
+          <span>Imagen de la tarjeta</span>
+          <label class="btn-outline btn-sm file-btn">
+            Subir imagen
+            <input type="file" id="l-image-input" accept="image/*" hidden />
+          </label>
+        </div>
+
+        <label class="switch-row">
+          <input type="checkbox" id="l-enabled" checked />
+          <span>Visible en la página pública</span>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="link-cancel-btn" class="btn-outline">Cancelar</button>
+          <button type="submit" class="btn-pill btn-gradient">Guardar enlace</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/button-fx.js"></script>
+  <script src="/admin/js/admin.js"></script>
+</body>
+</html>
