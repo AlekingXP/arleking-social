@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
-const { db, slugify, RESERVED_SLUGS, createUserWithProfile } = require('../db');
+const { db, slugify, RESERVED_SLUGS, createUserWithProfile, touchUserActivity } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -138,6 +138,7 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
       isNew = true;
     }
 
+    touchUserActivity(user.id);
     req.session.regenerate((err) => {
       if (err) return res.redirect('/admin/login?error=session');
       req.session.userId = user.id;

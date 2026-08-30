@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 
-require('./db');
+const { cleanupInactiveUsers } = require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -66,7 +66,21 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Error interno' });
 });
 
+function runInactivityCleanup() {
+  try {
+    const removed = cleanupInactiveUsers(uploadsDir);
+    if (removed.length) {
+      console.log(`Cuentas eliminadas por inactividad (6+ meses): ${removed.map((u) => u.username).join(', ')}`);
+    }
+  } catch (err) {
+    console.error('Error al limpiar cuentas inactivas:', err.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`\nServidor corriendo en http://localhost:${PORT}`);
   console.log(`Dashboard admin en http://localhost:${PORT}/admin/login`);
+
+  runInactivityCleanup();
+  setInterval(runInactivityCleanup, 24 * 60 * 60 * 1000);
 });

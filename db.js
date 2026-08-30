@@ -16,7 +16,8 @@ db.exec(`
     password_hash TEXT,
     google_id TEXT UNIQUE,
     google_email TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_active_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS profile (
@@ -162,6 +163,53 @@ if (needsTenantMigration) {
   console.log('Migración completa.');
 }
 
+const userColumnsNow = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+if (!userColumnsNow.includes('last_active_at')) {
+  db.exec('ALTER TABLE users ADD COLUMN last_active_at TEXT');
+  db.exec("UPDATE users SET last_active_at = datetime('now') WHERE last_active_at IS NULL");
+}
+
+const INACTIVITY_MONTHS = 6;
+
+function touchUserActivity(userId) {
+  db.prepare("UPDATE users SET last_active_at = datetime('now') WHERE id = ?").run(userId);
+}
+
+function deleteUserFiles(userId, uploadsDir) {
+  const profile = db.prepare('SELECT avatar_path, background_path FROM profile WHERE user_id = ?').get(userId);
+  const links = db.prepare('SELECT image_path FROM links WHERE user_id = ?').all(userId);
+  const paths = [
+    profile && profile.avatar_path,
+    profile && profile.background_path,
+    ...links.map((l) => l.image_path),
+  ].filter(Boolean);
+
+  paths.forEach((p) => {
+    try {
+      fs.unlinkSync(path.join(uploadsDir, path.basename(p)));
+    } catch (err) {
+      // file already gone or inaccessible — nothing to do
+    }
+  });
+}
+
+function cleanupInactiveUsers(uploadsDir) {
+  const cutoff = db.prepare(`SELECT datetime('now', '-${INACTIVITY_MONTHS} months') AS cutoff`).get().cutoff;
+  const inactive = db.prepare('SELECT id, username FROM users WHERE last_active_at < ?').all(cutoff);
+
+  if (!inactive.length) return inactive;
+
+  const remove = db.transaction((ids) => {
+    ids.forEach((id) => {
+      deleteUserFiles(id, uploadsDir);
+      db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    });
+  });
+  remove(inactive.map((u) => u.id));
+
+  return inactive;
+}
+
 function createUserWithProfile({ username, passwordHash, googleId, googleEmail, name, slug }) {
   const insertUser = db.prepare(`
     INSERT INTO users (username, password_hash, google_id, google_email)
@@ -194,4 +242,4 @@ function createUserWithProfile({ username, passwordHash, googleId, googleEmail, 
   return userId;
 }
 
-module.exports = { db, slugify, RESERVED_SLUGS, createUserWithProfile };
+module.exports = { db, slugify, RESERVED_SLUGS, createUserWithProfile, touchUserActivity, cleanupInactiveUsers };

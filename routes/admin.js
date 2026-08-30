@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, slugify, RESERVED_SLUGS, createUserWithProfile } = require('../db');
+const { db, slugify, RESERVED_SLUGS, createUserWithProfile, touchUserActivity } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
 
@@ -81,6 +81,7 @@ router.post('/auth/login', authLimiter, (req, res) => {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
   }
 
+  touchUserActivity(user.id);
   req.session.regenerate((err) => {
     if (err) return res.status(500).json({ error: 'Error de sesión' });
     req.session.userId = user.id;
