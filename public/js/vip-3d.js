@@ -7,11 +7,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const MODEL_URLS = {
+  billete: '/models/dollars.glb',
   king: '/models/king-crown.glb',
 };
 
-// king-crown.glb was run through gltf-transform's meshopt geometry
-// compression (56MB -> 2.2MB from a raw AI-generated export) — the decoder
+// Both models were run through gltf-transform's meshopt geometry
+// compression (56-58MB -> ~2MB from raw AI-generated exports) — the decoder
 // must be registered before loading or GLTFLoader rejects the file.
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
@@ -52,7 +53,16 @@ function probeFps() {
   return new Promise((resolve) => {
     if (!supportsWebGL()) return resolve(0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+    // Sandboxed/software-rendered environments can have very low concurrent
+    // WebGL context limits — a context creation failure here (e.g. while a
+    // previous display renderer hasn't been disposed yet) should count as
+    // "too slow for 3D", not throw and hang the caller.
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+    } catch {
+      return resolve(0);
+    }
     renderer.setSize(64, 64);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
@@ -72,6 +82,7 @@ function probeFps() {
       if (frame >= SAMPLE_FRAMES) {
         const fps = (SAMPLE_FRAMES / (performance.now() - start)) * 1000;
         renderer.dispose();
+        renderer.forceContextLoss(); // free the WebGL context now, not whenever GC gets to it
         resolve(fps);
         return;
       }
@@ -109,7 +120,13 @@ export async function renderVip3D(container, tierKey) {
   const width = container.clientWidth || 160;
   const height = container.clientHeight || 160;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  } catch (err) {
+    console.error('No se pudo crear el contexto WebGL:', err);
+    return null;
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -161,6 +178,7 @@ export async function renderVip3D(container, tierKey) {
       disposed = true;
       cancelAnimationFrame(rafId);
       renderer.dispose();
+      renderer.forceContextLoss(); // free the WebGL context now, not whenever GC gets to it
     },
   };
 }

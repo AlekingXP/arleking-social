@@ -50,7 +50,7 @@
     billete: {
       emoji: '💵',
       icon: svgToDataUri(BILLETE_SVG),
-      label: 'Billete dorado',
+      label: 'Dollars',
       word: 'VIP',
       colorRgb: [255, 205, 70],
       glowCss: 'rgba(255, 205, 70, 0.55)',

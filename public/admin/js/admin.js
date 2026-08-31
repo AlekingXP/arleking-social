@@ -66,7 +66,7 @@
     renderVipStatus(profile);
   }
 
-  const VIP_LABELS = { billete: '💵 Billete dorado', king: '👑 THE KING' };
+  const VIP_LABELS = { billete: '💵 Dollars', king: '👑 THE KING' };
 
   function renderVipStatus(profile) {
     const box = document.getElementById('vip-current');
@@ -159,28 +159,39 @@
     if (params.has('checkout')) window.history.replaceState({}, '', '/admin/dashboard');
   })();
 
-  // ---- VIP: demo preview (replays the reveal, doesn't touch real state) ----
-
-  document.querySelectorAll('.vip-demo-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const buttons = document.querySelectorAll('.vip-demo-btn');
-      buttons.forEach((b) => { b.disabled = true; });
-      window.playVipDemo(btn.dataset.tier, document.getElementById('vip-demo-anchor'), () => {
-        buttons.forEach((b) => { b.disabled = false; });
-      });
-    });
-  });
-
   // ---- VIP: live 3D badge preview (Three.js, loaded as a module — may not
   // be ready yet when this script runs, so wait for its ready event too) ----
 
-  function initVip3DViewer() {
+  let current3DHandle = null;
+
+  function show3DModel(tierKey) {
     const container = document.getElementById('vip-3d-viewer');
-    const hint = container && container.querySelector('.vip-3d-hint');
-    if (!container) return;
-    window.renderVip3D(container, 'king').then((handle) => {
-      if (!handle && hint) hint.textContent = 'Vista 3D no disponible en este dispositivo — se usa el badge plano.';
-    });
+    if (!container || !window.renderVip3D) return;
+
+    // Dispose (and free the WebGL context) BEFORE requesting a new one —
+    // sandboxed/low-end environments can have very few concurrent WebGL
+    // contexts available, and starting the next load while the previous
+    // renderer is still holding its context can make the new one silently
+    // fail to acquire a context of its own.
+    if (current3DHandle) {
+      current3DHandle.dispose();
+      current3DHandle = null;
+    }
+    container.innerHTML = '<span class="vip-3d-hint">Cargando vista 3D…</span>';
+
+    window.renderVip3D(container, tierKey)
+      .then((handle) => {
+        current3DHandle = handle;
+        if (!handle) container.innerHTML = '<span class="vip-3d-hint">Vista 3D no disponible en este dispositivo — se usa el badge plano.</span>';
+      })
+      .catch((err) => {
+        console.error('Error inesperado en el visor 3D:', err);
+        container.innerHTML = '<span class="vip-3d-hint">Vista 3D no disponible en este dispositivo — se usa el badge plano.</span>';
+      });
+  }
+
+  function initVip3DViewer() {
+    show3DModel('billete');
   }
 
   if (window.renderVip3D) {
@@ -188,6 +199,20 @@
   } else {
     window.addEventListener('vip3d-ready', initVip3DViewer, { once: true });
   }
+
+  // ---- VIP: demo preview (replays the reveal + swaps the 3D model; touches
+  // neither the profile's real vip_tier nor its "seen it already" flag) ----
+
+  document.querySelectorAll('.vip-demo-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      show3DModel(btn.dataset.tier);
+      const buttons = document.querySelectorAll('.vip-demo-btn');
+      buttons.forEach((b) => { b.disabled = true; });
+      window.playVipDemo(btn.dataset.tier, document.getElementById('vip-demo-anchor'), () => {
+        buttons.forEach((b) => { b.disabled = false; });
+      });
+    });
+  });
 
   // ---- VIP (modo de prueba, reemplazar por Stripe) ----
 
