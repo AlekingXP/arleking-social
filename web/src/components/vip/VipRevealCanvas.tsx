@@ -10,11 +10,25 @@ interface Props {
   onComplete: () => void;
 }
 
-// Four-beat reveal: burst out from the badge, converge into the tier word,
-// hold with a shimmer, then collapse back down into the badge spot.
-const DURATIONS = { explode: 450, converge: 900, hold: 700, collapse: 500 } as const;
+// Six-beat reveal: loose dust converges into the emoji shape, the emoji
+// charges up and bursts apart, the scattered particles converge again into
+// the tier word, hold with a shimmer, then collapse back into the badge.
+const DURATIONS = {
+  form: 650,
+  impulse: 180,
+  explode: 420,
+  converge: 850,
+  hold: 650,
+  collapse: 500,
+} as const;
 
 interface Particle {
+  startX: number;
+  startY: number;
+  emojiX: number;
+  emojiY: number;
+  impulseX: number;
+  impulseY: number;
   scatterX: number;
   scatterY: number;
   targetX: number;
@@ -82,14 +96,40 @@ export default function VipRevealCanvas({ anchorRef, tier, onComplete }: Props) 
       y: Math.min(window.innerHeight * 0.42, window.innerHeight - 100),
     };
     const fontPx = Math.min(160, Math.max(72, window.innerWidth * 0.2));
-    const letterPoints = sampleTextPoints(tier.word, { fontPx, maxPoints: 320 });
 
-    const particles: Particle[] = letterPoints.map((p) => {
+    // Two target shapes, sampled the same way: the emoji itself (formed
+    // first, then bursts apart) and the tier word (formed second, then
+    // collapses into the small badge). Word points drive the particle
+    // count; if the emoji has fewer sample points, some particles simply
+    // share an emoji target — harmless, it just clusters slightly there.
+    const wordPoints = sampleTextPoints(tier.word, { fontPx, maxPoints: 320 });
+    const emojiPoints = sampleTextPoints(tier.emoji, { fontPx, maxPoints: 320 });
+
+    const particles: Particle[] = wordPoints.map((p, i) => {
+      const emojiP = emojiPoints.length ? emojiPoints[i % emojiPoints.length] : { x: 0, y: 0 };
+      const emojiX = textCenter.x + emojiP.x;
+      const emojiY = textCenter.y + emojiP.y;
+
+      // Impulse target: the emoji point pushed a little further out along
+      // its own vector from the shape's center — a quick "charging up"
+      // pop before the real burst.
+      const centerDist = Math.hypot(emojiP.x, emojiP.y) || 1;
+      const impulseX = emojiX + (emojiP.x / centerDist) * 16;
+      const impulseY = emojiY + (emojiP.y / centerDist) * 16;
+
       const angle = Math.random() * Math.PI * 2;
       const dist = 60 + Math.random() * 150;
+
       return {
-        scatterX: anchor.x + Math.cos(angle) * dist,
-        scatterY: anchor.y + Math.sin(angle) * dist,
+        // Loose dust start: scattered around where the emoji will form.
+        startX: textCenter.x + (Math.random() - 0.5) * 340,
+        startY: textCenter.y + (Math.random() - 0.5) * 220,
+        emojiX,
+        emojiY,
+        impulseX,
+        impulseY,
+        scatterX: emojiX + Math.cos(angle) * dist,
+        scatterY: emojiY + Math.sin(angle) * dist,
         targetX: textCenter.x + p.x,
         targetY: textCenter.y + p.y,
         size: 1.6 + Math.random() * 2.2,
@@ -98,7 +138,9 @@ export default function VipRevealCanvas({ anchorRef, tier, onComplete }: Props) 
     });
 
     const [r, g, b] = tier.colorRgb;
-    const tExplode = DURATIONS.explode;
+    const tForm = DURATIONS.form;
+    const tImpulse = tForm + DURATIONS.impulse;
+    const tExplode = tImpulse + DURATIONS.explode;
     const tConverge = tExplode + DURATIONS.converge;
     const tHold = tConverge + DURATIONS.hold;
     const tCollapse = tHold + DURATIONS.collapse;
@@ -127,12 +169,27 @@ export default function VipRevealCanvas({ anchorRef, tier, onComplete }: Props) 
         let alpha: number;
         let radius: number;
 
-        if (elapsed < tExplode) {
-          const t = easeOutCubic(elapsed / DURATIONS.explode);
-          x = lerp(anchor.x, particle.scatterX, t);
-          y = lerp(anchor.y, particle.scatterY, t);
-          alpha = Math.min(1, elapsed / (DURATIONS.explode * 0.3));
+        if (elapsed < tForm) {
+          const t = easeInOutQuad(elapsed / DURATIONS.form);
+          x = lerp(particle.startX, particle.emojiX, t);
+          y = lerp(particle.startY, particle.emojiY, t);
+          alpha = Math.min(1, elapsed / (DURATIONS.form * 0.5));
           radius = particle.size * (0.5 + 0.5 * t);
+        } else if (elapsed < tImpulse) {
+          // Triangular envelope: push out from the emoji shape, then snap
+          // back — the "impulse" before it bursts apart.
+          const t = (elapsed - tForm) / DURATIONS.impulse;
+          const e = Math.sin(t * Math.PI);
+          x = lerp(particle.emojiX, particle.impulseX, e);
+          y = lerp(particle.emojiY, particle.impulseY, e);
+          alpha = 1;
+          radius = particle.size * (1 + 0.35 * e);
+        } else if (elapsed < tExplode) {
+          const t = easeOutCubic((elapsed - tImpulse) / DURATIONS.explode);
+          x = lerp(particle.emojiX, particle.scatterX, t);
+          y = lerp(particle.emojiY, particle.scatterY, t);
+          alpha = 1;
+          radius = particle.size;
         } else if (elapsed < tConverge) {
           const t = easeInOutQuad((elapsed - tExplode) / DURATIONS.converge);
           x = lerp(particle.scatterX, particle.targetX, t);

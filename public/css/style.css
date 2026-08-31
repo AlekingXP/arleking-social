@@ -371,12 +371,25 @@ main {
   margin-left: 6px;
   vertical-align: middle;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  pointer-events: none;
+  cursor: default;
+  transition: opacity 0.3s ease, transform 0.15s ease;
 }
 
 .vip-badge.settled {
   opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
   filter: drop-shadow(0 0 4px rgba(255, 205, 70, 0.55));
+}
+
+.vip-badge.settled:hover,
+.vip-badge.settled:focus-visible {
+  transform: scale(1.12);
 }
 
 .vip-reveal-canvas {
@@ -384,4 +397,47 @@ main {
   inset: 0;
   pointer-events: none;
   z-index: 999;
+}
+
+.vip-info-popover {
+  position: fixed;
+  z-index: 1000;
+  width: 240px;
+  background: #150a10;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.55);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.vip-info-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: #ffcd46;
+}
+
+.vip-info-popover p {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+}
+
+.vip-info-close {
+  display: block;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.vip-info-close:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
