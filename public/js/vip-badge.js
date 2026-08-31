@@ -238,10 +238,10 @@
     requestAnimationFrame(frame);
   }
 
-  // Clicking the settled badge explains what it actually is: a paid,
-  // decorative perk — not an identity check. Required disclosure (see
-  // Terms): the badge is a subscription benefit, and the user is
-  // acknowledging they paid for a decorative seal, not a verification.
+  // Clicking the settled badge just confirms the tier to visitors. The
+  // actual Terms disclosure (badge = paid decorative perk, not an identity
+  // check) is shown to the subscriber in the admin dashboard when they
+  // activate it — that's who needs to acknowledge it, not every visitor.
   function attachInfoPopover(badge, tier) {
     let popover = null;
 
@@ -266,21 +266,19 @@
       popover = document.createElement('div');
       popover.className = 'vip-info-popover';
       popover.setAttribute('role', 'dialog');
-      popover.setAttribute('aria-label', 'Qué significa la insignia VIP');
+      popover.setAttribute('aria-label', 'Insignia VIP');
 
       const title = document.createElement('p');
       title.className = 'vip-info-title';
-      title.textContent = tier.emoji + ' Insignia VIP — ' + tier.label;
+      title.textContent = tier.emoji + ' Cliente VIP';
 
       const body = document.createElement('p');
-      body.textContent =
-        'Es un beneficio de tu suscripción de pago, no una verificación de identidad. ' +
-        'Al activarla confirmas que pagaste por este sello decorativo, nada más.';
+      body.textContent = tier.label;
 
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
       closeBtn.className = 'vip-info-close';
-      closeBtn.textContent = 'Entendido';
+      closeBtn.textContent = 'Cerrar';
       closeBtn.addEventListener('click', closePopover);
 
       popover.append(title, body, closeBtn);
@@ -332,7 +330,7 @@
     badge.className = 'vip-badge';
     badge.textContent = tier.emoji;
     badge.title = 'VIP — ' + tier.label;
-    badge.setAttribute('aria-label', 'Insignia VIP: ' + tier.label + '. Toca para más información.');
+    badge.setAttribute('aria-label', 'Insignia VIP: ' + tier.label + '. Toca para más detalles.');
     badge.setAttribute('aria-haspopup', 'dialog');
     badge.setAttribute('aria-expanded', 'false');
     nameEl.appendChild(badge);

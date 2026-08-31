@@ -23,10 +23,10 @@ interface PopoverPosition {
  * then settles into a small static badge. Every visit after that (tracked
  * per-browser via localStorage) skips straight to the small static badge.
  *
- * Clicking the settled badge opens a disclosure explaining what it actually
- * is: a paid decorative perk, not identity verification (see Terms — the
- * badge is a subscription benefit, and buying it isn't a verification of
- * who the user is).
+ * Clicking the settled badge just confirms the tier to visitors. The Terms
+ * disclosure (badge = paid decorative perk, not identity verification) is
+ * shown to the subscriber in the admin dashboard when they activate it —
+ * that's who needs to acknowledge it, not every visitor.
  */
 export default function VipBadge({ tier, slug }: Props) {
   const badgeRef = useRef<HTMLButtonElement>(null);
@@ -105,7 +105,7 @@ export default function VipBadge({ tier, slug }: Props) {
         }`}
         style={settled ? { filter: `drop-shadow(0 0 4px ${config.glowCss})` } : undefined}
         title={`VIP — ${config.label}`}
-        aria-label={`Insignia VIP: ${config.label}. Toca para más información.`}
+        aria-label={`Insignia VIP: ${config.label}. Toca para más detalles.`}
         aria-haspopup="dialog"
         aria-expanded={infoOpen}
       >
@@ -120,7 +120,7 @@ export default function VipBadge({ tier, slug }: Props) {
         <div
           ref={popoverRef}
           role="dialog"
-          aria-label="Qué significa la insignia VIP"
+          aria-label="Insignia VIP"
           className="fixed z-[1000] w-60 rounded-2xl border border-white/10 bg-[#150a10] p-4 text-left text-sm shadow-2xl"
           // Rendered off-screen and invisible until positionPopover (above)
           // measures it and supplies real coordinates, one paint later.
@@ -130,19 +130,18 @@ export default function VipBadge({ tier, slug }: Props) {
             visibility: popoverPos ? "visible" : "hidden",
           }}
         >
-          <p className="mb-1.5 font-bold text-[#ffcd46]">
-            {config.emoji} Insignia VIP — {config.label}
-          </p>
-          <p className="mb-2.5 text-neutral-400">
-            Es un beneficio de tu suscripción de pago, no una verificación de identidad. Al
-            activarla confirmas que pagaste por este sello decorativo, nada más.
-          </p>
+          {/* Just confirms the tier to visitors. The Terms disclosure
+              (badge = paid decorative perk, not identity verification) is
+              shown to the subscriber in the admin dashboard when they
+              activate it — that's who needs to acknowledge it. */}
+          <p className="mb-1.5 font-bold text-[#ffcd46]">{config.emoji} Cliente VIP</p>
+          <p className="mb-2.5 text-neutral-400">{config.label}</p>
           <button
             type="button"
             onClick={() => setInfoOpen(false)}
             className="block w-full rounded-full border border-white/20 bg-white/5 py-1.5 text-xs font-semibold text-neutral-100 hover:bg-white/10"
           >
-            Entendido
+            Cerrar
           </button>
         </div>
       )}
