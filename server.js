@@ -11,6 +11,7 @@ const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
 const googleRoutes = require('./routes/google');
+const { router: stripeRoutes, webhookHandler } = require('./routes/stripe');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,11 @@ if (fs.existsSync(secretPath)) {
   sessionSecret = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(secretPath, sessionSecret);
 }
+
+// Signature verification needs the exact raw bytes, so this is mounted
+// before the global JSON body parser below (Express applies middleware in
+// registration order; other routes fall through to express.json() as usual).
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), webhookHandler);
 
 app.use(express.json());
 app.use(session({
@@ -45,8 +51,16 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/public', publicRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', googleRoutes);
+app.use('/api', stripeRoutes);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// `Cache-Control: no-cache` forces a revalidation round-trip (If-None-Match)
+// on every load instead of the browser silently reusing a stale copy after
+// a deploy — the ETag Express already sends means an unchanged file still
+// comes back as a cheap 304, so this doesn't disable caching, just makes it
+// honest about when to trust it.
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 
 // `root` (rather than a bare absolute path) keeps sendFile's dotfile check
 // scoped to the relative filename — without it, checking out this repo under

@@ -1,7 +1,7 @@
-// VIP tiers that exist today. Reserved for later: 'diamante' ($10, blood-red
-// diamond) and 'sello' ($15, black wax seal) — each gets its own entry in
-// vip/tiers.ts once Stripe Billing can actually sell them.
-export type VipTier = "billete";
+// VIP tiers that exist today, each backed by a real Stripe subscription
+// Price (see routes/stripe.js in the Express app). Reserved for later:
+// 'diamante' ($10, blood-red diamond) and 'sello' ($15, black wax seal).
+export type VipTier = "billete" | "king";
 
 export interface Profile {
   user_id: number;

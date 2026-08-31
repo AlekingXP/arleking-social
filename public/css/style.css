@@ -366,8 +366,6 @@ main {
 .vip-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 0.62em;
-  line-height: 1;
   margin-left: 6px;
   vertical-align: middle;
   opacity: 0;
@@ -378,6 +376,12 @@ main {
   pointer-events: none;
   cursor: default;
   transition: opacity 0.3s ease, transform 0.15s ease;
+}
+
+.vip-badge img {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .vip-badge.settled {
@@ -414,9 +418,17 @@ main {
 }
 
 .vip-info-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 0 6px;
   font-weight: 700;
   color: #ffcd46;
+}
+
+.vip-info-title img {
+  width: 18px;
+  height: 18px;
 }
 
 .vip-info-popover p {

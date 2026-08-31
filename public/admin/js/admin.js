@@ -63,6 +63,20 @@
     document.getElementById('p-particles-density').value = profile.particles_density ?? 60;
     document.getElementById('p-particles-density-value').textContent = profile.particles_density ?? 60;
     document.getElementById('vip-tier').value = profile.vip_tier || '';
+    renderVipStatus(profile);
+  }
+
+  const VIP_LABELS = { billete: '💵 Billete dorado', king: '👑 THE KING' };
+
+  function renderVipStatus(profile) {
+    const box = document.getElementById('vip-current');
+    if (!profile.vip_tier) {
+      box.classList.add('hidden');
+      return;
+    }
+    document.getElementById('vip-current-label').textContent = VIP_LABELS[profile.vip_tier] || profile.vip_tier;
+    document.getElementById('vip-manage-btn').classList.toggle('hidden', !profile.stripe_subscription_id);
+    box.classList.remove('hidden');
   }
 
   function placeholder(name) {
@@ -111,15 +125,50 @@
     document.getElementById('p-particles-density-value').textContent = e.target.value;
   });
 
+  // ---- VIP: real subscriptions via Stripe ----
+
+  document.querySelectorAll('.vip-plan-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const { url } = await api('/api/checkout', {
+          method: 'POST',
+          body: JSON.stringify({ tier: btn.dataset.tier }),
+        });
+        window.location.href = url;
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.getElementById('vip-manage-btn').addEventListener('click', async () => {
+    try {
+      const { url } = await api('/api/billing-portal', { method: 'POST' });
+      window.location.href = url;
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  (function handleCheckoutQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') showToast('¡Listo! Tu suscripción quedará activa en unos segundos.', 'success');
+    if (params.get('checkout') === 'cancel') showToast('Pago cancelado', 'error');
+    if (params.has('checkout')) window.history.replaceState({}, '', '/admin/dashboard');
+  })();
+
   // ---- VIP (modo de prueba, reemplazar por Stripe) ----
 
   document.getElementById('vip-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      await api('/api/profile/vip-test', {
+      const profile = await api('/api/profile/vip-test', {
         method: 'PUT',
         body: JSON.stringify({ vip_tier: document.getElementById('vip-tier').value || null }),
       });
+      renderVipStatus(profile);
       showToast('Tier VIP actualizado', 'success');
     } catch (err) {
       showToast(err.message, 'error');

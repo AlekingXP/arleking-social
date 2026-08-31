@@ -98,7 +98,7 @@ export default function VipBadge({ tier, slug }: Props) {
         ref={badgeRef}
         type="button"
         onClick={() => settled && setInfoOpen((open) => !open)}
-        className={`inline-flex items-center border-0 bg-transparent p-0 text-[1.05em] leading-none transition-opacity duration-300 ${
+        className={`inline-flex items-center border-0 bg-transparent p-0 leading-none transition-opacity duration-300 ${
           settled
             ? "cursor-pointer opacity-100 hover:scale-110"
             : "pointer-events-none cursor-default opacity-0"
@@ -109,7 +109,8 @@ export default function VipBadge({ tier, slug }: Props) {
         aria-haspopup="dialog"
         aria-expanded={infoOpen}
       >
-        {config.emoji}
+        {/* eslint-disable-next-line @next/next/no-img-element -- small inline data-URI icon, not a page asset next/image needs to optimize */}
+        <img src={config.icon} alt="" width={22} height={22} />
       </button>
 
       {revealing && (
@@ -134,7 +135,11 @@ export default function VipBadge({ tier, slug }: Props) {
               (badge = paid decorative perk, not identity verification) is
               shown to the subscriber in the admin dashboard when they
               activate it — that's who needs to acknowledge it. */}
-          <p className="mb-1.5 font-bold text-[#ffcd46]">{config.emoji} Cliente VIP</p>
+          <p className="mb-1.5 flex items-center gap-1.5 font-bold text-[#ffcd46]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- small inline data-URI icon */}
+            <img src={config.icon} alt="" width={18} height={18} />
+            Cliente VIP
+          </p>
           <p className="mb-2.5 text-neutral-400">{config.label}</p>
           <button
             type="button"

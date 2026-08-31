@@ -133,30 +133,51 @@
       </form>
     </section>
 
-    <!-- VIP (modo de prueba) -->
+    <!-- VIP -->
     <section class="card">
-      <h2 class="card-title">💵 VIP — modo de prueba</h2>
-      <p class="hint">
-        Esto activa el badge VIP manualmente mientras no existe el cobro con Stripe.
-        Cuando Stripe Billing esté conectado, este control se reemplaza por la
-        confirmación automática del webhook de pago.
-      </p>
+      <h2 class="card-title">💵 VIP</h2>
       <p class="hint">
         <strong>Importante:</strong> el badge VIP es un beneficio de tu suscripción de
         pago, no una verificación de identidad. Al activarlo confirmas que pagaste por
         este sello decorativo, nada más — así lo verán también tus visitantes.
       </p>
 
-      <form id="vip-form" class="form-grid">
-        <label class="field">
-          <span>Tier VIP</span>
-          <select id="vip-tier">
-            <option value="">Ninguno</option>
-            <option value="billete">💵 Billete dorado — $5/mes</option>
-          </select>
-        </label>
-        <button type="submit" class="btn-pill btn-gradient">Guardar tier VIP</button>
-      </form>
+      <div id="vip-current" class="hidden">
+        <p class="hint" style="margin:0 0 10px;">
+          Tier activo: <strong id="vip-current-label"></strong>
+        </p>
+        <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">Gestionar suscripción</button>
+        <hr class="divider" />
+      </div>
+
+      <div id="vip-plans" class="vip-plans">
+        <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="billete">
+          💵 Suscribirme — Billete dorado ($5/mes)
+        </button>
+        <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="king">
+          👑 Suscribirme — THE KING ($7.99/mes)
+        </button>
+      </div>
+
+      <hr class="divider" />
+
+      <details>
+        <summary class="hint" style="cursor:pointer;">🧪 Modo de prueba (sin cobro real)</summary>
+        <p class="hint">
+          Activa un tier manualmente sin pasar por Stripe — solo para pruebas.
+        </p>
+        <form id="vip-form" class="form-grid">
+          <label class="field">
+            <span>Tier VIP</span>
+            <select id="vip-tier">
+              <option value="">Ninguno</option>
+              <option value="billete">💵 Billete dorado — $5/mes</option>
+              <option value="king">👑 THE KING — $7.99/mes</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-pill btn-outline">Guardar tier VIP (prueba)</button>
+        </form>
+      </details>
     </section>
 
     <!-- Enlaces -->

@@ -455,6 +455,12 @@ body {
 
 .hint { font-size: 0.75rem; color: var(--text-dim); margin: 8px 0 0; }
 
+.vip-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* Topbar */
 
 .topbar {

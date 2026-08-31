@@ -38,7 +38,9 @@ db.exec(`
     particles_color TEXT NOT NULL DEFAULT '#ffffff',
     particles_density INTEGER NOT NULL DEFAULT 60,
     vip_tier TEXT,
-    vip_activated_at TEXT
+    vip_activated_at TEXT,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT
   );
 
   CREATE TABLE IF NOT EXISTS links (
@@ -174,10 +176,13 @@ if (!userColumnsNow.includes('last_active_at')) {
 const profileColumnsForVip = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
 if (!profileColumnsForVip.includes('vip_tier')) db.exec('ALTER TABLE profile ADD COLUMN vip_tier TEXT');
 if (!profileColumnsForVip.includes('vip_activated_at')) db.exec('ALTER TABLE profile ADD COLUMN vip_activated_at TEXT');
+if (!profileColumnsForVip.includes('stripe_customer_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_customer_id TEXT');
+if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_subscription_id TEXT');
 
-// Subscription tiers. Only 'billete' ($5) ships in this phase — 'diamante' ($10)
-// and 'sello' ($15) are reserved for when Stripe Billing is wired up.
-const VIP_TIERS = ['billete'];
+// Subscription tiers, each backed by a real recurring Stripe Price (see
+// routes/stripe.js). 'diamante' ($10) and 'sello' ($15) from the original
+// spec are reserved for later — only these two are sellable today.
+const VIP_TIERS = ['billete', 'king'];
 
 const INACTIVITY_MONTHS = 6;
 
