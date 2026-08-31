@@ -120,32 +120,10 @@
       const node = link.type === 'featured' ? renderFeatured(link) : renderSimple(link);
       node.addEventListener('click', (e) => {
         e.preventDefault();
-        openWithWarning(link.url);
+        window.open(link.url, '_blank', 'noopener');
       });
       container.appendChild(node);
     });
-  }
-
-  function openWithWarning(url) {
-    const overlay = document.getElementById('warn-overlay');
-    overlay.classList.remove('hidden');
-
-    const backBtn = document.getElementById('warn-back');
-    const continueBtn = document.getElementById('warn-continue');
-
-    function cleanup() {
-      overlay.classList.add('hidden');
-      backBtn.removeEventListener('click', onBack);
-      continueBtn.removeEventListener('click', onContinue);
-    }
-    function onBack() { cleanup(); }
-    function onContinue() {
-      cleanup();
-      window.open(url, '_blank', 'noopener');
-    }
-
-    backBtn.addEventListener('click', onBack);
-    continueBtn.addEventListener('click', onContinue);
   }
 
   function showGate() {
@@ -169,6 +147,7 @@
     applyTheme(profile);
     fillProfile(profile);
     renderLinks(links);
+    if (window.renderVipBadge) window.renderVipBadge(profile);
 
     const alreadyPassed = sessionStorage.getItem(GATE_SEEN_KEY) === '1';
 

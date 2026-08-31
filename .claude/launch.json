@@ -6,6 +6,12 @@
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
       "runtimeArgs": ["server.js"],
       "port": 3000
+    },
+    {
+      "name": "vip-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:web"],
+      "port": 3001
     }
   ]
 }

@@ -361,47 +361,27 @@ main {
   color: var(--text-dim);
 }
 
-/* Warning overlay */
+/* VIP badge */
 
-.overlay {
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.62em;
+  line-height: 1;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.vip-badge.settled {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(255, 205, 70, 0.55));
+}
+
+.vip-reveal-canvas {
   position: fixed;
   inset: 0;
-  background: rgba(5, 2, 4, 0.78);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 50;
-}
-
-.warn-card {
-  background: #150a10;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 28px 24px;
-  max-width: 340px;
-  width: 100%;
-  text-align: center;
-}
-
-.warn-card h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
-}
-
-.warn-card p {
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  margin: 0 0 22px;
-}
-
-.warn-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.warn-actions .btn-outline,
-.warn-actions .btn-pill {
-  flex: 1;
+  pointer-events: none;
+  z-index: 999;
 }

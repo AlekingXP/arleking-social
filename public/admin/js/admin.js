@@ -62,6 +62,7 @@
     document.getElementById('p-particles-color').value = profile.particles_color || '#ffffff';
     document.getElementById('p-particles-density').value = profile.particles_density ?? 60;
     document.getElementById('p-particles-density-value').textContent = profile.particles_density ?? 60;
+    document.getElementById('vip-tier').value = profile.vip_tier || '';
   }
 
   function placeholder(name) {
@@ -108,6 +109,21 @@
 
   document.getElementById('p-particles-density').addEventListener('input', (e) => {
     document.getElementById('p-particles-density-value').textContent = e.target.value;
+  });
+
+  // ---- VIP (modo de prueba, reemplazar por Stripe) ----
+
+  document.getElementById('vip-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api('/api/profile/vip-test', {
+        method: 'PUT',
+        body: JSON.stringify({ vip_tier: document.getElementById('vip-tier').value || null }),
+      });
+      showToast('Tier VIP actualizado', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   });
 
   document.getElementById('avatar-input').addEventListener('change', async (e) => {

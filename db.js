@@ -36,7 +36,9 @@ db.exec(`
     accent_to TEXT NOT NULL DEFAULT '#ff9a5a',
     particles_enabled INTEGER NOT NULL DEFAULT 1,
     particles_color TEXT NOT NULL DEFAULT '#ffffff',
-    particles_density INTEGER NOT NULL DEFAULT 60
+    particles_density INTEGER NOT NULL DEFAULT 60,
+    vip_tier TEXT,
+    vip_activated_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS links (
@@ -169,6 +171,14 @@ if (!userColumnsNow.includes('last_active_at')) {
   db.exec("UPDATE users SET last_active_at = datetime('now') WHERE last_active_at IS NULL");
 }
 
+const profileColumnsForVip = db.prepare('PRAGMA table_info(profile)').all().map((c) => c.name);
+if (!profileColumnsForVip.includes('vip_tier')) db.exec('ALTER TABLE profile ADD COLUMN vip_tier TEXT');
+if (!profileColumnsForVip.includes('vip_activated_at')) db.exec('ALTER TABLE profile ADD COLUMN vip_activated_at TEXT');
+
+// Subscription tiers. Only 'billete' ($5) ships in this phase — 'diamante' ($10)
+// and 'sello' ($15) are reserved for when Stripe Billing is wired up.
+const VIP_TIERS = ['billete'];
+
 const INACTIVITY_MONTHS = 6;
 
 function touchUserActivity(userId) {
@@ -242,4 +252,4 @@ function createUserWithProfile({ username, passwordHash, googleId, googleEmail, 
   return userId;
 }
 
-module.exports = { db, slugify, RESERVED_SLUGS, createUserWithProfile, touchUserActivity, cleanupInactiveUsers };
+module.exports = { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity, cleanupInactiveUsers };

@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, slugify, RESERVED_SLUGS, createUserWithProfile, touchUserActivity } = require('../db');
+const { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
 
@@ -167,6 +167,23 @@ router.put('/profile', requireAuth, (req, res) => {
     particles_enabled ? 1 : 0, particles_color || '#ffffff', density,
     req.session.userId
   );
+
+  res.json(db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId));
+});
+
+// Temporary stand-in for Stripe Billing: lets a user flip their own VIP tier
+// on/off so the badge can be built and tested before checkout/webhooks exist.
+// Remove once /api/webhooks/stripe activates vip_tier on payment confirmation.
+router.put('/profile/vip-test', requireAuth, (req, res) => {
+  const { vip_tier } = req.body || {};
+  if (vip_tier !== null && !VIP_TIERS.includes(vip_tier)) {
+    return res.status(400).json({ error: 'Tier VIP inválido' });
+  }
+
+  db.prepare(`
+    UPDATE profile SET vip_tier = ?, vip_activated_at = CASE WHEN ? IS NULL THEN NULL ELSE datetime('now') END
+    WHERE user_id = ?
+  `).run(vip_tier, vip_tier, req.session.userId);
 
   res.json(db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId));
 });

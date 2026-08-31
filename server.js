@@ -48,17 +48,24 @@ app.use('/api', googleRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// `root` (rather than a bare absolute path) keeps sendFile's dotfile check
+// scoped to the relative filename — without it, checking out this repo under
+// a dot-prefixed directory (e.g. a `.claude/worktrees/...` git worktree)
+// makes every sendFile() 404, since the check otherwise scans the *whole*
+// absolute path for a dot-prefixed segment.
+const adminViewsDir = path.join(__dirname, 'public', 'admin');
+
 app.get('/admin/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+  res.sendFile('login.html', { root: adminViewsDir });
 });
 
 app.get('/admin/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'dashboard.html'));
+  res.sendFile('dashboard.html', { root: adminViewsDir });
 });
 
 app.get('/:slug', (req, res, next) => {
   if (req.params.slug.includes('.')) return next();
-  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+  res.sendFile('profile.html', { root: path.join(__dirname, 'public') });
 });
 
 app.use((err, req, res, next) => {

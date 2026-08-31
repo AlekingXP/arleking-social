@@ -133,6 +133,27 @@
       </form>
     </section>
 
+    <!-- VIP (modo de prueba) -->
+    <section class="card">
+      <h2 class="card-title">💵 VIP — modo de prueba</h2>
+      <p class="hint">
+        Esto activa el badge VIP manualmente mientras no existe el cobro con Stripe.
+        Cuando Stripe Billing esté conectado, este control se reemplaza por la
+        confirmación automática del webhook de pago.
+      </p>
+
+      <form id="vip-form" class="form-grid">
+        <label class="field">
+          <span>Tier VIP</span>
+          <select id="vip-tier">
+            <option value="">Ninguno</option>
+            <option value="billete">💵 Billete dorado — $5/mes</option>
+          </select>
+        </label>
+        <button type="submit" class="btn-pill btn-gradient">Guardar tier VIP</button>
+      </form>
+    </section>
+
     <!-- Enlaces -->
     <section class="card">
       <div class="card-title-row">
