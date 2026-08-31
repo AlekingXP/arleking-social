@@ -8,6 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/admin/css/admin.css" />
+<!-- No bundler on this page, so Three.js resolves via an import map — must
+     come before the module script that imports "three" below. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -161,6 +171,20 @@
 
       <hr class="divider" />
 
+      <div>
+        <h3 class="vip-demo-title">👁️ Demo — cómo se verá</h3>
+        <div id="vip-3d-viewer" class="vip-3d-viewer">
+          <span class="vip-3d-hint">Cargando vista 3D…</span>
+        </div>
+        <div class="vip-plans" style="margin-top:10px;">
+          <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="billete">▶ Demo — Billete dorado</button>
+          <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="king">▶ Demo — THE KING</button>
+        </div>
+        <span id="vip-demo-anchor" class="vip-demo-anchor" aria-hidden="true"></span>
+      </div>
+
+      <hr class="divider" />
+
       <details>
         <summary class="hint" style="cursor:pointer;">🧪 Modo de prueba (sin cobro real)</summary>
         <p class="hint">
@@ -306,6 +330,8 @@
 
   <script src="/js/particles.js"></script>
   <script src="/js/button-fx.js"></script>
+  <script src="/js/vip-badge.js"></script>
+  <script type="module" src="/js/vip-3d.js"></script>
   <script src="/admin/js/admin.js"></script>
 </body>
 </html>

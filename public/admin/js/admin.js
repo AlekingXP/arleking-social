@@ -159,6 +159,36 @@
     if (params.has('checkout')) window.history.replaceState({}, '', '/admin/dashboard');
   })();
 
+  // ---- VIP: demo preview (replays the reveal, doesn't touch real state) ----
+
+  document.querySelectorAll('.vip-demo-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const buttons = document.querySelectorAll('.vip-demo-btn');
+      buttons.forEach((b) => { b.disabled = true; });
+      window.playVipDemo(btn.dataset.tier, document.getElementById('vip-demo-anchor'), () => {
+        buttons.forEach((b) => { b.disabled = false; });
+      });
+    });
+  });
+
+  // ---- VIP: live 3D badge preview (Three.js, loaded as a module — may not
+  // be ready yet when this script runs, so wait for its ready event too) ----
+
+  function initVip3DViewer() {
+    const container = document.getElementById('vip-3d-viewer');
+    const hint = container && container.querySelector('.vip-3d-hint');
+    if (!container) return;
+    window.renderVip3D(container, 'king').then((handle) => {
+      if (!handle && hint) hint.textContent = 'Vista 3D no disponible en este dispositivo — se usa el badge plano.';
+    });
+  }
+
+  if (window.renderVip3D) {
+    initVip3DViewer();
+  } else {
+    window.addEventListener('vip3d-ready', initVip3DViewer, { once: true });
+  }
+
   // ---- VIP (modo de prueba, reemplazar por Stripe) ----
 
   document.getElementById('vip-form').addEventListener('submit', async (e) => {

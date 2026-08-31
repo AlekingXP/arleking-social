@@ -407,5 +407,16 @@
     });
   }
 
+  // Plays the reveal for a tier at any anchor element without touching the
+  // profile's real vip_tier or the "seen it already" flag — used by the
+  // dashboard's demo preview so an owner can replay it as many times as
+  // they like before actually subscribing.
+  function playVipDemo(tierKey, anchorEl, onDone) {
+    const tier = TIERS[tierKey];
+    if (!tier || !anchorEl) return;
+    playReveal(anchorEl, tier, () => { if (onDone) onDone(); });
+  }
+
   window.renderVipBadge = renderVipBadge;
+  window.playVipDemo = playVipDemo;
 })();
