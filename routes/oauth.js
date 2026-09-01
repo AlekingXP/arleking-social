@@ -304,11 +304,25 @@ router.get('/auth/:provider/callback', oauthLimiter, async (req, res, next) => {
 // ---- Linked accounts management ----
 
 router.get('/auth/linked', requireAuth, (req, res) => {
-  const rows = db.prepare('SELECT provider, email FROM oauth_accounts WHERE user_id = ?').all(req.session.userId);
+  const rows = db
+    .prepare('SELECT provider, provider_user_id, email FROM oauth_accounts WHERE user_id = ? ORDER BY created_at')
+    .all(req.session.userId);
   res.json(
     Object.entries(PROVIDERS).map(([key, p]) => {
-      const linked = rows.find((r) => r.provider === key);
-      return { key, label: p.label, configured: isConfigured(key), linked: !!linked, email: linked ? linked.email : null };
+      // One entry per linked account, not per provider: nothing stops the
+      // same person from attaching two Google addresses, and collapsing
+      // them to the first hid the rest from the dashboard entirely.
+      const accounts = rows
+        .filter((r) => r.provider === key)
+        .map((r) => ({ id: r.provider_user_id, email: r.email }));
+      return {
+        key,
+        label: p.label,
+        configured: isConfigured(key),
+        accounts,
+        linked: accounts.length > 0,
+        email: accounts.length ? accounts[0].email : null, // back-compat
+      };
     })
   );
 });
@@ -317,19 +331,41 @@ router.delete('/auth/:provider/link', requireAuth, (req, res, next) => {
   const key = req.params.provider;
   if (!getProvider(key)) return next();
 
+  const accountId = req.query.account;
   const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.session.userId);
-  const linkCount = db.prepare('SELECT COUNT(*) AS n FROM oauth_accounts WHERE user_id = ?').get(req.session.userId).n;
+  const totalLinks = db.prepare('SELECT COUNT(*) AS n FROM oauth_accounts WHERE user_id = ?').get(req.session.userId).n;
 
-  // Refuse to remove the last way in.
-  if (!user.password_hash && linkCount <= 1) {
+  const targets = accountId
+    ? db
+        .prepare('SELECT COUNT(*) AS n FROM oauth_accounts WHERE user_id = ? AND provider = ? AND provider_user_id = ?')
+        .get(req.session.userId, key, accountId).n
+    : db.prepare('SELECT COUNT(*) AS n FROM oauth_accounts WHERE user_id = ? AND provider = ?').get(req.session.userId, key).n;
+
+  if (!targets) return res.status(404).json({ error: 'Esa cuenta no está vinculada.' });
+
+  // Refuse to remove the last way in — measured against what would actually
+  // be left afterwards, so unlinking one of two accounts is still allowed.
+  if (!user.password_hash && totalLinks - targets < 1) {
     return res.status(400).json({
       error: 'Configura una contraseña antes de desvincular tu única cuenta, o perderás el acceso.',
     });
   }
 
-  db.prepare('DELETE FROM oauth_accounts WHERE user_id = ? AND provider = ?').run(req.session.userId, key);
+  if (accountId) {
+    db.prepare('DELETE FROM oauth_accounts WHERE user_id = ? AND provider = ? AND provider_user_id = ?')
+      .run(req.session.userId, key, accountId);
+  } else {
+    db.prepare('DELETE FROM oauth_accounts WHERE user_id = ? AND provider = ?').run(req.session.userId, key);
+  }
+
+  // The legacy users.google_id mirror only makes sense while a Google row
+  // survives; point it at whichever one is left, or clear it.
   if (key === 'google') {
-    db.prepare('UPDATE users SET google_id = NULL, google_email = NULL WHERE id = ?').run(req.session.userId);
+    const remaining = db
+      .prepare("SELECT provider_user_id, email FROM oauth_accounts WHERE user_id = ? AND provider = 'google' ORDER BY created_at")
+      .get(req.session.userId);
+    db.prepare('UPDATE users SET google_id = ?, google_email = ? WHERE id = ?')
+      .run(remaining ? remaining.provider_user_id : null, remaining ? remaining.email : null, req.session.userId);
   }
   res.json({ ok: true });
 });

@@ -455,6 +455,15 @@ body {
   text-decoration-thickness: 1px;
 }
 .linked-reveal:hover { color: var(--text); }
+
+.linked-add {
+  display: inline-block;
+  margin: -6px 0 18px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.linked-add:hover { color: var(--text); }
 .linked-reveal.is-revealed {
   color: var(--text-dim);
   text-decoration: none;

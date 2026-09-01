@@ -373,7 +373,9 @@
     section.classList.remove('hidden');
     list.innerHTML = '';
 
-    available.forEach((p) => {
+    // One row per linked account plus a row to add another, so a second
+    // address on the same provider is visible and removable on its own.
+    function makeRow(provider, account) {
       const row = document.createElement('div');
       row.className = 'linked-row';
 
@@ -381,15 +383,15 @@
       const label = document.createElement('p');
       label.className = 'hint';
       label.style.margin = '0 0 4px';
-      label.textContent = p.label;
+      label.textContent = provider.label;
       const status = document.createElement('p');
       status.className = 'linked-status';
-      status.textContent = p.linked ? 'Vinculada' : 'No vinculada';
+      status.textContent = account ? 'Vinculada' : 'No vinculada';
       info.append(label, status);
 
       // The address stays hidden behind a click so it never leaks into a
       // screenshot or a shoulder-surf — the brand alone says enough.
-      if (p.linked && p.email) {
+      if (account && account.email) {
         const reveal = document.createElement('button');
         reveal.type = 'button';
         reveal.className = 'linked-reveal';
@@ -397,34 +399,52 @@
         reveal.setAttribute('aria-expanded', 'false');
         reveal.addEventListener('click', () => {
           const shown = reveal.getAttribute('aria-expanded') === 'true';
-          reveal.textContent = shown ? 'Ver correo' : p.email;
+          reveal.textContent = shown ? 'Ver correo' : account.email;
           reveal.setAttribute('aria-expanded', String(!shown));
           reveal.classList.toggle('is-revealed', !shown);
         });
         status.append(' · ', reveal);
       }
 
-      const action = document.createElement(p.linked ? 'button' : 'a');
+      const action = document.createElement(account ? 'button' : 'a');
       action.className = 'btn-outline btn-sm';
-      if (p.linked) {
+      if (account) {
         action.type = 'button';
         action.textContent = 'Desvincular';
         action.addEventListener('click', async () => {
           try {
-            await api(`/api/auth/${p.key}/link`, { method: 'DELETE' });
-            showToast(`${p.label} desvinculada`, 'success');
+            // Scoped to this account id — without it the server would drop
+            // every address linked through this provider.
+            await api(`/api/auth/${provider.key}/link?account=${encodeURIComponent(account.id)}`, { method: 'DELETE' });
+            showToast(`${provider.label} desvinculada`, 'success');
             renderLinkedAccounts();
           } catch (err) {
             showToast(err.message, 'error');
           }
         });
       } else {
-        action.href = `/api/auth/${p.key}?intent=link`;
-        action.textContent = `Vincular ${p.label}`;
+        action.href = `/api/auth/${provider.key}?intent=link`;
+        action.textContent = `Vincular ${provider.label}`;
       }
 
       row.append(info, action);
-      list.appendChild(row);
+      return row;
+    }
+
+    available.forEach((p) => {
+      const accounts = p.accounts || (p.linked ? [{ id: null, email: p.email }] : []);
+      if (!accounts.length) {
+        list.appendChild(makeRow(p, null));
+        return;
+      }
+      accounts.forEach((account) => list.appendChild(makeRow(p, account)));
+
+      // Add-another, offered discreetly once at least one is linked.
+      const add = document.createElement('a');
+      add.className = 'linked-add';
+      add.href = `/api/auth/${p.key}?intent=link`;
+      add.textContent = `+ Vincular otra cuenta de ${p.label}`;
+      list.appendChild(add);
     });
   }
 
