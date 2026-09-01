@@ -305,7 +305,58 @@
     // Cosmetic only — the endpoint itself enforces this server-side.
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
+    setupDeleteAccount(data.username);
     await renderLinkedAccounts();
+  }
+
+  // ---- Delete account ----
+
+  function setupDeleteAccount(username) {
+    const openBtn = document.getElementById('delete-account-open');
+    const panel = document.getElementById('delete-account-confirm');
+    const input = document.getElementById('delete-account-input');
+    const submit = document.getElementById('delete-account-submit');
+    const cancel = document.getElementById('delete-account-cancel');
+    const error = document.getElementById('delete-account-error');
+    document.getElementById('delete-account-username').textContent = username;
+
+    openBtn.addEventListener('click', () => {
+      panel.classList.remove('hidden');
+      openBtn.classList.add('hidden');
+      input.focus();
+    });
+
+    cancel.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      openBtn.classList.remove('hidden');
+      input.value = '';
+      submit.disabled = true;
+      error.classList.add('hidden');
+    });
+
+    // The button stays dead until the name matches, so the destructive
+    // click can't happen by reflex.
+    input.addEventListener('input', () => {
+      submit.disabled = input.value !== username;
+      error.classList.add('hidden');
+    });
+
+    submit.addEventListener('click', async () => {
+      submit.disabled = true;
+      submit.textContent = 'Eliminando…';
+      try {
+        await api('/api/account/delete', {
+          method: 'POST',
+          body: JSON.stringify({ confirm: input.value }),
+        });
+        window.location.href = '/admin/login';
+      } catch (err) {
+        error.textContent = err.message;
+        error.classList.remove('hidden');
+        submit.textContent = 'Eliminar definitivamente';
+        submit.disabled = input.value !== username;
+      }
+    });
   }
 
   async function renderLinkedAccounts() {

@@ -1,7 +1,10 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const { db } = require('../db');
+const { uploadsDir } = require('../paths');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -144,6 +147,63 @@ router.post('/billing-portal', paymentLimiter, requireAuth, requireStripeConfigu
     console.error('Error creando sesión del portal de facturación:', err.message);
     res.status(500).json({ error: 'No se pudo abrir el portal de facturación.' });
   }
+});
+
+// ---- Account deletion ----
+// Lives here rather than in admin.js because the subscription has to be
+// cancelled at Stripe first: deleting the row locally would leave the
+// customer being charged every month for a page that no longer exists,
+// with no account left to cancel it from.
+
+router.post('/account/delete', paymentLimiter, requireAuth, async (req, res) => {
+  const { confirm } = req.body || {};
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.session.userId);
+  if (!user) return res.status(404).json({ error: 'Cuenta no encontrada' });
+
+  // Typed confirmation, compared exactly — this is irreversible.
+  if (confirm !== user.username) {
+    return res.status(400).json({ error: 'Escribe tu nombre de usuario exactamente para confirmar.' });
+  }
+
+  const profile = db
+    .prepare('SELECT slug, avatar_path, background_path, stripe_subscription_id FROM profile WHERE user_id = ?')
+    .get(user.id);
+
+  // Cancel first. If Stripe is unreachable we stop here instead of deleting
+  // the account and orphaning a live subscription.
+  if (profile && profile.stripe_subscription_id) {
+    if (!stripe) {
+      return res.status(503).json({
+        error: 'Tienes una suscripción activa y los pagos no están configurados en el servidor. Cancélala antes de borrar la cuenta.',
+      });
+    }
+    try {
+      await stripe.subscriptions.cancel(profile.stripe_subscription_id);
+    } catch (err) {
+      // Already gone at Stripe's end is fine — anything else is not.
+      const missing = err && (err.code === 'resource_missing' || err.statusCode === 404);
+      if (!missing) {
+        console.error('No se pudo cancelar la suscripción antes de borrar la cuenta:', err.message);
+        return res.status(502).json({
+          error: 'No se pudo cancelar tu suscripción en Stripe, así que no se borró nada. Inténtalo de nuevo en unos minutos.',
+        });
+      }
+    }
+  }
+
+  const images = db.prepare('SELECT image_path FROM links WHERE user_id = ?').all(user.id).map((r) => r.image_path);
+  if (profile) images.push(profile.avatar_path, profile.background_path);
+
+  // profile, links and oauth_accounts all cascade off users.
+  db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+
+  // Uploads live on disk, outside the cascade — clean them up afterwards so
+  // a failed unlink can't roll back an already-committed delete.
+  for (const image of images) {
+    if (image) fs.unlink(path.join(uploadsDir, path.basename(image)), () => {});
+  }
+
+  req.session.destroy(() => res.json({ ok: true }));
 });
 
 // ---- Webhook: source of truth for activating/revoking the badge ----

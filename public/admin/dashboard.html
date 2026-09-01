@@ -275,6 +275,32 @@
       </form>
     </section>
 
+    <!-- Zona de peligro — deliberately last, and collapsed until asked for. -->
+    <section class="card danger-card">
+      <h2 class="card-title">Zona de peligro</h2>
+      <p class="hint" style="margin:0 0 14px;">
+        Al eliminar tu cuenta se borran tu página, tus enlaces, tus imágenes y
+        tus cuentas vinculadas. Si tienes una suscripción activa se cancela
+        primero. <strong>No se puede deshacer.</strong>
+      </p>
+
+      <button type="button" class="btn-outline btn-danger" id="delete-account-open">Eliminar mi cuenta</button>
+
+      <div id="delete-account-confirm" class="hidden" style="margin-top:14px;">
+        <label class="field">
+          <span>Escribe <strong id="delete-account-username"></strong> para confirmar</span>
+          <input type="text" id="delete-account-input" autocomplete="off" spellcheck="false" />
+        </label>
+        <p id="delete-account-error" class="error-text hidden"></p>
+        <div class="danger-actions">
+          <button type="button" class="btn-outline" id="delete-account-cancel">Cancelar</button>
+          <button type="button" class="btn-pill btn-danger-solid" id="delete-account-submit" disabled>
+            Eliminar definitivamente
+          </button>
+        </div>
+      </div>
+    </section>
+
     <footer class="legal-footer">
       <a href="/terminos" target="_blank" rel="noopener">Términos</a>
       <a href="/privacidad" target="_blank" rel="noopener">Privacidad y Seguridad</a>

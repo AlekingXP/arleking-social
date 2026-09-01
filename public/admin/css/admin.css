@@ -573,6 +573,42 @@ body {
   margin: 6px 0 16px;
 }
 
+/* Danger zone. Red here is a warning, not decoration — it's the only thing
+   separating "update my tagline" from "erase everything". Kept to text and
+   border so it still matches the glass treatment, no glow. */
+.danger-card {
+  border-color: rgba(248, 113, 113, 0.28);
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+.btn-danger:hover {
+  border-color: rgba(248, 113, 113, 0.7);
+}
+
+.btn-danger-solid {
+  background: rgba(248, 113, 113, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  color: #ffd9d9;
+}
+.btn-danger-solid:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.26);
+}
+.btn-danger-solid:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.danger-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
 .switch-row {
   display: flex;
   align-items: center;
