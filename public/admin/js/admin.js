@@ -351,6 +351,16 @@
     twitter: '🐦', instagram: '📸', tiktok: '🎵', wishlist: '🎁', custom: '🔗',
   };
 
+  // hasOwnProperty, not a bare lookup: platform is free text now, and a
+  // plain PLATFORM_ICONS[name] would inherit from Object.prototype — a link
+  // named "constructor" would otherwise render the function's source as its
+  // icon.
+  function platformIcon(platform) {
+    return Object.prototype.hasOwnProperty.call(PLATFORM_ICONS, platform)
+      ? PLATFORM_ICONS[platform]
+      : '🔗';
+  }
+
   async function loadLinks() {
     currentLinks = await api('/api/links');
     renderLinksAdmin();
@@ -387,7 +397,7 @@
         img.src = link.image_path;
         thumb.appendChild(img);
       } else {
-        thumb.textContent = link.icon || PLATFORM_ICONS[link.platform] || '🔗';
+        thumb.textContent = link.icon || platformIcon(link.platform);
       }
 
       const info = document.createElement('div');
@@ -476,16 +486,36 @@
 
   document.getElementById('l-type').addEventListener('change', updateImageRowVisibility);
 
+  // The <select> only lists the presets, so "Personalizado" reveals a text
+  // field for anything else (Spotify, Patreon, a personal site...).
+  const PRESET_PLATFORMS = ['youtube', 'twitch', 'telegram', 'discord', 'twitter', 'instagram', 'tiktok', 'wishlist'];
+
+  function updatePlatformCustomVisibility() {
+    const isCustom = document.getElementById('l-platform').value === 'custom';
+    document.getElementById('l-platform-custom-row').classList.toggle('hidden', !isCustom);
+  }
+
   document.getElementById('l-platform').addEventListener('change', (e) => {
+    updatePlatformCustomVisibility();
     const iconField = document.getElementById('l-icon');
-    if (!iconField.value) iconField.value = PLATFORM_ICONS[e.target.value] || '🔗';
+    if (!iconField.value) iconField.value = platformIcon(e.target.value);
   });
 
   function openLinkModal(link) {
     document.getElementById('link-modal-title').textContent = link ? 'Editar enlace' : 'Nuevo enlace';
     document.getElementById('l-id').value = link ? link.id : '';
     document.getElementById('l-type').value = link ? link.type : 'simple';
-    document.getElementById('l-platform').value = link ? link.platform : 'custom';
+
+    // A saved platform that isn't one of the presets belongs in the custom
+    // text field. Assigning it straight to the <select> would silently
+    // select nothing (value becomes ''), and saving would then wipe the
+    // name the user had typed.
+    const savedPlatform = link ? link.platform : 'custom';
+    const isPreset = PRESET_PLATFORMS.includes(savedPlatform);
+    document.getElementById('l-platform').value = isPreset ? savedPlatform : 'custom';
+    document.getElementById('l-platform-custom').value =
+      !isPreset && savedPlatform && savedPlatform !== 'custom' ? savedPlatform : '';
+
     document.getElementById('l-icon').value = link ? (link.icon || '') : '';
     document.getElementById('l-label').value = link ? link.label : '';
     document.getElementById('l-subtitle').value = link ? (link.subtitle || '') : '';
@@ -495,6 +525,7 @@
     document.getElementById('l-enabled').checked = link ? !!link.enabled : true;
     editingImageLinkId = link ? link.id : null;
     updateImageRowVisibility();
+    updatePlatformCustomVisibility();
     modal.classList.remove('hidden');
   }
 
@@ -528,9 +559,13 @@
   linkForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('l-id').value;
+    const selectedPlatform = document.getElementById('l-platform').value;
+    const typedPlatform = document.getElementById('l-platform-custom').value.trim();
     const payload = {
       type: document.getElementById('l-type').value,
-      platform: document.getElementById('l-platform').value,
+      // Falls back to the literal 'custom' when they pick Personalizado but
+      // leave the name blank — same value the field had before this existed.
+      platform: selectedPlatform === 'custom' ? (typedPlatform || 'custom') : selectedPlatform,
       icon: document.getElementById('l-icon').value.trim(),
       label: document.getElementById('l-label').value.trim(),
       subtitle: document.getElementById('l-subtitle').value.trim(),

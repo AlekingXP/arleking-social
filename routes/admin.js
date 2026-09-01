@@ -228,6 +228,14 @@ router.get('/links', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM links WHERE user_id = ? ORDER BY order_index ASC').all(req.session.userId));
 });
 
+// `platform` is free text now (the "Personalizado" option lets people name
+// their own), so it's capped here — the input's maxlength only constrains
+// the browser, not the API.
+function cleanPlatform(platform) {
+  const value = typeof platform === 'string' ? platform.trim().slice(0, 40) : '';
+  return value || 'custom';
+}
+
 router.post('/links', requireAuth, (req, res) => {
   const { type, platform, label, subtitle, badge_left, badge_right, url, icon, enabled } = req.body || {};
   if (!label || !url) return res.status(400).json({ error: 'Label y URL son obligatorios' });
@@ -236,7 +244,7 @@ router.post('/links', requireAuth, (req, res) => {
   const info = db.prepare(`
     INSERT INTO links (user_id, order_index, type, platform, label, subtitle, badge_left, badge_right, url, image_path, icon, enabled)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
-  `).run(req.session.userId, maxOrder + 1, type || 'simple', platform || 'custom', label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0);
+  `).run(req.session.userId, maxOrder + 1, type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0);
 
   res.status(201).json(db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(info.lastInsertRowid, req.session.userId));
 });
@@ -262,7 +270,7 @@ router.put('/links/:id', requireAuth, (req, res) => {
   db.prepare(`
     UPDATE links SET type = ?, platform = ?, label = ?, subtitle = ?, badge_left = ?, badge_right = ?, url = ?, icon = ?, enabled = ?
     WHERE id = ? AND user_id = ?
-  `).run(type || 'simple', platform || 'custom', label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0, req.params.id, req.session.userId);
+  `).run(type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0, req.params.id, req.session.userId);
 
   res.json(db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId));
 });

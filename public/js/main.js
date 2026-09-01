@@ -13,6 +13,16 @@
     custom: '🔗',
   };
 
+  // hasOwnProperty, not a bare lookup: platform is user-supplied free text,
+  // and a plain PLATFORM_ICONS[name] would inherit from Object.prototype —
+  // a link whose platform is "constructor" would otherwise render the
+  // function's source in place of its icon.
+  function platformIcon(platform) {
+    return Object.prototype.hasOwnProperty.call(PLATFORM_ICONS, platform)
+      ? PLATFORM_ICONS[platform]
+      : '🔗';
+  }
+
   function placeholderAvatar(letter) {
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
@@ -63,7 +73,7 @@
     a.href = link.url;
     a.dataset.url = link.url;
 
-    a.appendChild(el('div', 'icon-circle', link.icon || PLATFORM_ICONS[link.platform] || '🔗'));
+    a.appendChild(el('div', 'icon-circle', link.icon || platformIcon(link.platform)));
 
     const info = el('div', 'info');
     info.appendChild(el('div', 'label', link.label));
