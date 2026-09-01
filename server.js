@@ -106,6 +106,17 @@ app.get('/:slug', (req, res, next) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
+
+  // A body express.json() can't parse is the caller's mistake, not ours:
+  // answering 500 tells them to retry a request that will never work, and
+  // echoing err.message hands back the parser's internals.
+  if (err.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    return res.status(400).json({ error: 'Solicitud mal formada.' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'El contenido enviado es demasiado grande.' });
+  }
+
   res.status(500).json({ error: err.message || 'Error interno' });
 });
 
