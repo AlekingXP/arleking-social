@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity } = require('../db');
+const { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity, isOwnerUsername } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
 
@@ -104,6 +104,7 @@ router.get('/auth/me', (req, res) => {
       hasPassword: !!(user && user.password_hash),
       googleEmail: user ? user.google_email : null,
       slug: profile ? profile.slug : null,
+      isOwner: isOwnerUsername(req.session.username),
     });
   }
   res.json({ authenticated: false });
@@ -171,10 +172,18 @@ router.put('/profile', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId));
 });
 
-// Temporary stand-in for Stripe Billing: lets a user flip their own VIP tier
-// on/off so the badge can be built and tested before checkout/webhooks exist.
-// Remove once /api/webhooks/stripe activates vip_tier on payment confirmation.
-router.put('/profile/vip-test', requireAuth, (req, res) => {
+// Manual VIP switch for platform owners (OWNER_USERNAMES) — the site is
+// theirs, so they don't pay for their own badge.
+//
+// This used to be an unauthenticated-by-role "/profile/vip-test" route
+// guarded only by requireAuth, which meant ANY registered user could grant
+// themselves any paid tier for free. The path is renamed so old clients
+// hitting the open endpoint get a 404 rather than silently succeeding.
+router.put('/profile/vip-owner', requireAuth, (req, res) => {
+  if (!isOwnerUsername(req.session.username)) {
+    return res.status(403).json({ error: 'Solo los propietarios pueden cambiar el tier manualmente.' });
+  }
+
   const { vip_tier } = req.body || {};
   if (vip_tier !== null && !VIP_TIERS.includes(vip_tier)) {
     return res.status(400).json({ error: 'Tier VIP inválido' });

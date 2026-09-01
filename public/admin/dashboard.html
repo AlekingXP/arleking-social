@@ -218,10 +218,13 @@
 
       <hr class="divider" />
 
-      <details>
-        <summary class="hint" style="cursor:pointer;">🧪 Modo de prueba (sin cobro real)</summary>
+      <!-- Owner-only. Hidden and 403'd for everyone else — see
+           /api/profile/vip-owner. -->
+      <details id="vip-owner-section" class="hidden">
+        <summary class="hint" style="cursor:pointer;">👑 Control de propietario</summary>
         <p class="hint">
-          Activa un tier manualmente sin pasar por Stripe — solo para pruebas.
+          Tu cuenta es dueña de la plataforma, así que puedes fijar tu tier sin
+          pasar por Stripe ni pagar.
         </p>
         <form id="vip-form" class="form-grid">
           <label class="field">
@@ -232,7 +235,7 @@
               <option value="king">👑 THE KING — $7.99/mes</option>
             </select>
           </label>
-          <button type="submit" class="btn-pill btn-outline">Guardar tier VIP (prueba)</button>
+          <button type="submit" class="btn-pill btn-outline">Guardar tier VIP</button>
         </form>
       </details>
     </section>

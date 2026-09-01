@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 
-const { cleanupInactiveUsers } = require('./db');
+const { cleanupInactiveUsers, reconcileVipGrants } = require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -123,6 +123,14 @@ function runInactivityCleanup() {
 app.listen(PORT, () => {
   console.log(`\nServidor corriendo en http://localhost:${PORT}`);
   console.log(`Dashboard admin en http://localhost:${PORT}/admin/login`);
+
+  try {
+    const { granted, revoked } = reconcileVipGrants();
+    if (granted.length) console.log(`VIP de propietario concedido a: ${granted.join(', ')}`);
+    if (revoked) console.log(`Badges VIP sin suscripción revocados: ${revoked}`);
+  } catch (err) {
+    console.error('Error al reconciliar los badges VIP:', err.message);
+  }
 
   runInactivityCleanup();
   setInterval(runInactivityCleanup, 24 * 60 * 60 * 1000);

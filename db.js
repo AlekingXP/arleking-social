@@ -196,6 +196,68 @@ if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TAB
 // spec are reserved for later — only these two are sellable today.
 const VIP_TIERS = ['billete', 'king'];
 
+// ---- Platform owners ----
+// Accounts that get the VIP badge without paying, because the platform is
+// theirs. Set OWNER_USERNAMES to a comma-separated list of usernames.
+// Everyone else must go through Stripe.
+const OWNER_USERNAMES = (process.env.OWNER_USERNAMES || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const OWNER_VIP_TIER = process.env.OWNER_VIP_TIER || 'king';
+
+function isOwnerUsername(username) {
+  const name = String(username || '').toLowerCase();
+  return OWNER_USERNAMES.some((u) => u.toLowerCase() === name);
+}
+
+const findUserByName = () => db.prepare('SELECT id, username FROM users WHERE username = ? COLLATE NOCASE');
+
+/**
+ * Grants owner accounts their tier, and revokes any badge that isn't paid
+ * for. Runs at startup so an owner never has to click anything, and so a
+ * badge obtained through the old unrestricted toggle doesn't linger.
+ * Accounts with a real Stripe subscription are never touched — Stripe
+ * stays the source of truth for those.
+ */
+function reconcileVipGrants() {
+  const result = { granted: [], revoked: 0 };
+
+  if (OWNER_USERNAMES.length && !VIP_TIERS.includes(OWNER_VIP_TIER)) {
+    console.warn(`OWNER_VIP_TIER "${OWNER_VIP_TIER}" no es un tier válido; se omite la concesión.`);
+  } else {
+    const stmt = findUserByName();
+    OWNER_USERNAMES.forEach((username) => {
+      const user = stmt.get(username);
+      if (!user) return;
+      const profile = db.prepare('SELECT vip_tier, stripe_subscription_id FROM profile WHERE user_id = ?').get(user.id);
+      if (!profile || profile.stripe_subscription_id) return;
+      if (profile.vip_tier === OWNER_VIP_TIER) return;
+      db.prepare("UPDATE profile SET vip_tier = ?, vip_activated_at = datetime('now') WHERE user_id = ?")
+        .run(OWNER_VIP_TIER, user.id);
+      result.granted.push(user.username);
+    });
+  }
+
+  // Anything still holding a badge with no subscription behind it and no
+  // owner status got it from the old open endpoint.
+  const ownerIds = OWNER_USERNAMES
+    .map((u) => findUserByName().get(u))
+    .filter(Boolean)
+    .map((u) => u.id);
+  const placeholders = ownerIds.map(() => '?').join(',');
+  const revoke = db.prepare(`
+    UPDATE profile SET vip_tier = NULL, vip_activated_at = NULL
+    WHERE vip_tier IS NOT NULL
+      AND stripe_subscription_id IS NULL
+      ${ownerIds.length ? `AND user_id NOT IN (${placeholders})` : ''}
+  `);
+  result.revoked = revoke.run(...ownerIds).changes;
+
+  return result;
+}
+
 const INACTIVITY_MONTHS = 6;
 
 function touchUserActivity(userId) {
@@ -269,4 +331,8 @@ function createUserWithProfile({ username, passwordHash, googleId, googleEmail, 
   return userId;
 }
 
-module.exports = { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity, cleanupInactiveUsers };
+module.exports = {
+  db, slugify, RESERVED_SLUGS, VIP_TIERS,
+  createUserWithProfile, touchUserActivity, cleanupInactiveUsers,
+  isOwnerUsername, reconcileVipGrants, OWNER_VIP_TIER,
+};

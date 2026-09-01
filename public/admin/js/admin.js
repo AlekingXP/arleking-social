@@ -222,7 +222,7 @@
   document.getElementById('vip-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const profile = await api('/api/profile/vip-test', {
+      const profile = await api('/api/profile/vip-owner', {
         method: 'PUT',
         body: JSON.stringify({ vip_tier: document.getElementById('vip-tier').value || null }),
       });
@@ -301,6 +301,9 @@
 
     document.getElementById('pw-current-field').classList.toggle('hidden', !data.hasPassword);
     document.getElementById('pw-new-label').textContent = data.hasPassword ? 'Contraseña nueva' : 'Crear contraseña';
+
+    // Cosmetic only — the endpoint itself enforces this server-side.
+    document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
     const googleStatus = await fetch('/api/auth/google/status').then((r) => r.json());
     const section = document.getElementById('google-link-section');
