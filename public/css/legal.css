@@ -1,0 +1,136 @@
+/* Shared styling for the public legal pages (/terminos, /privacidad,
+   /reembolsos). Same palette and liquid-glass language as the dashboard,
+   but self-contained — these pages are public and shouldn't depend on the
+   admin stylesheet. */
+
+:root {
+  --accent-from: #ff5f8f;
+  --accent-to: #ff9a5a;
+  --bg: #0b0509;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f1ecf3;
+  --text-dim: rgba(241, 236, 243, 0.62);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 700px 460px at 50% 0%, rgba(255, 95, 143, 0.14), transparent 70%),
+    var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.65;
+}
+
+.legal-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  margin-bottom: 22px;
+}
+.legal-back:hover { color: var(--text); }
+
+.legal-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%),
+    rgba(23, 17, 26, 0.32);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 34px 32px;
+  backdrop-filter: blur(4px) saturate(140%);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
+}
+
+.legal-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 2rem;
+  margin: 0 0 6px;
+}
+
+.legal-updated {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 0 0 28px;
+}
+
+.legal-card h2 {
+  font-size: 1.05rem;
+  margin: 28px 0 10px;
+  font-weight: 700;
+}
+
+.legal-card h2:first-of-type { margin-top: 0; }
+
+.legal-card p, .legal-card li {
+  font-size: 0.92rem;
+  color: var(--text-dim);
+  margin: 0 0 12px;
+}
+
+.legal-card strong { color: var(--text); }
+
+.legal-card ul { padding-left: 20px; margin: 0 0 12px; }
+.legal-card li { margin-bottom: 7px; }
+
+.legal-callout {
+  border: 1px solid rgba(255, 205, 70, 0.28);
+  background: rgba(255, 205, 70, 0.06);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 18px 0;
+}
+.legal-callout p { margin: 0; color: var(--text); }
+
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.83rem;
+}
+.legal-links a { color: var(--accent-from); text-decoration: none; font-weight: 600; }
+.legal-links a:hover { text-decoration: underline; }
+
+.legal-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 60%),
+    rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  backdrop-filter: blur(6px) saturate(150%);
+  -webkit-backdrop-filter: blur(6px) saturate(150%);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.legal-cta:hover {
+  transform: translateY(-2px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 60%),
+    rgba(255, 255, 255, 0.1);
+}

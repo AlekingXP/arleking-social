@@ -29,6 +29,20 @@ if (fs.existsSync(secretPath)) {
   fs.writeFileSync(secretPath, sessionSecret);
 }
 
+// Security headers. No CSP here on purpose: the pages load Three.js from a
+// CDN and use inline styles/handlers, so a policy strict enough to be worth
+// having would break them — that needs its own pass, not a rushed header.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
 // Signature verification needs the exact raw bytes, so this is mounted
 // before the global JSON body parser below (Express applies middleware in
 // registration order; other routes fall through to express.json() as usual).
@@ -68,6 +82,14 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // makes every sendFile() 404, since the check otherwise scans the *whole*
 // absolute path for a dot-prefixed segment.
 const adminViewsDir = path.join(__dirname, 'public', 'admin');
+const legalViewsDir = path.join(__dirname, 'public', 'legal');
+
+// Registered before the `/:slug` catch-all below, which would otherwise
+// swallow these and try to render them as a user profile page.
+const LEGAL_PAGES = { terminos: 'terminos.html', privacidad: 'privacidad.html', reembolsos: 'reembolsos.html' };
+Object.entries(LEGAL_PAGES).forEach(([route, file]) => {
+  app.get(`/${route}`, (req, res) => res.sendFile(file, { root: legalViewsDir }));
+});
 
 app.get('/admin/login', (req, res) => {
   res.sendFile('login.html', { root: adminViewsDir });

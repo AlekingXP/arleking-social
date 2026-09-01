@@ -473,6 +473,19 @@ body {
 .switch-row input { width: 18px; height: 18px; accent-color: var(--accent-from); }
 
 .hint { font-size: 0.75rem; color: var(--text-dim); margin: 8px 0 0; }
+.hint a { color: var(--accent-from); text-decoration: none; font-weight: 600; }
+.hint a:hover { text-decoration: underline; }
+
+.legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 0 0;
+  font-size: 0.78rem;
+}
+.legal-footer a { color: var(--text-dim); text-decoration: none; }
+.legal-footer a:hover { color: var(--text); text-decoration: underline; }
 
 .vip-plans {
   display: flex;

@@ -43,6 +43,16 @@ db.exec(`
     stripe_subscription_id TEXT
   );
 
+  -- Webhook replay/idempotency guard. Stripe retries deliveries and can
+  -- deliver the same event more than once; without this, replaying an old
+  -- checkout.session.completed would re-activate an already-cancelled
+  -- subscription.
+  CREATE TABLE IF NOT EXISTS stripe_events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    received_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -64,6 +74,8 @@ const RESERVED_SLUGS = [
   'admin', 'api', 'login', 'signup', 'register', 'logout',
   'images', 'uploads', 'css', 'js', 'u', 'static', 'app',
   'favicon.ico', 'robots.txt', 'sitemap.xml', 'ale-king-xp',
+  // Legal pages and asset dirs — a profile here would shadow the real page.
+  'terminos', 'privacidad', 'reembolsos', 'legal', 'models',
 ];
 
 function slugify(str) {

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacidad y Seguridad — ArleKing Social</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/legal.css" />
+</head>
+<body>
+  <div class="legal-wrap">
+    <a class="legal-back" href="/">← Volver a ArleKing Social</a>
+
+    <div class="legal-card">
+      <h1 class="legal-title">Privacidad y Seguridad</h1>
+      <p class="legal-updated">Última actualización: 1 de septiembre de 2026</p>
+
+      <h2>1. Seguridad de los pagos</h2>
+      <div class="legal-callout">
+        <p>
+          <strong>Los datos de tu tarjeta nunca pasan por nuestros
+          servidores.</strong> El pago se realiza en una página alojada por
+          Stripe (Stripe Checkout), un proveedor certificado
+          <strong>PCI DSS Nivel 1</strong>. ArleKing Social no ve, no recibe
+          y no almacena tu número de tarjeta, su fecha de vencimiento ni su
+          CVC en ningún momento.
+        </p>
+      </div>
+      <p>De la operación de pago solo guardamos:</p>
+      <ul>
+        <li>Un identificador de cliente de Stripe (<code>cus_…</code>).</li>
+        <li>Un identificador de suscripción de Stripe (<code>sub_…</code>).</li>
+        <li>El nivel VIP contratado y la fecha de activación.</li>
+      </ul>
+      <p>
+        Esos identificadores sirven únicamente para saber si tu insignia
+        debe estar activa y para abrirte el portal de gestión. Tu historial
+        de cobros y tus métodos de pago viven en Stripe, no aquí.
+      </p>
+
+      <h2>2. Cómo protegemos la activación de la suscripción</h2>
+      <ul>
+        <li><strong>Firma criptográfica:</strong> cada aviso de pago que recibimos de Stripe se valida con su firma. Un aviso falsificado se rechaza y no activa ninguna insignia.</li>
+        <li><strong>Protección contra repetición:</strong> registramos el identificador de cada evento procesado, de modo que reenviar un aviso antiguo no puede reactivar una suscripción ya cancelada.</li>
+        <li><strong>Sin cobros duplicados:</strong> si ya tienes una suscripción activa, el sistema bloquea el intento de contratar otra.</li>
+        <li><strong>Límite de solicitudes:</strong> los endpoints de pago están limitados por IP para impedir abuso automatizado.</li>
+      </ul>
+
+      <h2>3. Qué datos guardamos de ti</h2>
+      <ul>
+        <li><strong>Cuenta:</strong> nombre de usuario y contraseña (guardada como hash bcrypt, nunca en texto plano).</li>
+        <li><strong>Google (opcional):</strong> si vinculas Google, guardamos tu identificador y tu correo de Google.</li>
+        <li><strong>Perfil público:</strong> nombre, descripción, enlaces, imágenes que subas y opciones visuales.</li>
+        <li><strong>Actividad:</strong> la fecha de tu último acceso, para la limpieza de cuentas inactivas.</li>
+      </ul>
+      <p>
+        No usamos rastreadores publicitarios ni vendemos tus datos a
+        terceros.
+      </p>
+
+      <h2>4. Seguridad de tu cuenta</h2>
+      <ul>
+        <li>Las contraseñas se almacenan con <strong>bcrypt</strong>; ni siquiera nosotros podemos leerlas.</li>
+        <li>Las sesiones usan cookies <code>httpOnly</code> y <code>SameSite</code>, servidas solo por HTTPS en producción.</li>
+        <li>Los intentos de inicio de sesión y registro están limitados para frenar ataques de fuerza bruta.</li>
+        <li>El tráfico viaja cifrado con HTTPS (HSTS activo en producción).</li>
+      </ul>
+
+      <h2>5. Con quién compartimos datos</h2>
+      <p>Solo con los proveedores necesarios para que el servicio funcione:</p>
+      <ul>
+        <li><strong>Stripe</strong> — procesamiento de pagos y suscripciones.</li>
+        <li><strong>Render</strong> — alojamiento de la aplicación y la base de datos.</li>
+        <li><strong>Google</strong> — únicamente si eliges iniciar sesión con Google.</li>
+      </ul>
+
+      <h2>6. Tus derechos</h2>
+      <p>
+        Puedes editar o borrar el contenido de tu perfil en cualquier
+        momento desde tu panel. Si quieres eliminar por completo tu cuenta y
+        los datos asociados, escríbenos a
+        <strong>contacto@arleking-social.net</strong>. Las cuentas inactivas
+        durante 6 meses se eliminan solas junto con sus archivos.
+      </p>
+      <p>
+        Para borrar tu historial de facturación debes solicitarlo también a
+        Stripe, ya que la normativa contable les obliga a conservar los
+        registros de las operaciones durante cierto tiempo.
+      </p>
+
+      <h2>7. Contacto</h2>
+      <p>
+        Cualquier duda sobre privacidad o seguridad:
+        <strong>contacto@arleking-social.net</strong>.
+      </p>
+
+      <div class="legal-links">
+        <a href="/terminos">Términos y Condiciones</a>
+        <a href="/reembolsos">Política de Reembolsos</a>
+        <a href="/">Inicio</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

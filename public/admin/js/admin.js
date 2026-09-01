@@ -75,7 +75,10 @@
       return;
     }
     document.getElementById('vip-current-label').textContent = VIP_LABELS[profile.vip_tier] || profile.vip_tier;
-    document.getElementById('vip-manage-btn').classList.toggle('hidden', !profile.stripe_subscription_id);
+    // Cancel button + its explanation only make sense with a real Stripe
+    // subscription behind them — a tier flipped on via the test toggle has
+    // nothing to cancel.
+    document.getElementById('vip-manage-wrap').classList.toggle('hidden', !profile.stripe_subscription_id);
     box.classList.remove('hidden');
   }
 

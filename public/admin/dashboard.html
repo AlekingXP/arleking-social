@@ -170,7 +170,16 @@
         <p class="hint" style="margin:0 0 10px;">
           Tier activo: <strong id="vip-current-label"></strong>
         </p>
-        <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">Gestionar suscripción</button>
+        <div id="vip-manage-wrap" class="hidden">
+          <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">
+            Gestionar o cancelar suscripción
+          </button>
+          <p class="hint">
+            Cancela cuando quieras. Conservas el badge hasta que termine el mes
+            que ya pagaste y no se te vuelve a cobrar.
+            <a href="/reembolsos" target="_blank" rel="noopener">Ver política de reembolsos</a>
+          </p>
+        </div>
         <hr class="divider" />
       </div>
 
@@ -182,6 +191,16 @@
           👑 Suscribirme — THE KING ($7.99/mes)
         </button>
       </div>
+
+      <p class="hint">
+        Suscripción mensual, se renueva sola hasta que la canceles. El pago lo
+        procesa Stripe — tus datos de tarjeta nunca pasan por nuestros servidores.
+        Al suscribirte aceptas los
+        <a href="/terminos" target="_blank" rel="noopener">Términos</a>,
+        la <a href="/privacidad" target="_blank" rel="noopener">Política de Privacidad</a>
+        y la <a href="/reembolsos" target="_blank" rel="noopener">Política de Reembolsos</a>
+        (sin reembolsos; puedes cancelar cuando quieras).
+      </p>
 
       <hr class="divider" />
 
@@ -256,6 +275,12 @@
         <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
       </form>
     </section>
+
+    <footer class="legal-footer">
+      <a href="/terminos" target="_blank" rel="noopener">Términos</a>
+      <a href="/privacidad" target="_blank" rel="noopener">Privacidad y Seguridad</a>
+      <a href="/reembolsos" target="_blank" rel="noopener">Reembolsos</a>
+    </footer>
 
   </main>
 

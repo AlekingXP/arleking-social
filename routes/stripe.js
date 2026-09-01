@@ -1,5 +1,6 @@
 const express = require('express');
 const Stripe = require('stripe');
+const rateLimit = require('express-rate-limit');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
@@ -14,6 +15,17 @@ const PRICE_IDS = {
   king: process.env.STRIPE_PRICE_KING,
 };
 
+// Payment endpoints hit the Stripe API on every call, so they're rate
+// limited per-IP independently of the auth limiter — an authenticated
+// account shouldn't be able to spray Checkout Sessions.
+const paymentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes de pago. Espera unos minutos.' },
+});
+
 function requireStripeConfigured(req, res, next) {
   if (!stripe) return res.status(503).json({ error: 'Los pagos todavía no están configurados en el servidor.' });
   next();
@@ -25,13 +37,33 @@ function originUrl(req) {
 
 // ---- Checkout: start a subscription for the logged-in platform user ----
 
-router.post('/checkout', requireAuth, requireStripeConfigured, async (req, res) => {
+router.post('/checkout', paymentLimiter, requireAuth, requireStripeConfigured, async (req, res) => {
   const { tier } = req.body || {};
   const priceId = PRICE_IDS[tier];
   if (!priceId) return res.status(400).json({ error: 'Tier VIP inválido' });
 
   const profile = db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId);
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  if (!profile || !user) return res.status(404).json({ error: 'Perfil no encontrado' });
+
+  // Guard against double-billing: without this, a user with a live
+  // subscription could start a second Checkout and end up paying twice.
+  // Stripe is asked for the authoritative status rather than trusting our
+  // own column, which can lag behind a webhook.
+  if (profile.stripe_subscription_id) {
+    try {
+      const existing = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+      if (['active', 'trialing', 'past_due', 'unpaid'].includes(existing.status)) {
+        return res.status(409).json({
+          error: 'Ya tienes una suscripción activa. Usa "Gestionar suscripción" para cambiarla o cancelarla.',
+        });
+      }
+    } catch (err) {
+      // Subscription is gone from Stripe (deleted/never existed) — fall
+      // through and let them subscribe again.
+      console.warn('No se pudo verificar la suscripción existente:', err.message);
+    }
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -54,15 +86,57 @@ router.post('/checkout', requireAuth, requireStripeConfigured, async (req, res) 
 
 // ---- Billing Portal: self-serve cancel / update payment method ----
 
-router.post('/billing-portal', requireAuth, requireStripeConfigured, async (req, res) => {
+// The portal refuses to open until the account has a configuration, and
+// that can't be created from a restricted key — so the app creates its own
+// on first use instead of depending on someone clicking through the Stripe
+// Dashboard. Cached per process; `null` means "not resolved yet".
+let portalConfigurationId = null;
+
+async function ensurePortalConfiguration(req) {
+  if (portalConfigurationId) return portalConfigurationId;
+
+  const existing = await stripe.billingPortal.configurations.list({ limit: 1, active: true });
+  if (existing.data.length) {
+    portalConfigurationId = existing.data[0].id;
+    return portalConfigurationId;
+  }
+
+  const origin = originUrl(req);
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: {
+      headline: 'ArleKing Social — gestiona tu suscripción VIP',
+      privacy_policy_url: `${origin}/privacidad`,
+      terms_of_service_url: `${origin}/terminos`,
+    },
+    features: {
+      customer_update: { enabled: true, allowed_updates: ['email', 'address'] },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: {
+        enabled: true,
+        mode: 'at_period_end',
+        cancellation_reason: {
+          enabled: true,
+          options: ['too_expensive', 'missing_features', 'unused', 'other'],
+        },
+      },
+    },
+  });
+  portalConfigurationId = created.id;
+  return portalConfigurationId;
+}
+
+router.post('/billing-portal', paymentLimiter, requireAuth, requireStripeConfigured, async (req, res) => {
   const profile = db.prepare('SELECT stripe_customer_id FROM profile WHERE user_id = ?').get(req.session.userId);
   if (!profile || !profile.stripe_customer_id) {
     return res.status(400).json({ error: 'Todavía no tienes una suscripción activa.' });
   }
 
   try {
+    const configuration = await ensurePortalConfiguration(req);
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
+      configuration,
       return_url: `${originUrl(req)}/admin/dashboard`,
     });
     res.json({ url: session.url });
@@ -75,6 +149,9 @@ router.post('/billing-portal', requireAuth, requireStripeConfigured, async (req,
 // ---- Webhook: source of truth for activating/revoking the badge ----
 // Mounted separately in server.js with express.raw() BEFORE express.json(),
 // since signature verification needs the exact raw request body.
+
+const markEventSeen = db.prepare('INSERT INTO stripe_events (id, type) VALUES (?, ?)');
+
 async function webhookHandler(req, res) {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
     return res.status(503).send('Webhook not configured');
@@ -88,12 +165,25 @@ async function webhookHandler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // Replay guard. The PRIMARY KEY does the deduping atomically, so a
+  // duplicate delivery throws here and is acknowledged without re-running
+  // any state change.
+  try {
+    markEventSeen.run(event.id, event.type);
+  } catch {
+    return res.json({ received: true, duplicate: true });
+  }
+
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
+      // Only grant on a session that actually completed and was paid for
+      // (`no_payment_required` covers a 100%-off coupon or trial).
+      const paid = session.payment_status === 'paid' || session.payment_status === 'no_payment_required';
       const userId = Number(session.client_reference_id || (session.metadata && session.metadata.user_id));
       const tier = session.metadata && session.metadata.tier;
-      if (userId && tier) {
+
+      if (paid && userId && tier) {
         db.prepare(`
           UPDATE profile SET
             vip_tier = ?, vip_activated_at = datetime('now'),
@@ -112,7 +202,16 @@ async function webhookHandler(req, res) {
       db.prepare('UPDATE profile SET vip_tier = NULL WHERE stripe_subscription_id = ?').run(sub.id);
     }
   } catch (err) {
+    // Returning 200 here would tell Stripe the event was handled and it
+    // would never retry — leaving someone who paid without their badge.
+    // Roll back the replay guard so the retry is allowed to run.
     console.error('Error procesando evento de Stripe:', event.type, err.message);
+    try {
+      db.prepare('DELETE FROM stripe_events WHERE id = ?').run(event.id);
+    } catch {
+      // Best effort — a stuck row only costs us one skipped retry.
+    }
+    return res.status(500).json({ error: 'Error procesando el evento' });
   }
 
   res.json({ received: true });
