@@ -188,13 +188,18 @@ body {
 
 /* Login */
 
+/* Login-only background. The scrim layer isn't decoration — the photo is
+   high-contrast and the form sits directly on top of it, so without it the
+   labels and the lamp beam get lost against the bright areas. */
 .login-body {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 600px 400px at 50% 0%, rgba(255, 95, 143, 0.16), transparent 70%),
+    radial-gradient(ellipse 600px 400px at 50% 0%, rgba(255, 95, 143, 0.14), transparent 70%),
+    linear-gradient(rgba(11, 5, 9, 0.50), rgba(11, 5, 9, 0.74)),
+    url('/images/login-bg.jpg') center / cover no-repeat,
     var(--bg);
 }
 
