@@ -333,8 +333,25 @@
       label.textContent = p.label;
       const status = document.createElement('p');
       status.className = 'linked-status';
-      status.textContent = p.linked ? (p.email ? `Vinculada: ${p.email}` : 'Vinculada') : 'No vinculada';
+      status.textContent = p.linked ? 'Vinculada' : 'No vinculada';
       info.append(label, status);
+
+      // The address stays hidden behind a click so it never leaks into a
+      // screenshot or a shoulder-surf — the brand alone says enough.
+      if (p.linked && p.email) {
+        const reveal = document.createElement('button');
+        reveal.type = 'button';
+        reveal.className = 'linked-reveal';
+        reveal.textContent = 'Ver correo';
+        reveal.setAttribute('aria-expanded', 'false');
+        reveal.addEventListener('click', () => {
+          const shown = reveal.getAttribute('aria-expanded') === 'true';
+          reveal.textContent = shown ? 'Ver correo' : p.email;
+          reveal.setAttribute('aria-expanded', String(!shown));
+          reveal.classList.toggle('is-revealed', !shown);
+        });
+        status.append(' · ', reveal);
+      }
 
       const action = document.createElement(p.linked ? 'button' : 'a');
       action.className = 'btn-outline btn-sm';

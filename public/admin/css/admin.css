@@ -441,6 +441,27 @@ body {
   font-size: 0.9rem;
 }
 
+/* Reads as a link while it's an invitation, then as plain text once it's
+   showing the address — so the revealed email doesn't look clickable. */
+.linked-reveal {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.linked-reveal:hover { color: var(--text); }
+.linked-reveal.is-revealed {
+  color: var(--text-dim);
+  text-decoration: none;
+  /* Long addresses must not push the Desvincular button off the row. */
+  overflow-wrap: anywhere;
+}
+
 
 .error-text {
   color: var(--danger);
