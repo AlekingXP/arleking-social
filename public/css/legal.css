@@ -85,6 +85,18 @@ body {
 
 .legal-card strong { color: var(--text); }
 
+/* Inline links in body copy (contact mailto, cross-references between
+   policies). Excludes .legal-cta, which is a button and would otherwise be
+   overridden here — this selector is more specific than its single class. */
+.legal-card p a:not(.legal-cta),
+.legal-card li a:not(.legal-cta) {
+  color: var(--accent-from);
+  text-decoration: none;
+  font-weight: 600;
+}
+.legal-card p a:not(.legal-cta):hover,
+.legal-card li a:not(.legal-cta):hover { text-decoration: underline; }
+
 .legal-card ul { padding-left: 20px; margin: 0 0 12px; }
 .legal-card li { margin-bottom: 7px; }
 
