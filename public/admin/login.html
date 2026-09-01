@@ -23,61 +23,90 @@
 
   <canvas id="particles-canvas" class="particles-canvas" aria-hidden="true"></canvas>
 
-  <div class="login-card">
-    <h1 class="brand-name">✨ Dashboard</h1>
-    <p class="login-sub" id="login-subtitle">Inicia sesión para administrar tu página</p>
+  <div class="lamp-card lit" id="lamp-card">
 
-    <div class="login-orb" id="login-orb">
-      <div class="orb-ring"></div>
-      <div class="orb-body">
-        <button type="button" class="orb-trigger" id="orb-trigger">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-          <span id="orb-label">Iniciar sesión</span>
-        </button>
-
-        <form id="login-form" class="orb-form">
-          <label class="field">
-            <span>Usuario</span>
-            <input type="text" id="username" name="username" autocomplete="username" required />
-          </label>
-
-          <label class="field">
-            <span>Contraseña</span>
-            <input type="password" id="password" name="password" autocomplete="current-password" required />
-          </label>
-
-          <label class="field hidden" id="password-confirm-field">
-            <span>Confirmar contraseña</span>
-            <input type="password" id="password-confirm" name="password-confirm" autocomplete="new-password" />
-          </label>
-
-          <p id="login-error" class="error-text hidden"></p>
-
-          <button type="submit" class="btn-pill btn-gradient" id="submit-btn" style="width:100%;">Entrar</button>
-
-          <div class="orb-divider hidden" id="google-divider"><span>o</span></div>
-
-          <a href="/api/auth/google?intent=login" class="btn-outline google-btn hidden" id="google-btn" style="width:100%;">
-            <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
-            <span id="google-label">Continuar con Google</span>
-          </a>
-        </form>
-      </div>
+    <!-- Left panel: the lamp. Click the cord to toggle the light. -->
+    <div class="lamp-stage">
+      <button type="button" class="lamp" id="lamp-toggle" aria-pressed="true" aria-label="Encender o apagar la lámpara">
+        <span class="lamp-cord" aria-hidden="true"><span class="lamp-cord-grip"></span></span>
+        <span class="lamp-shade" aria-hidden="true"></span>
+        <span class="lamp-bulb" aria-hidden="true"></span>
+        <span class="lamp-beam" aria-hidden="true"></span>
+      </button>
+      <p class="lamp-hint">Tira del cordón</p>
     </div>
 
-    <p class="mode-toggle" id="mode-toggle">
-      ¿No tienes cuenta? <a href="#" id="mode-toggle-link">Crea una</a>
-    </p>
+    <!-- Right panel: the form -->
+    <div class="lamp-form">
+      <!-- login.js swaps #orb-label between "Iniciar sesión" and "Crear
+           cuenta", so it carries the whole heading — a fixed prefix would
+           read wrong in one of the two modes. -->
+      <h1 class="lamp-title">✨ <span id="orb-label">Iniciar sesión</span></h1>
+      <p class="login-sub" id="login-subtitle">Inicia sesión para administrar tu página</p>
 
-    <footer class="legal-footer">
-      <a href="/terminos">Términos</a>
-      <a href="/privacidad">Privacidad</a>
-      <a href="/reembolsos">Reembolsos</a>
-    </footer>
+      <form id="login-form">
+        <label class="field field-icon">
+          <span>Usuario</span>
+          <span class="field-input">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="text" id="username" name="username" autocomplete="username" required />
+          </span>
+        </label>
+
+        <label class="field field-icon">
+          <span>Contraseña</span>
+          <span class="field-input">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.6a3.5 3.5 0 0 1 7 0v2.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="password" id="password" name="password" autocomplete="current-password" required />
+          </span>
+        </label>
+
+        <label class="field field-icon hidden" id="password-confirm-field">
+          <span>Confirmar contraseña</span>
+          <span class="field-input">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.6a3.5 3.5 0 0 1 7 0v2.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="password" id="password-confirm" name="password-confirm" autocomplete="new-password" />
+          </span>
+        </label>
+
+        <p id="login-error" class="error-text hidden"></p>
+
+        <button type="submit" class="btn-pill btn-gradient" id="submit-btn" style="width:100%;">Entrar</button>
+
+        <div class="orb-divider hidden" id="google-divider"><span>o</span></div>
+
+        <a href="/api/auth/google?intent=login" class="btn-outline google-btn hidden" id="google-btn" style="width:100%;">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+          <span id="google-label">Continuar con Google</span>
+        </a>
+      </form>
+
+      <p class="mode-toggle" id="mode-toggle">
+        ¿No tienes cuenta? <a href="#" id="mode-toggle-link">Crea una</a>
+      </p>
+
+      <footer class="legal-footer">
+        <a href="/terminos">Términos</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/reembolsos">Reembolsos</a>
+      </footer>
+    </div>
   </div>
 
   <script src="/js/button-fx.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/admin/js/login.js"></script>
+  <script>
+    // Pull-cord toggle. The light starts on so the form is never unusable —
+    // the cord is a flourish, not a gate.
+    (function () {
+      const card = document.getElementById('lamp-card');
+      const toggle = document.getElementById('lamp-toggle');
+      toggle.addEventListener('click', () => {
+        const lit = card.classList.toggle('lit');
+        toggle.setAttribute('aria-pressed', String(lit));
+      });
+    })();
+  </script>
 </body>
 </html>
