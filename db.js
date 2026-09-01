@@ -43,6 +43,21 @@ db.exec(`
     stripe_subscription_id TEXT
   );
 
+  -- Linked social accounts. One row per (provider, account), so a user can
+  -- sign in with Google, GitHub, Discord... The older users.google_id
+  -- column is migrated into here below and kept in sync for Google only,
+  -- since existing sessions and queries still read it.
+  CREATE TABLE IF NOT EXISTS oauth_accounts (
+    provider TEXT NOT NULL,
+    provider_user_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (provider, provider_user_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_oauth_accounts_user ON oauth_accounts(user_id);
+
   -- Webhook replay/idempotency guard. Stripe retries deliveries and can
   -- deliver the same event more than once; without this, replaying an old
   -- checkout.session.completed would re-activate an already-cancelled
@@ -190,6 +205,13 @@ if (!profileColumnsForVip.includes('vip_tier')) db.exec('ALTER TABLE profile ADD
 if (!profileColumnsForVip.includes('vip_activated_at')) db.exec('ALTER TABLE profile ADD COLUMN vip_activated_at TEXT');
 if (!profileColumnsForVip.includes('stripe_customer_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_customer_id TEXT');
 if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_subscription_id TEXT');
+
+// Backfill: accounts linked before oauth_accounts existed only have
+// users.google_id. Idempotent, so it's safe on every boot.
+db.exec(`
+  INSERT OR IGNORE INTO oauth_accounts (provider, provider_user_id, user_id, email)
+  SELECT 'google', google_id, id, google_email FROM users WHERE google_id IS NOT NULL
+`);
 
 // Subscription tiers, each backed by a real recurring Stripe Price (see
 // routes/stripe.js). 'diamante' ($10) and 'sello' ($15) from the original

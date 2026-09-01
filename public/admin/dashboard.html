@@ -254,15 +254,11 @@
     <section class="card">
       <h2 class="card-title">Seguridad</h2>
 
-      <div id="google-link-section" class="hidden">
-        <div class="google-status-row">
-          <div>
-            <p class="hint" style="margin:0 0 4px;">Cuenta de Google</p>
-            <p id="google-status-text" class="google-status-text">No vinculada</p>
-          </div>
-          <a id="google-link-btn" href="/api/auth/google?intent=link" class="btn-outline btn-sm">Vincular con Google</a>
-          <button type="button" id="google-unlink-btn" class="btn-outline btn-sm hidden">Desvincular</button>
-        </div>
+      <!-- One row per configured provider; filled in by admin.js from
+           /api/auth/linked. -->
+      <div id="linked-accounts-section" class="hidden">
+        <p class="hint" style="margin:0 0 10px;">Cuentas vinculadas</p>
+        <div id="linked-accounts-list"></div>
         <hr class="divider" />
       </div>
 

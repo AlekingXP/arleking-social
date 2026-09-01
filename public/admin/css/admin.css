@@ -413,15 +413,20 @@ body {
   background: var(--border);
 }
 
-.google-btn {
-  text-decoration: none;
-  background: #ffffff;
-  color: #1f1f1f;
-  border-color: rgba(255, 255, 255, 0.4);
+.provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.google-btn:hover { background: #f2f2f2; }
 
-.google-status-row {
+.provider-btn {
+  text-decoration: none;
+  padding: 11px 18px;
+  font-size: 0.85rem;
+}
+.provider-btn svg { flex-shrink: 0; }
+
+.linked-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -430,7 +435,7 @@ body {
   flex-wrap: wrap;
 }
 
-.google-status-text {
+.linked-status {
   margin: 0;
   font-weight: 600;
   font-size: 0.9rem;

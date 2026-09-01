@@ -305,43 +305,68 @@
     // Cosmetic only — the endpoint itself enforces this server-side.
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
-    const googleStatus = await fetch('/api/auth/google/status').then((r) => r.json());
-    const section = document.getElementById('google-link-section');
-    if (!googleStatus.configured) {
+    await renderLinkedAccounts();
+  }
+
+  async function renderLinkedAccounts() {
+    const providers = await fetch('/api/auth/linked').then((r) => r.json());
+    const section = document.getElementById('linked-accounts-section');
+    const list = document.getElementById('linked-accounts-list');
+    const available = providers.filter((p) => p.configured);
+
+    // Nothing to show if the server has no OAuth credentials at all.
+    if (!available.length) {
       section.classList.add('hidden');
       return;
     }
     section.classList.remove('hidden');
+    list.innerHTML = '';
 
-    const statusText = document.getElementById('google-status-text');
-    const linkBtn = document.getElementById('google-link-btn');
-    const unlinkBtn = document.getElementById('google-unlink-btn');
+    available.forEach((p) => {
+      const row = document.createElement('div');
+      row.className = 'linked-row';
 
-    if (data.googleEmail) {
-      statusText.textContent = `Vinculada: ${data.googleEmail}`;
-      linkBtn.classList.add('hidden');
-      unlinkBtn.classList.remove('hidden');
-    } else {
-      statusText.textContent = 'No vinculada';
-      linkBtn.classList.remove('hidden');
-      unlinkBtn.classList.add('hidden');
-    }
+      const info = document.createElement('div');
+      const label = document.createElement('p');
+      label.className = 'hint';
+      label.style.margin = '0 0 4px';
+      label.textContent = p.label;
+      const status = document.createElement('p');
+      status.className = 'linked-status';
+      status.textContent = p.linked ? (p.email ? `Vinculada: ${p.email}` : 'Vinculada') : 'No vinculada';
+      info.append(label, status);
+
+      const action = document.createElement(p.linked ? 'button' : 'a');
+      action.className = 'btn-outline btn-sm';
+      if (p.linked) {
+        action.type = 'button';
+        action.textContent = 'Desvincular';
+        action.addEventListener('click', async () => {
+          try {
+            await api(`/api/auth/${p.key}/link`, { method: 'DELETE' });
+            showToast(`${p.label} desvinculada`, 'success');
+            renderLinkedAccounts();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        });
+      } else {
+        action.href = `/api/auth/${p.key}?intent=link`;
+        action.textContent = `Vincular ${p.label}`;
+      }
+
+      row.append(info, action);
+      list.appendChild(row);
+    });
   }
 
-  document.getElementById('google-unlink-btn').addEventListener('click', async () => {
-    try {
-      await api('/api/auth/google-link', { method: 'DELETE' });
-      showToast('Cuenta de Google desvinculada', 'success');
-      loadAccountStatus();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  });
-
-  (function handleGoogleQueryParams() {
+  (function handleOauthQueryParams() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('linked') === '1') showToast('Cuenta de Google vinculada', 'success');
-    if (params.get('error') === 'google_taken') showToast('Esa cuenta de Google ya está vinculada a otra sesión', 'error');
+    const linked = params.get('linked');
+    if (linked) showToast(`Cuenta de ${linked} vinculada`, 'success');
+    if (params.get('error') === 'oauth_taken') {
+      showToast('Esa cuenta ya está vinculada a otro usuario', 'error');
+    }
     if (params.has('linked') || params.has('error')) {
       window.history.replaceState({}, '', '/admin/dashboard');
     }

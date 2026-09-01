@@ -10,7 +10,7 @@ const { cleanupInactiveUsers, reconcileVipGrants } = require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
-const googleRoutes = require('./routes/google');
+const oauthRoutes = require('./routes/oauth');
 const { router: stripeRoutes, webhookHandler } = require('./routes/stripe');
 
 const app = express();
@@ -64,7 +64,7 @@ app.use(session({
 app.use('/uploads', express.static(uploadsDir));
 app.use('/api/public', publicRoutes);
 app.use('/api', adminRoutes);
-app.use('/api', googleRoutes);
+app.use('/api', oauthRoutes);
 app.use('/api', stripeRoutes);
 
 // `Cache-Control: no-cache` forces a revalidation round-trip (If-None-Match)
