@@ -61,7 +61,10 @@
   const TIERS = {
     billete: {
       emoji: '💵',
-      icon: svgToDataUri(BILLETE_SVG),
+      // Still frame of the same GLB the dashboard demo renders — see the
+      // king tier below for why this is a PNG and not the model.
+      icon: '/img/dollars.png',
+      fallbackIcon: svgToDataUri(BILLETE_SVG),
       label: 'Dollars',
       word: 'VIP',
       colorRgb: [255, 205, 70],
@@ -71,7 +74,8 @@
       emoji: '👑',
       // A still frame of the same GLB the dashboard demo renders, so the
       // badge and the preview show the same crown. A PNG instead of the
-      // model itself: no WebGL context on every profile page load.
+      // model itself: no WebGL context on every profile page load. The
+      // inline SVGs above stay as fallbacks if these files ever 404.
       icon: '/img/king-crown.png',
       fallbackIcon: svgToDataUri(KING_SVG),
       label: 'THE KING',
