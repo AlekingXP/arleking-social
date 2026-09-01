@@ -3,6 +3,18 @@
     return 'data:image/svg+xml,' + encodeURIComponent(svg);
   }
 
+  // Tier icons that live in a file can 404 or be blocked; drop back to the
+  // inline SVG rather than leaving a broken-image box next to someone's name.
+  function tierIcon(tier) {
+    const img = document.createElement('img');
+    img.alt = '';
+    if (tier.fallbackIcon) {
+      img.addEventListener('error', () => { img.src = tier.fallbackIcon; }, { once: true });
+    }
+    img.src = tier.icon;
+    return img;
+  }
+
   // Custom gold-3D badge art (gradients + bevel + gloss highlight standing in
   // for real 3D shading) — replaces the plain unicode emoji for the settled
   // badge. `emoji` is kept only as the shape the particle-reveal's "form"
@@ -57,7 +69,11 @@
     },
     king: {
       emoji: '👑',
-      icon: svgToDataUri(KING_SVG),
+      // A still frame of the same GLB the dashboard demo renders, so the
+      // badge and the preview show the same crown. A PNG instead of the
+      // model itself: no WebGL context on every profile page load.
+      icon: '/img/king-crown.png',
+      fallbackIcon: svgToDataUri(KING_SVG),
       label: 'THE KING',
       word: 'KING',
       colorRgb: [255, 208, 90],
@@ -295,7 +311,7 @@
   // actual Terms disclosure (badge = paid decorative perk, not an identity
   // check) is shown to the subscriber in the admin dashboard when they
   // activate it — that's who needs to acknowledge it, not every visitor.
-  function attachInfoPopover(badge, tier) {
+  function attachInfoPopover(badge, tier, isOwner) {
     let popover = null;
 
     function closePopover() {
@@ -319,14 +335,11 @@
       popover = document.createElement('div');
       popover.className = 'vip-info-popover';
       popover.setAttribute('role', 'dialog');
-      popover.setAttribute('aria-label', 'Insignia VIP');
+      popover.setAttribute('aria-label', isOwner ? 'Insignia OWNER' : 'Insignia VIP');
 
       const title = document.createElement('p');
       title.className = 'vip-info-title';
-      const titleIcon = document.createElement('img');
-      titleIcon.src = tier.icon;
-      titleIcon.alt = '';
-      title.append(titleIcon, ' Cliente VIP');
+      title.append(tierIcon(tier), isOwner ? ' OWNER' : ' Cliente VIP');
 
       const body = document.createElement('p');
       body.textContent = tier.label;
@@ -381,20 +394,20 @@
     const nameEl = document.getElementById('main-name');
     if (!nameEl) return;
 
+    const isOwner = !!profile.is_owner;
+    const kind = isOwner ? 'OWNER' : 'VIP';
+
     const badge = document.createElement('button');
     badge.type = 'button';
     badge.className = 'vip-badge';
-    const badgeImg = document.createElement('img');
-    badgeImg.src = tier.icon;
-    badgeImg.alt = '';
-    badge.appendChild(badgeImg);
-    badge.title = 'VIP — ' + tier.label;
-    badge.setAttribute('aria-label', 'Insignia VIP: ' + tier.label + '. Toca para más detalles.');
+    badge.appendChild(tierIcon(tier));
+    badge.title = kind + ' — ' + tier.label;
+    badge.setAttribute('aria-label', 'Insignia ' + kind + ': ' + tier.label + '. Toca para más detalles.');
     badge.setAttribute('aria-haspopup', 'dialog');
     badge.setAttribute('aria-expanded', 'false');
     nameEl.appendChild(badge);
 
-    attachInfoPopover(badge, tier);
+    attachInfoPopover(badge, tier, isOwner);
 
     if (readSeen(profile.slug)) {
       badge.classList.add('settled');
