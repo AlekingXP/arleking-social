@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev:web": "npm --prefix web run dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "security": "node security/scan.js"
   },
   "keywords": [],
   "author": "",
