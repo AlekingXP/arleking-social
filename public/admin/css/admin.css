@@ -913,3 +913,28 @@ body {
 
 .toast.error { border-color: var(--danger); color: var(--danger); }
 .toast.success { border-color: var(--ok); color: var(--ok); }
+
+/* Verificacion en dos pasos. El secreto y los codigos van en monoespaciada
+   y seleccionables: se copian a mano, y un cero confundido con una O deja a
+   alguien fuera de su cuenta. */
+.mfa-secret,
+.mfa-codes {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.mfa-codes {
+  letter-spacing: 0.06em;
+  line-height: 1.9;
+  margin: 0;
+  white-space: pre-wrap;
+}

@@ -262,6 +262,68 @@
         <hr class="divider" />
       </div>
 
+      <!-- Verificacion en dos pasos -->
+      <div id="mfa-section">
+        <p class="hint" style="margin:0 0 10px;">Verificación en dos pasos</p>
+
+        <div class="linked-row">
+          <div>
+            <p class="hint" style="margin:0 0 4px;">Aplicación de autenticación</p>
+            <p class="linked-status" id="mfa-status">Comprobando…</p>
+          </div>
+          <button type="button" class="btn-outline btn-sm" id="mfa-toggle-btn">Activar</button>
+        </div>
+
+        <!-- Alta: se muestra el secreto y se exige un codigo valido antes de
+             guardar nada, para que un escaneo fallido no deje al usuario
+             fuera de su cuenta. -->
+        <div id="mfa-setup" class="hidden">
+          <p class="hint" style="margin:10px 0 6px;">
+            Añade esta clave en Google Authenticator, Authy, 1Password o similar:
+          </p>
+          <code class="mfa-secret" id="mfa-secret"></code>
+          <label class="field" style="margin-top:12px;">
+            <span>Escribe el código de 6 dígitos que muestra la app</span>
+            <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code"
+                   maxlength="6" placeholder="000000" />
+          </label>
+          <div class="danger-actions">
+            <button type="button" class="btn-outline" id="mfa-cancel-btn">Cancelar</button>
+            <button type="button" class="btn-pill btn-gradient" id="mfa-confirm-btn">Confirmar y activar</button>
+          </div>
+        </div>
+
+        <!-- Los codigos de recuperacion solo existen en claro en esta
+             respuesta; en la base solo se guarda su hash. -->
+        <div id="mfa-recovery" class="hidden">
+          <p class="hint" style="margin:12px 0 6px;">
+            <strong>Guarda estos códigos de recuperación ahora.</strong> Son tu única
+            forma de entrar si pierdes el teléfono, cada uno sirve una sola vez y no
+            se pueden volver a mostrar.
+          </p>
+          <pre class="mfa-codes" id="mfa-codes"></pre>
+        </div>
+
+        <!-- Baja: exige contrasena Y codigo, para que una sesion robada no
+             pueda quitar la proteccion que existe justo para eso. -->
+        <div id="mfa-disable" class="hidden">
+          <label class="field" style="margin-top:10px;">
+            <span>Contraseña</span>
+            <input type="password" id="mfa-off-password" autocomplete="current-password" />
+          </label>
+          <label class="field">
+            <span>Código de la app o de recuperación</span>
+            <input type="text" id="mfa-off-code" inputmode="numeric" autocomplete="one-time-code" />
+          </label>
+          <div class="danger-actions">
+            <button type="button" class="btn-outline" id="mfa-off-cancel">Cancelar</button>
+            <button type="button" class="btn-pill btn-danger-solid" id="mfa-off-confirm">Desactivar</button>
+          </div>
+        </div>
+
+        <hr class="divider" />
+      </div>
+
       <form id="password-form" class="form-grid">
         <label class="field" id="pw-current-field">
           <span>Contraseña actual</span>

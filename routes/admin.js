@@ -9,6 +9,18 @@ const { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUser
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
 const { analyzeUrl } = require('../security/rules/urls');
+const { hashPassword, verifyPassword, checkPasswordPolicy } = require('../security/auth/password');
+const { createLockout } = require('../security/auth/lockout');
+const totp = require('../security/auth/totp');
+const { issueToken } = require('../security/auth/csrf');
+
+const lockout = createLockout(db);
+
+// app.locals is populated in server.js; reached through req so this module
+// never has to import the app back.
+const NO_AUDIT = { record() {}, isKnownOrigin: () => true, recentFailures: () => 0, accountsTargetedFrom: () => 0 };
+const auditOf = (req) => (req.app && req.app.locals && req.app.locals.audit) || NO_AUDIT;
+const storeOf = (req) => (req.app && req.app.locals && req.app.locals.sessionStore) || null;
 
 const router = express.Router();
 
@@ -67,13 +79,16 @@ const upload = multer({
 
 // ---- Auth ----
 
-router.post('/auth/register', authLimiter, (req, res) => {
+router.post('/auth/register', authLimiter, async (req, res) => {
   const { username, password, slug: rawSlug, name } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
 
   const cleanUsername = username.trim();
   if (cleanUsername.length < 3) return res.status(400).json({ error: 'El usuario debe tener al menos 3 caracteres' });
-  if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  if (cleanUsername.length > 40) return res.status(400).json({ error: 'El usuario no puede superar los 40 caracteres' });
+
+  const policyError = checkPasswordPolicy(password, { username: cleanUsername });
+  if (policyError) return res.status(400).json({ error: policyError });
 
   if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(cleanUsername)) {
     return res.status(409).json({ error: 'Ese nombre de usuario ya está en uso' });
@@ -85,37 +100,149 @@ router.post('/auth/register', authLimiter, (req, res) => {
     return res.status(409).json({ error: 'Esa URL ya está en uso' });
   }
 
-  const hash = bcrypt.hashSync(password, 10);
+  const hash = await hashPassword(password);
   const displayName = (name || cleanUsername).trim();
   const userId = createUserWithProfile({ username: cleanUsername, passwordHash: hash, name: displayName, slug });
+  db.prepare("UPDATE users SET password_changed_at = datetime('now') WHERE id = ?").run(userId);
+
+  auditOf(req).record('register', req, { userId, username: cleanUsername });
 
   req.session.regenerate((err) => {
     if (err) return res.status(500).json({ error: 'Error de sesión' });
     req.session.userId = userId;
     req.session.username = cleanUsername;
+    issueToken(req, res); // see completeLogin
     res.status(201).json({ ok: true, username: cleanUsername, slug });
   });
 });
 
-router.post('/auth/login', authLimiter, (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'Faltan credenciales' });
+// Establishes the authenticated session. Split out because both the
+// password path and the MFA path finish the same way.
+function completeLogin(req, res, user, extra = {}) {
+  touchUserActivity(user.id);
+  lockout.recordSuccess(user.username);
 
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user || !user.password_hash || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+  const audit = auditOf(req);
+  const knownOrigin = audit.isKnownOrigin(user.id, req);
+  audit.record('login_ok', req, { userId: user.id, username: user.username });
+  if (!knownOrigin) {
+    audit.record('suspicious_new_ip', req, {
+      userId: user.id,
+      username: user.username,
+      detail: 'primer acceso correcto desde este origen',
+    });
   }
 
-  touchUserActivity(user.id);
+  // Regenerated on every privilege change, so a session id captured before
+  // login cannot be reused afterwards (session fixation).
   req.session.regenerate((err) => {
     if (err) return res.status(500).json({ error: 'Error de sesión' });
     req.session.userId = user.id;
     req.session.username = user.username;
-    res.json({ ok: true, username: user.username });
+    // regenerate() discarded the previous session, and with it the CSRF
+    // token the client is holding. Mint one for the new session and send it
+    // in this same response, otherwise the first write after signing in
+    // fails against a token the server no longer knows.
+    issueToken(req, res);
+    res.json({ ok: true, username: user.username, newOrigin: !knownOrigin, ...extra });
   });
+}
+
+/**
+ * Accepts either a live TOTP code or an unused recovery code. Recovery
+ * codes are single use: the row is marked the moment it succeeds.
+ */
+function verifyMfa(user, submitted) {
+  if (totp.verifyCode(user.mfa_secret, submitted)) return true;
+
+  const digest = totp.hashRecoveryCode(submitted);
+  const row = db.prepare(
+    'SELECT id FROM mfa_recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL'
+  ).get(user.id, digest);
+  if (!row) return false;
+
+  db.prepare("UPDATE mfa_recovery_codes SET used_at = datetime('now') WHERE id = ?").run(row.id);
+  return true;
+}
+
+router.post('/auth/login', authLimiter, async (req, res) => {
+  const { username, password, totp: totpCode } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Faltan credenciales' });
+
+  const cleanUsername = String(username).trim();
+  const audit = auditOf(req);
+
+  // Account-scoped lockout, checked before any work is done. The IP limiter
+  // above does nothing against a botnet spreading attempts for one account
+  // across thousands of addresses.
+  const lock = lockout.check(cleanUsername);
+  if (lock.locked) {
+    audit.record('login_locked', req, { username: cleanUsername, detail: `faltan ${lock.retryAfter}s` });
+    res.setHeader('Retry-After', String(lock.retryAfter));
+    return res.status(429).json({
+      error: `Demasiados intentos fallidos. Vuelve a intentarlo en ${lock.retryAfter} segundos.`,
+    });
+  }
+
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(cleanUsername);
+  // verifyPassword runs a dummy Argon2 verification when the account or the
+  // hash is missing, so a nonexistent user costs the same time as a wrong
+  // password. Without it the response time alone enumerates accounts.
+  const { ok, needsUpgrade } = await verifyPassword(password, user ? user.password_hash : null);
+
+  if (!user || !ok) {
+    const result = lockout.recordFailure(cleanUsername);
+    audit.record('login_fail', req, { userId: user ? user.id : null, username: cleanUsername });
+
+    // One origin failing against many different accounts is credential
+    // stuffing, not a forgotten password.
+    const targeted = audit.accountsTargetedFrom(req, 15);
+    if (targeted >= 5) {
+      audit.record('suspicious_burst', req, { detail: `${targeted} cuentas distintas en 15 min` });
+    }
+
+    if (result.lockedFor) {
+      res.setHeader('Retry-After', String(result.lockedFor));
+      return res.status(429).json({
+        error: `Demasiados intentos fallidos. Vuelve a intentarlo en ${result.lockedFor} segundos.`,
+      });
+    }
+    // Deliberately identical whether or not the account exists.
+    return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+  }
+
+  // Rehash a surviving bcrypt password now that we hold the plaintext. This
+  // is the only moment it is available, so the migration happens here or
+  // never.
+  if (needsUpgrade) {
+    try {
+      const upgraded = await hashPassword(password);
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(upgraded, user.id);
+    } catch (err) {
+      console.error('[seguridad] no se pudo migrar el hash a Argon2id:', err.message);
+    }
+  }
+
+  if (user.mfa_enabled && user.mfa_secret) {
+    if (!totpCode) {
+      // The password was right; say only that a second factor is needed.
+      return res.status(401).json({ error: 'Introduce tu código de verificación.', mfaRequired: true });
+    }
+    if (!verifyMfa(user, totpCode)) {
+      lockout.recordFailure(cleanUsername);
+      audit.record('mfa_fail', req, { userId: user.id, username: user.username });
+      return res.status(401).json({ error: 'Código de verificación incorrecto.', mfaRequired: true });
+    }
+    audit.record('mfa_ok', req, { userId: user.id, username: user.username });
+  }
+
+  return completeLogin(req, res, user);
 });
 
 router.post('/auth/logout', (req, res) => {
+  const userId = req.session && req.session.userId;
+  const username = req.session && req.session.username;
+  if (userId) auditOf(req).record('logout', req, { userId, username });
   req.session.destroy(() => res.json({ ok: true }));
 });
 
@@ -135,22 +262,156 @@ router.get('/auth/me', (req, res) => {
   res.json({ authenticated: false });
 });
 
-router.put('/auth/password', requireAuth, (req, res) => {
+router.put('/auth/password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!newPassword) return res.status(400).json({ error: 'Faltan datos' });
-  if (newPassword.length < 6) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
 
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
 
+  const policyError = checkPasswordPolicy(newPassword, { username: user.username });
+  if (policyError) return res.status(400).json({ error: policyError });
+
   if (user.password_hash) {
-    if (!currentPassword || !bcrypt.compareSync(currentPassword, user.password_hash)) {
-      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
-    }
+    const { ok } = await verifyPassword(currentPassword, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'La contraseña actual no es correcta' });
   }
 
-  const hash = bcrypt.hashSync(newPassword, 10);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user.id);
+  const hash = await hashPassword(newPassword);
+  db.prepare("UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?")
+    .run(hash, user.id);
+
+  // Changing a password is what someone does when they suspect the old one
+  // is compromised. Leaving the attacker's session alive would make the
+  // whole gesture pointless, so every OTHER session is dropped -- this one
+  // survives, because logging the user out of the page they are standing on
+  // teaches them not to bother changing it next time.
+  const store = storeOf(req);
+  let revoked = 0;
+  if (store) revoked = store.revokeOthers(user.id, req.sessionID);
+
+  const audit = auditOf(req);
+  audit.record('password_change', req, { userId: user.id, username: user.username });
+  if (revoked) {
+    audit.record('session_revoked_all', req, {
+      userId: user.id, username: user.username, detail: `${revoked} sesion(es)`,
+    });
+  }
+
+  res.json({ ok: true, revokedSessions: revoked });
+});
+
+// ---- MFA (TOTP) ----
+
+// Enrolment is two steps on purpose: the secret is only committed once the
+// user has proved their authenticator produces a matching code. Storing it
+// on step one would lock out anyone whose scan silently failed.
+
+router.post('/auth/mfa/setup', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  if (user.mfa_enabled) return res.status(409).json({ error: 'La verificación en dos pasos ya está activa.' });
+
+  const secret = totp.generateSecret();
+  // Parked on the session, not the users table, until it is confirmed.
+  req.session.pendingMfaSecret = secret;
+
+  res.json({
+    secret,
+    uri: totp.provisioningUri(secret, { account: user.username }),
+  });
+});
+
+router.post('/auth/mfa/enable', requireAuth, (req, res) => {
+  const { code } = req.body || {};
+  const secret = req.session.pendingMfaSecret;
+  if (!secret) return res.status(400).json({ error: 'Empieza la configuración de nuevo.' });
+
+  if (!totp.verifyCode(secret, code)) {
+    return res.status(400).json({ error: 'Ese código no coincide. Comprueba la hora de tu teléfono e inténtalo otra vez.' });
+  }
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  const codes = totp.generateRecoveryCodes(8);
+
+  const enable = db.transaction(() => {
+    db.prepare("UPDATE users SET mfa_secret = ?, mfa_enabled = 1, mfa_enrolled_at = datetime('now') WHERE id = ?")
+      .run(secret, user.id);
+    db.prepare('DELETE FROM mfa_recovery_codes WHERE user_id = ?').run(user.id);
+    const insert = db.prepare('INSERT INTO mfa_recovery_codes (user_id, code_hash) VALUES (?, ?)');
+    for (const c of codes) insert.run(user.id, totp.hashRecoveryCode(c));
+  });
+  enable();
+
+  delete req.session.pendingMfaSecret;
+  auditOf(req).record('mfa_enrolled', req, { userId: user.id, username: user.username });
+
+  // The only time the plaintext codes exist. They are stored as digests, so
+  // this response cannot be reproduced later.
+  res.json({ ok: true, recoveryCodes: codes });
+});
+
+router.post('/auth/mfa/disable', requireAuth, async (req, res) => {
+  const { password, code } = req.body || {};
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  if (!user.mfa_enabled) return res.status(400).json({ error: 'La verificación en dos pasos no está activa.' });
+
+  // Turning a factor OFF is a privileged act: require proof of both, so a
+  // stolen session alone cannot strip the protection it is meant to defeat.
+  if (user.password_hash) {
+    const { ok } = await verifyPassword(password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'La contraseña no es correcta.' });
+  }
+  if (!verifyMfa(user, code)) {
+    return res.status(401).json({ error: 'Código de verificación incorrecto.' });
+  }
+
+  const disable = db.transaction(() => {
+    db.prepare('UPDATE users SET mfa_secret = NULL, mfa_enabled = 0, mfa_enrolled_at = NULL WHERE id = ?').run(user.id);
+    db.prepare('DELETE FROM mfa_recovery_codes WHERE user_id = ?').run(user.id);
+  });
+  disable();
+
+  auditOf(req).record('mfa_disabled', req, { userId: user.id, username: user.username });
   res.json({ ok: true });
+});
+
+router.get('/auth/mfa/status', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT mfa_enabled, mfa_enrolled_at FROM users WHERE id = ?').get(req.session.userId);
+  const unused = db.prepare(
+    'SELECT COUNT(*) AS n FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL'
+  ).get(req.session.userId).n;
+  res.json({
+    enabled: !!(user && user.mfa_enabled),
+    enrolledAt: user ? user.mfa_enrolled_at : null,
+    recoveryCodesLeft: unused,
+  });
+});
+
+// ---- Sessions and activity ----
+
+router.get('/auth/sessions', requireAuth, (req, res) => {
+  const store = storeOf(req);
+  res.json({ active: store ? store.countFor(req.session.userId) : 1 });
+});
+
+router.post('/auth/sessions/revoke-others', requireAuth, (req, res) => {
+  const store = storeOf(req);
+  const revoked = store ? store.revokeOthers(req.session.userId, req.sessionID) : 0;
+  auditOf(req).record('session_revoked_all', req, {
+    userId: req.session.userId, username: req.session.username, detail: `${revoked} sesion(es)`,
+  });
+  res.json({ ok: true, revoked });
+});
+
+// Recent security activity for the signed-in account. Deliberately never
+// returns ip_hash or user_agent in full: this is a "was that you?" view, not
+// a forensics console, and rendering a raw fingerprint would only teach
+// people to ignore it.
+router.get('/auth/activity', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT created_at, event, detail FROM auth_events
+    WHERE user_id = ? ORDER BY created_at DESC LIMIT 25
+  `).all(req.session.userId);
+  res.json(rows);
 });
 
 // ---- Profile ----

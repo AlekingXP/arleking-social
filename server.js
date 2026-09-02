@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 
-const { cleanupInactiveUsers, reconcileVipGrants } = require('./db');
+const { db, cleanupInactiveUsers, reconcileVipGrants } = require('./db');
 const { dataDir, uploadsDir } = require('./paths');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -19,6 +19,11 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 if (isProduction) app.set('trust proxy', 1);
 
+const { SqliteSessionStore } = require('./security/auth/session-store');
+const { csrfProtection } = require('./security/auth/csrf');
+const { createAuditLog, setIpSalt } = require('./security/auth/audit');
+const { buildPolicy } = require('./security/auth/csp');
+
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const secretPath = path.join(dataDir, '.session-secret');
 let sessionSecret;
@@ -29,16 +34,32 @@ if (fs.existsSync(secretPath)) {
   fs.writeFileSync(secretPath, sessionSecret);
 }
 
-// Security headers. No CSP here on purpose: the pages load Three.js from a
-// CDN and use inline styles/handlers, so a policy strict enough to be worth
-// having would break them — that needs its own pass, not a rushed header.
+// Derived rather than reused, so the audit log's IP digests are stable
+// across restarts without the session secret itself being recoverable from
+// the database if it ever leaks.
+setIpSalt(crypto.createHmac('sha256', sessionSecret).update('audit-ip-salt').digest('hex'));
+
+// Don't advertise the framework: it tells a scanner which CVE list to try.
+app.disable('x-powered-by');
+
+// Built once at boot from the actual HTML on disk -- see security/auth/csp.js
+// for why hashes rather than a nonce or 'unsafe-inline'.
+const contentSecurityPolicy = buildPolicy({
+  publicDir: path.join(__dirname, 'public'),
+  isProduction,
+});
+
 app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', contentSecurityPolicy);
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Kept alongside frame-ancestors for browsers that predate CSP level 2.
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   if (isProduction) {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
   next();
 });
@@ -48,18 +69,42 @@ app.use((req, res, next) => {
 // registration order; other routes fall through to express.json() as usual).
 app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), webhookHandler);
 
-app.use(express.json());
+// Cap the body size: the default 100kb is already sane, but stating it
+// makes the limit a decision rather than an accident.
+app.use(express.json({ limit: '100kb' }));
+
+// Persisted to SQLite instead of the default MemoryStore, which leaks
+// memory and drops every session on restart -- each deploy was silently
+// logging everyone out. Persistence is also what makes revoking another
+// session possible at all.
+const sessionStore = new SqliteSessionStore(db);
+
 app.use(session({
+  name: 'aks.sid', // not the default connect.sid, which names the stack
   secret: sessionSecret,
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
+  // Slides the 8-hour window forward while someone is active, so working
+  // sessions aren't cut off mid-edit and idle ones still expire.
+  rolling: true,
   cookie: {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 8,
     sameSite: 'lax',
     secure: isProduction,
+    path: '/',
   },
 }));
+
+// Must come after the session, which it reads the token from.
+app.use(csrfProtection());
+
+// Shared with the routes through app.locals so nothing has to reach back
+// into server.js.
+const audit = createAuditLog(db);
+app.locals.audit = audit;
+app.locals.sessionStore = sessionStore;
 
 app.use('/uploads', express.static(uploadsDir));
 app.use('/api/public', publicRoutes);

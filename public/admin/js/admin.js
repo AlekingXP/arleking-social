@@ -10,13 +10,24 @@
     setTimeout(() => toast.classList.add('hidden'), 2600);
   }
 
+  // The server issues this cookie readable on purpose: it is the half of
+  // the CSRF pair the page is meant to echo back in a header. The secret
+  // half stays in the session, where another origin cannot reach it.
+  function csrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
   async function api(url, options) {
-    const res = await fetch(url, {
-      headers: options && options.body && !(options.body instanceof FormData)
-        ? { 'Content-Type': 'application/json' }
-        : undefined,
-      ...options,
-    });
+    const opts = options || {};
+    const headers = {};
+    if (opts.body && !(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    // Sent on every request rather than only on writes: harmless on a GET,
+    // and it means a new endpoint cannot be added without it by accident.
+    headers['X-CSRF-Token'] = csrfToken();
+
+    const res = await fetch(url, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+
     if (res.status === 401) {
       window.location.href = '/admin/login';
       throw new Error('No autenticado');
@@ -306,7 +317,100 @@
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
     setupDeleteAccount(data.username);
+    await renderMfa();
     await renderLinkedAccounts();
+  }
+
+  // ---- Verificacion en dos pasos ----
+
+  let mfaWired = false;
+
+  async function renderMfa() {
+    const status = await fetch('/api/auth/mfa/status').then((r) => r.json());
+    const label = document.getElementById('mfa-status');
+    const toggle = document.getElementById('mfa-toggle-btn');
+
+    if (status.enabled) {
+      label.textContent = `Activa · ${status.recoveryCodesLeft} código(s) de recuperación sin usar`;
+      toggle.textContent = 'Desactivar';
+    } else {
+      label.textContent = 'No activa';
+      toggle.textContent = 'Activar';
+    }
+
+    if (mfaWired) return;
+    mfaWired = true;
+
+    const setup = document.getElementById('mfa-setup');
+    const disable = document.getElementById('mfa-disable');
+    const recovery = document.getElementById('mfa-recovery');
+
+    toggle.addEventListener('click', async () => {
+      const on = document.getElementById('mfa-status').textContent.startsWith('Activa');
+      if (on) {
+        disable.classList.remove('hidden');
+        setup.classList.add('hidden');
+        return;
+      }
+      try {
+        const data = await api('/api/auth/mfa/setup', { method: 'POST' });
+        document.getElementById('mfa-secret').textContent = data.secret;
+        setup.classList.remove('hidden');
+        recovery.classList.add('hidden');
+        document.getElementById('mfa-code').focus();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('mfa-cancel-btn').addEventListener('click', () => {
+      setup.classList.add('hidden');
+      document.getElementById('mfa-code').value = '';
+    });
+
+    document.getElementById('mfa-confirm-btn').addEventListener('click', async () => {
+      try {
+        const data = await api('/api/auth/mfa/enable', {
+          method: 'POST',
+          body: JSON.stringify({ code: document.getElementById('mfa-code').value.trim() }),
+        });
+        setup.classList.add('hidden');
+        document.getElementById('mfa-code').value = '';
+        // Shown once. They are stored hashed, so this cannot be repeated.
+        document.getElementById('mfa-codes').textContent = (data.recoveryCodes || []).join('\n');
+        recovery.classList.remove('hidden');
+        showToast('Verificación en dos pasos activada', 'success');
+        renderMfa();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('mfa-off-cancel').addEventListener('click', () => {
+      disable.classList.add('hidden');
+      document.getElementById('mfa-off-password').value = '';
+      document.getElementById('mfa-off-code').value = '';
+    });
+
+    document.getElementById('mfa-off-confirm').addEventListener('click', async () => {
+      try {
+        await api('/api/auth/mfa/disable', {
+          method: 'POST',
+          body: JSON.stringify({
+            password: document.getElementById('mfa-off-password').value,
+            code: document.getElementById('mfa-off-code').value.trim(),
+          }),
+        });
+        disable.classList.add('hidden');
+        document.getElementById('mfa-off-password').value = '';
+        document.getElementById('mfa-off-code').value = '';
+        recovery.classList.add('hidden');
+        showToast('Verificación en dos pasos desactivada', 'success');
+        renderMfa();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
   }
 
   // ---- Delete account ----

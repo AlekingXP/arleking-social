@@ -110,16 +110,25 @@
     }
 
     const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+    const totpField = document.getElementById('totp-field');
+    const totpValue = document.getElementById('totp').value.trim();
 
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, ...(totpValue ? { totp: totpValue } : {}) }),
       });
       const data = await res.json();
 
       if (!res.ok) {
+        // The password was right and a second factor is needed. Reveal the
+        // field only now: showing it up front would tell an attacker which
+        // accounts have MFA before they even guess a password.
+        if (data.mfaRequired) {
+          totpField.classList.remove('hidden');
+          document.getElementById('totp').focus();
+        }
         errorEl.textContent = data.error || 'No se pudo completar la acción';
         errorEl.classList.remove('hidden');
         return;

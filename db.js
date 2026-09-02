@@ -206,6 +206,26 @@ if (!profileColumnsForVip.includes('vip_activated_at')) db.exec('ALTER TABLE pro
 if (!profileColumnsForVip.includes('stripe_customer_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_customer_id TEXT');
 if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_subscription_id TEXT');
 
+// MFA. Nullable and off by default, so every existing account keeps working
+// exactly as before until its owner chooses to enrol.
+if (!userColumnsNow.includes('mfa_secret')) db.exec('ALTER TABLE users ADD COLUMN mfa_secret TEXT');
+if (!userColumnsNow.includes('mfa_enabled')) db.exec('ALTER TABLE users ADD COLUMN mfa_enabled INTEGER NOT NULL DEFAULT 0');
+if (!userColumnsNow.includes('mfa_enrolled_at')) db.exec('ALTER TABLE users ADD COLUMN mfa_enrolled_at TEXT');
+if (!userColumnsNow.includes('password_changed_at')) db.exec('ALTER TABLE users ADD COLUMN password_changed_at TEXT');
+
+// Recovery codes are stored only as SHA-256 digests: the plaintext is shown
+// to the user once at enrolment and never again, so a copy of this table is
+// not a set of working second factors.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    used_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_mfa_recovery_user ON mfa_recovery_codes(user_id);
+`);
+
 // Backfill: accounts linked before oauth_accounts existed only have
 // users.google_id. Idempotent, so it's safe on every boot.
 db.exec(`
