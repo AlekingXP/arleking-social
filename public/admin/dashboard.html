@@ -49,319 +49,361 @@
 
     <div id="toast" class="toast hidden"></div>
 
-    <!-- Perfil -->
-    <section class="card">
-      <h2 class="card-title">Perfil</h2>
+    <!-- Navegacion por pestanas. El dashboard crecio hasta ser un solo
+         scroll de tarjetas que mezclaba identidad, apariencia, cobros y
+         seguridad; agrupar por tema hace que cada cosa se busque donde se
+         espera. La pestana activa se recuerda para que guardar o volver de
+         Stripe no devuelva a nadie al principio. -->
+    <nav class="tabs" id="dash-tabs" role="tablist" aria-label="Secciones del panel">
+      <button type="button" class="tab" role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
+      <button type="button" class="tab" role="tab" data-tab="apariencia" aria-selected="false">Apariencia</button>
+      <button type="button" class="tab" role="tab" data-tab="enlaces" aria-selected="false">Enlaces</button>
+      <button type="button" class="tab" role="tab" data-tab="vip" aria-selected="false">VIP</button>
+      <button type="button" class="tab" role="tab" data-tab="cuenta" aria-selected="false">Cuenta</button>
+    </nav>
 
-      <div class="avatar-editor">
-        <img id="avatar-preview" class="avatar-preview" src="" alt="avatar" />
-        <div>
-          <label class="btn-outline btn-sm file-btn">
-            Cambiar foto
-            <input type="file" id="avatar-input" accept="image/*" hidden />
-          </label>
-          <p class="hint">PNG, JPG o WEBP. Máx 5MB.</p>
-        </div>
-      </div>
+    <!-- Perfil y Apariencia comparten un unico formulario: el guardado manda
+         todos los campos juntos en una peticion, asi que dividirlo en dos
+         formularios obligaria a guardar dos veces para un solo cambio. Las
+         pestanas ocultan paneles, no separan datos. -->
+    <form id="profile-form">
 
-      <div class="bg-editor">
-        <img id="background-preview" class="background-preview" src="" alt="fondo" />
-        <div>
-          <div class="bg-editor-actions">
-            <label class="btn-outline btn-sm file-btn">
-              Cambiar fondo
-              <input type="file" id="background-input" accept="image/*" hidden />
-            </label>
-            <button type="button" id="background-remove-btn" class="btn-outline btn-sm">Quitar fondo</button>
-          </div>
-          <p class="hint">Fondo de toda la página pública. PNG, JPG o WEBP. Máx 5MB.</p>
-        </div>
-      </div>
-
-      <form id="profile-form" class="form-grid">
-        <label class="field">
-          <span>Nombre</span>
-          <input type="text" id="p-name" required />
-        </label>
-
-        <label class="field">
-          <span>URL de tu página</span>
-          <div class="slug-input-row">
-            <span class="slug-prefix" id="slug-prefix">arleking-social.onrender.com/</span>
-            <input type="text" id="p-slug" />
-          </div>
-        </label>
-
-        <label class="field">
-          <span>Tagline</span>
-          <input type="text" id="p-tagline" required />
-        </label>
-
-        <label class="field">
-          <span>Texto del footer</span>
-          <input type="text" id="p-footer" />
-        </label>
-
-        <div class="field-row">
-          <label class="field small">
-            <span>Color inicio (degradado)</span>
-            <input type="color" id="p-accent-from" />
-          </label>
-          <label class="field small">
-            <span>Color final (degradado)</span>
-            <input type="color" id="p-accent-to" />
-          </label>
-        </div>
-
-        <hr class="divider" />
-
-        <label class="switch-row">
-          <input type="checkbox" id="p-particles-enabled" />
-          <span>Mostrar nodos interactivos de fondo</span>
-        </label>
-
-        <div class="field-row">
-          <label class="field small">
-            <span>Color de los nodos</span>
-            <input type="color" id="p-particles-color" />
-          </label>
-          <label class="field small">
-            <span>Cantidad de nodos: <span id="p-particles-density-value">60</span></span>
-            <input type="range" id="p-particles-density" min="0" max="150" step="5" />
-          </label>
-        </div>
-
-        <hr class="divider" />
-
-        <label class="switch-row">
-          <input type="checkbox" id="p-gate-enabled" />
-          <span>Mostrar verificación de edad antes de entrar</span>
-        </label>
-
-        <label class="field">
-          <span>Título en la verificación</span>
-          <input type="text" id="p-gate-title" />
-        </label>
-
-        <label class="field">
-          <span>Subtítulo en la verificación</span>
-          <input type="text" id="p-gate-subtitle" />
-        </label>
-
-        <label class="field">
-          <span>Texto de confirmación</span>
-          <input type="text" id="p-gate-confirm" />
-        </label>
-
-        <button type="submit" class="btn-pill btn-gradient">Guardar perfil</button>
-      </form>
-    </section>
-
-    <!-- VIP -->
-    <section class="card">
-      <h2 class="card-title">💵 VIP</h2>
-      <p class="hint">
-        <strong>Importante:</strong> el badge VIP es un beneficio de tu suscripción de
-        pago, no una verificación de identidad. Al activarlo confirmas que pagaste por
-        este sello decorativo, nada más — así lo verán también tus visitantes.
-      </p>
-
-      <div id="vip-current" class="hidden">
-        <p class="hint" style="margin:0 0 10px;">
-          Tier activo: <strong id="vip-current-label"></strong>
-        </p>
-        <div id="vip-manage-wrap" class="hidden">
-          <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">
-            Gestionar o cancelar suscripción
-          </button>
-          <p class="hint">
-            Cancela cuando quieras. Conservas el badge hasta que termine el mes
-            que ya pagaste y no se te vuelve a cobrar.
-            <a href="/reembolsos" target="_blank" rel="noopener">Ver política de reembolsos</a>
-          </p>
-        </div>
-        <hr class="divider" />
-      </div>
-
-      <div id="vip-plans" class="vip-plans">
-        <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="billete">
-          💵 Suscribirme — Dollars ($5/mes)
-        </button>
-        <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="king">
-          👑 Suscribirme — THE KING ($7.99/mes)
-        </button>
-      </div>
-
-      <p class="hint">
-        Suscripción mensual, se renueva sola hasta que la canceles. El pago lo
-        procesa Stripe — tus datos de tarjeta nunca pasan por nuestros servidores.
-        Al suscribirte aceptas los
-        <a href="/terminos" target="_blank" rel="noopener">Términos</a>,
-        la <a href="/privacidad" target="_blank" rel="noopener">Política de Privacidad</a>
-        y la <a href="/reembolsos" target="_blank" rel="noopener">Política de Reembolsos</a>
-        (sin reembolsos; puedes cancelar cuando quieras).
-      </p>
-
-      <hr class="divider" />
-
-      <div>
-        <h3 class="vip-demo-title">👁️ Demo — cómo se verá</h3>
-        <div id="vip-3d-viewer" class="vip-3d-viewer">
-          <span class="vip-3d-hint">Cargando vista 3D…</span>
-        </div>
-        <div class="vip-plans" style="margin-top:10px;">
-          <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="billete">▶ Demo — Dollars</button>
-          <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="king">▶ Demo — THE KING</button>
-        </div>
-        <span id="vip-demo-anchor" class="vip-demo-anchor" aria-hidden="true"></span>
-      </div>
-
-      <hr class="divider" />
-
-      <!-- Owner-only. Hidden and 403'd for everyone else — see
-           /api/profile/vip-owner. -->
-      <details id="vip-owner-section" class="hidden">
-        <summary class="hint" style="cursor:pointer;">👑 Control de propietario</summary>
-        <p class="hint">
-          Tu cuenta es dueña de la plataforma, así que puedes fijar tu tier sin
-          pasar por Stripe ni pagar.
-        </p>
-        <form id="vip-form" class="form-grid">
-          <label class="field">
-            <span>Tier VIP</span>
-            <select id="vip-tier">
-              <option value="">Ninguno</option>
-              <option value="billete">💵 Dollars — $5/mes</option>
-              <option value="king">👑 THE KING — $7.99/mes</option>
-            </select>
-          </label>
-          <button type="submit" class="btn-pill btn-outline">Guardar tier VIP</button>
-        </form>
-      </details>
-    </section>
-
-    <!-- Enlaces -->
-    <section class="card">
-      <div class="card-title-row">
-        <h2 class="card-title">Enlaces</h2>
-        <button id="add-link-btn" class="btn-pill btn-gradient btn-sm">+ Agregar enlace</button>
-      </div>
-
-      <div id="links-admin-list" class="links-admin-list"></div>
-    </section>
-
-    <!-- Seguridad -->
-    <section class="card">
-      <h2 class="card-title">Seguridad</h2>
-
-      <!-- One row per configured provider; filled in by admin.js from
-           /api/auth/linked. -->
-      <div id="linked-accounts-section" class="hidden">
-        <p class="hint" style="margin:0 0 10px;">Cuentas vinculadas</p>
-        <div id="linked-accounts-list"></div>
-        <hr class="divider" />
-      </div>
-
-      <!-- Verificacion en dos pasos -->
-      <div id="mfa-section">
-        <p class="hint" style="margin:0 0 10px;">Verificación en dos pasos</p>
-
-        <div class="linked-row">
+      <div class="tab-panel" data-panel="perfil">
+        <section class="card">
+          <h2 class="card-title">Identidad</h2>
+          <p class="hint">Cómo te ven en tu página pública.</p>
+        <div class="avatar-editor">
+          <img id="avatar-preview" class="avatar-preview" src="" alt="avatar" />
           <div>
-            <p class="hint" style="margin:0 0 4px;">Aplicación de autenticación</p>
-            <p class="linked-status" id="mfa-status">Comprobando…</p>
-          </div>
-          <button type="button" class="btn-outline btn-sm" id="mfa-toggle-btn">Activar</button>
-        </div>
-
-        <!-- Alta: se muestra el secreto y se exige un codigo valido antes de
-             guardar nada, para que un escaneo fallido no deje al usuario
-             fuera de su cuenta. -->
-        <div id="mfa-setup" class="hidden">
-          <p class="hint" style="margin:10px 0 6px;">
-            Añade esta clave en Google Authenticator, Authy, 1Password o similar:
-          </p>
-          <code class="mfa-secret" id="mfa-secret"></code>
-          <label class="field" style="margin-top:12px;">
-            <span>Escribe el código de 6 dígitos que muestra la app</span>
-            <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code"
-                   maxlength="6" placeholder="000000" />
-          </label>
-          <div class="danger-actions">
-            <button type="button" class="btn-outline" id="mfa-cancel-btn">Cancelar</button>
-            <button type="button" class="btn-pill btn-gradient" id="mfa-confirm-btn">Confirmar y activar</button>
+            <label class="btn-outline btn-sm file-btn">
+              Cambiar foto
+              <input type="file" id="avatar-input" accept="image/*" hidden />
+            </label>
+            <p class="hint">PNG, JPG o WEBP. Máx 5MB.</p>
           </div>
         </div>
 
-        <!-- Los codigos de recuperacion solo existen en claro en esta
-             respuesta; en la base solo se guarda su hash. -->
-        <div id="mfa-recovery" class="hidden">
-          <p class="hint" style="margin:12px 0 6px;">
-            <strong>Guarda estos códigos de recuperación ahora.</strong> Son tu única
-            forma de entrar si pierdes el teléfono, cada uno sirve una sola vez y no
-            se pueden volver a mostrar.
-          </p>
-          <pre class="mfa-codes" id="mfa-codes"></pre>
-        </div>
-
-        <!-- Baja: exige contrasena Y codigo, para que una sesion robada no
-             pueda quitar la proteccion que existe justo para eso. -->
-        <div id="mfa-disable" class="hidden">
-          <label class="field" style="margin-top:10px;">
-            <span>Contraseña</span>
-            <input type="password" id="mfa-off-password" autocomplete="current-password" />
-          </label>
           <label class="field">
-            <span>Código de la app o de recuperación</span>
-            <input type="text" id="mfa-off-code" inputmode="numeric" autocomplete="one-time-code" />
+            <span>Nombre</span>
+            <input type="text" id="p-name" required />
           </label>
-          <div class="danger-actions">
-            <button type="button" class="btn-outline" id="mfa-off-cancel">Cancelar</button>
-            <button type="button" class="btn-pill btn-danger-solid" id="mfa-off-confirm">Desactivar</button>
+
+          <label class="field">
+            <span>URL de tu página</span>
+            <div class="slug-input-row">
+              <span class="slug-prefix" id="slug-prefix">arleking-social.onrender.com/</span>
+              <input type="text" id="p-slug" />
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Tagline</span>
+            <input type="text" id="p-tagline" required />
+          </label>
+
+          <label class="field">
+            <span>Texto del footer</span>
+            <input type="text" id="p-footer" />
+          </label>
+        </section>
+      <div class="save-bar">
+        <button type="submit" class="btn-pill btn-gradient">Guardar cambios</button>
+      </div>
+      </div>
+
+      <div class="tab-panel hidden" data-panel="apariencia">
+        <section class="card">
+          <h2 class="card-title">Fondo</h2>
+        <div class="bg-editor">
+          <img id="background-preview" class="background-preview" src="" alt="fondo" />
+          <div>
+            <div class="bg-editor-actions">
+              <label class="btn-outline btn-sm file-btn">
+                Cambiar fondo
+                <input type="file" id="background-input" accept="image/*" hidden />
+              </label>
+              <button type="button" id="background-remove-btn" class="btn-outline btn-sm">Quitar fondo</button>
+            </div>
+            <p class="hint">Fondo de toda la página pública. PNG, JPG o WEBP. Máx 5MB.</p>
           </div>
+        </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Colores</h2>
+          <p class="hint">Degradado que tiñe los acentos de tu página.</p>
+          <div class="field-row">
+            <label class="field small">
+              <span>Color inicio (degradado)</span>
+              <input type="color" id="p-accent-from" />
+            </label>
+            <label class="field small">
+              <span>Color final (degradado)</span>
+              <input type="color" id="p-accent-to" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Nodos de fondo</h2>
+          <label class="switch-row">
+            <input type="checkbox" id="p-particles-enabled" />
+            <span>Mostrar nodos interactivos de fondo</span>
+          </label>
+
+          <div class="field-row">
+            <label class="field small">
+              <span>Color de los nodos</span>
+              <input type="color" id="p-particles-color" />
+            </label>
+            <label class="field small">
+              <span>Cantidad de nodos: <span id="p-particles-density-value">60</span></span>
+              <input type="range" id="p-particles-density" min="0" max="150" step="5" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">Verificación de edad</h2>
+          <p class="hint">Pantalla previa antes de mostrar tu página.</p>
+          <label class="switch-row">
+            <input type="checkbox" id="p-gate-enabled" />
+            <span>Mostrar verificación de edad antes de entrar</span>
+          </label>
+
+          <label class="field">
+            <span>Título en la verificación</span>
+            <input type="text" id="p-gate-title" />
+          </label>
+
+          <label class="field">
+            <span>Subtítulo en la verificación</span>
+            <input type="text" id="p-gate-subtitle" />
+          </label>
+
+          <label class="field">
+            <span>Texto de confirmación</span>
+            <input type="text" id="p-gate-confirm" />
+          </label>
+        </section>
+      <div class="save-bar">
+        <button type="submit" class="btn-pill btn-gradient">Guardar cambios</button>
+      </div>
+      </div>
+
+    </form>
+
+    <div class="tab-panel hidden" data-panel="enlaces">
+      <!-- Enlaces -->
+      <section class="card">
+        <div class="card-title-row">
+          <h2 class="card-title">Enlaces</h2>
+          <button id="add-link-btn" class="btn-pill btn-gradient btn-sm">+ Agregar enlace</button>
+        </div>
+
+        <div id="links-admin-list" class="links-admin-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-panel hidden" data-panel="vip">
+      <!-- VIP -->
+      <section class="card">
+        <h2 class="card-title">💵 VIP</h2>
+        <p class="hint">
+          <strong>Importante:</strong> el badge VIP es un beneficio de tu suscripción de
+          pago, no una verificación de identidad. Al activarlo confirmas que pagaste por
+          este sello decorativo, nada más — así lo verán también tus visitantes.
+        </p>
+
+        <div id="vip-current" class="hidden">
+          <p class="hint" style="margin:0 0 10px;">
+            Tier activo: <strong id="vip-current-label"></strong>
+          </p>
+          <div id="vip-manage-wrap" class="hidden">
+            <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">
+              Gestionar o cancelar suscripción
+            </button>
+            <p class="hint">
+              Cancela cuando quieras. Conservas el badge hasta que termine el mes
+              que ya pagaste y no se te vuelve a cobrar.
+              <a href="/reembolsos" target="_blank" rel="noopener">Ver política de reembolsos</a>
+            </p>
+          </div>
+          <hr class="divider" />
+        </div>
+
+        <div id="vip-plans" class="vip-plans">
+          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="billete">
+            💵 Suscribirme — Dollars ($5/mes)
+          </button>
+          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="king">
+            👑 Suscribirme — THE KING ($7.99/mes)
+          </button>
+        </div>
+
+        <p class="hint">
+          Suscripción mensual, se renueva sola hasta que la canceles. El pago lo
+          procesa Stripe — tus datos de tarjeta nunca pasan por nuestros servidores.
+          Al suscribirte aceptas los
+          <a href="/terminos" target="_blank" rel="noopener">Términos</a>,
+          la <a href="/privacidad" target="_blank" rel="noopener">Política de Privacidad</a>
+          y la <a href="/reembolsos" target="_blank" rel="noopener">Política de Reembolsos</a>
+          (sin reembolsos; puedes cancelar cuando quieras).
+        </p>
+
+        <hr class="divider" />
+
+        <div>
+          <h3 class="vip-demo-title">👁️ Demo — cómo se verá</h3>
+          <div id="vip-3d-viewer" class="vip-3d-viewer">
+            <span class="vip-3d-hint">Cargando vista 3D…</span>
+          </div>
+          <div class="vip-plans" style="margin-top:10px;">
+            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="billete">▶ Demo — Dollars</button>
+            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="king">▶ Demo — THE KING</button>
+          </div>
+          <span id="vip-demo-anchor" class="vip-demo-anchor" aria-hidden="true"></span>
         </div>
 
         <hr class="divider" />
-      </div>
 
-      <form id="password-form" class="form-grid">
-        <label class="field" id="pw-current-field">
-          <span>Contraseña actual</span>
-          <input type="password" id="pw-current" />
-        </label>
-        <label class="field">
-          <span id="pw-new-label">Contraseña nueva</span>
-          <input type="password" id="pw-new" required minlength="6" />
-        </label>
-        <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
-      </form>
-    </section>
+        <!-- Owner-only. Hidden and 403'd for everyone else — see
+             /api/profile/vip-owner. -->
+        <details id="vip-owner-section" class="hidden">
+          <summary class="hint" style="cursor:pointer;">👑 Control de propietario</summary>
+          <p class="hint">
+            Tu cuenta es dueña de la plataforma, así que puedes fijar tu tier sin
+            pasar por Stripe ni pagar.
+          </p>
+          <form id="vip-form" class="form-grid">
+            <label class="field">
+              <span>Tier VIP</span>
+              <select id="vip-tier">
+                <option value="">Ninguno</option>
+                <option value="billete">💵 Dollars — $5/mes</option>
+                <option value="king">👑 THE KING — $7.99/mes</option>
+              </select>
+            </label>
+            <button type="submit" class="btn-pill btn-outline">Guardar tier VIP</button>
+          </form>
+        </details>
+      </section>
+    </div>
 
-    <!-- Zona de peligro — deliberately last, and collapsed until asked for. -->
-    <section class="card danger-card">
-      <h2 class="card-title">Zona de peligro</h2>
-      <p class="hint" style="margin:0 0 14px;">
-        Al eliminar tu cuenta se borran tu página, tus enlaces, tus imágenes y
-        tus cuentas vinculadas. Si tienes una suscripción activa se cancela
-        primero. <strong>No se puede deshacer.</strong>
-      </p>
+    <div class="tab-panel hidden" data-panel="cuenta">
+      <!-- Seguridad -->
+      <section class="card">
+        <h2 class="card-title">Seguridad</h2>
 
-      <button type="button" class="btn-outline btn-danger" id="delete-account-open">Eliminar mi cuenta</button>
-
-      <div id="delete-account-confirm" class="hidden" style="margin-top:14px;">
-        <label class="field">
-          <span>Escribe <strong id="delete-account-username"></strong> para confirmar</span>
-          <input type="text" id="delete-account-input" autocomplete="off" spellcheck="false" />
-        </label>
-        <p id="delete-account-error" class="error-text hidden"></p>
-        <div class="danger-actions">
-          <button type="button" class="btn-outline" id="delete-account-cancel">Cancelar</button>
-          <button type="button" class="btn-pill btn-danger-solid" id="delete-account-submit" disabled>
-            Eliminar definitivamente
-          </button>
+        <!-- One row per configured provider; filled in by admin.js from
+             /api/auth/linked. -->
+        <div id="linked-accounts-section" class="hidden">
+          <p class="hint" style="margin:0 0 10px;">Cuentas vinculadas</p>
+          <div id="linked-accounts-list"></div>
+          <hr class="divider" />
         </div>
-      </div>
-    </section>
+
+        <!-- Verificacion en dos pasos -->
+        <div id="mfa-section">
+          <p class="hint" style="margin:0 0 10px;">Verificación en dos pasos</p>
+
+          <div class="linked-row">
+            <div>
+              <p class="hint" style="margin:0 0 4px;">Aplicación de autenticación</p>
+              <p class="linked-status" id="mfa-status">Comprobando…</p>
+            </div>
+            <button type="button" class="btn-outline btn-sm" id="mfa-toggle-btn">Activar</button>
+          </div>
+
+          <!-- Alta: se muestra el secreto y se exige un codigo valido antes de
+               guardar nada, para que un escaneo fallido no deje al usuario
+               fuera de su cuenta. -->
+          <div id="mfa-setup" class="hidden">
+            <p class="hint" style="margin:10px 0 6px;">
+              Añade esta clave en Google Authenticator, Authy, 1Password o similar:
+            </p>
+            <code class="mfa-secret" id="mfa-secret"></code>
+            <label class="field" style="margin-top:12px;">
+              <span>Escribe el código de 6 dígitos que muestra la app</span>
+              <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code"
+                     maxlength="6" placeholder="000000" />
+            </label>
+            <div class="danger-actions">
+              <button type="button" class="btn-outline" id="mfa-cancel-btn">Cancelar</button>
+              <button type="button" class="btn-pill btn-gradient" id="mfa-confirm-btn">Confirmar y activar</button>
+            </div>
+          </div>
+
+          <!-- Los codigos de recuperacion solo existen en claro en esta
+               respuesta; en la base solo se guarda su hash. -->
+          <div id="mfa-recovery" class="hidden">
+            <p class="hint" style="margin:12px 0 6px;">
+              <strong>Guarda estos códigos de recuperación ahora.</strong> Son tu única
+              forma de entrar si pierdes el teléfono, cada uno sirve una sola vez y no
+              se pueden volver a mostrar.
+            </p>
+            <pre class="mfa-codes" id="mfa-codes"></pre>
+          </div>
+
+          <!-- Baja: exige contrasena Y codigo, para que una sesion robada no
+               pueda quitar la proteccion que existe justo para eso. -->
+          <div id="mfa-disable" class="hidden">
+            <label class="field" style="margin-top:10px;">
+              <span>Contraseña</span>
+              <input type="password" id="mfa-off-password" autocomplete="current-password" />
+            </label>
+            <label class="field">
+              <span>Código de la app o de recuperación</span>
+              <input type="text" id="mfa-off-code" inputmode="numeric" autocomplete="one-time-code" />
+            </label>
+            <div class="danger-actions">
+              <button type="button" class="btn-outline" id="mfa-off-cancel">Cancelar</button>
+              <button type="button" class="btn-pill btn-danger-solid" id="mfa-off-confirm">Desactivar</button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+        </div>
+
+        <form id="password-form" class="form-grid">
+          <label class="field" id="pw-current-field">
+            <span>Contraseña actual</span>
+            <input type="password" id="pw-current" />
+          </label>
+          <label class="field">
+            <span id="pw-new-label">Contraseña nueva</span>
+            <input type="password" id="pw-new" required minlength="6" />
+          </label>
+          <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
+        </form>
+      </section>
+
+      <!-- Zona de peligro — deliberately last, and collapsed until asked for. -->
+      <section class="card danger-card">
+        <h2 class="card-title">Zona de peligro</h2>
+        <p class="hint" style="margin:0 0 14px;">
+          Al eliminar tu cuenta se borran tu página, tus enlaces, tus imágenes y
+          tus cuentas vinculadas. Si tienes una suscripción activa se cancela
+          primero. <strong>No se puede deshacer.</strong>
+        </p>
+
+        <button type="button" class="btn-outline btn-danger" id="delete-account-open">Eliminar mi cuenta</button>
+
+        <div id="delete-account-confirm" class="hidden" style="margin-top:14px;">
+          <label class="field">
+            <span>Escribe <strong id="delete-account-username"></strong> para confirmar</span>
+            <input type="text" id="delete-account-input" autocomplete="off" spellcheck="false" />
+          </label>
+          <p id="delete-account-error" class="error-text hidden"></p>
+          <div class="danger-actions">
+            <button type="button" class="btn-outline" id="delete-account-cancel">Cancelar</button>
+            <button type="button" class="btn-pill btn-danger-solid" id="delete-account-submit" disabled>
+              Eliminar definitivamente
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <footer class="legal-footer">
       <a href="/terminos" target="_blank" rel="noopener">Términos</a>

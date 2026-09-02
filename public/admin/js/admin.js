@@ -37,6 +37,67 @@
     return data;
   }
 
+  // ---- Pestanas ----
+
+  (function setupTabs() {
+    const bar = document.getElementById('dash-tabs');
+    if (!bar) return;
+    const tabs = [...bar.querySelectorAll('.tab')];
+    const panels = [...document.querySelectorAll('.tab-panel')];
+    const STORAGE_KEY = 'aks.dash.tab';
+
+    function show(name) {
+      const known = tabs.some((t) => t.dataset.tab === name);
+      const target = known ? name : 'perfil';
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === target)));
+      panels.forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== target));
+      // Switching sections should start at the top, the way a page load
+      // does -- otherwise you land halfway down a panel you have not seen.
+      window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+      try {
+        localStorage.setItem(STORAGE_KEY, target);
+      } catch {
+        // Private mode or blocked storage: the tab still switches, it just
+        // will not be remembered.
+      }
+    }
+
+    tabs.forEach((tab) => tab.addEventListener('click', () => show(tab.dataset.tab)));
+
+    // Left/right arrows move between tabs, per the ARIA tablist pattern.
+    bar.addEventListener('keydown', (e) => {
+      const index = tabs.indexOf(document.activeElement);
+      if (index === -1) return;
+      let next = null;
+      if (e.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      if (e.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = tabs.length - 1;
+      if (next === null) return;
+      e.preventDefault();
+      tabs[next].focus();
+      show(tabs[next].dataset.tab);
+    });
+
+    // Coming back from Stripe or from linking an account should land on the
+    // section that action belongs to, not on whatever was open before.
+    const params = new URLSearchParams(window.location.search);
+    let initial = null;
+    if (params.has('checkout')) initial = 'vip';
+    else if (params.has('linked') || params.get('error') === 'oauth_taken') initial = 'cuenta';
+    else {
+      try {
+        initial = localStorage.getItem(STORAGE_KEY);
+      } catch {
+        initial = null;
+      }
+    }
+    show(initial || 'perfil');
+
+    // Lets other code jump to a section without reaching into the DOM.
+    window.showDashTab = show;
+  })();
+
   // ---- Auth ----
 
   async function checkAuth() {
@@ -208,10 +269,33 @@
     show3DModel('billete');
   }
 
+  // Deferred until the VIP panel is actually on screen. The renderer sizes
+  // itself from container.clientWidth, which is 0 while the panel is hidden
+  // — starting it early produced a 160x160 canvas floating in a 628px box.
+  function initVip3DWhenVisible() {
+    const container = document.getElementById('vip-3d-viewer');
+    if (!container) return;
+
+    if (container.clientWidth > 0) {
+      initVip3DViewer();
+      return;
+    }
+    if (typeof IntersectionObserver !== 'function') {
+      initVip3DViewer(); // no observer: better a small canvas than none
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      observer.disconnect();
+      initVip3DViewer();
+    });
+    observer.observe(container);
+  }
+
   if (window.renderVip3D) {
-    initVip3DViewer();
+    initVip3DWhenVisible();
   } else {
-    window.addEventListener('vip3d-ready', initVip3DViewer, { once: true });
+    window.addEventListener('vip3d-ready', initVip3DWhenVisible, { once: true });
   }
 
   // ---- VIP: demo preview (replays the reveal + swaps the 3D model; touches
