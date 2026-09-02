@@ -70,6 +70,21 @@
     must_login: 'Inicia sesión primero.',
   };
 
+  // Shown when you land here with a session already open: says who you are,
+  // offers the way back, and leaves the form usable underneath.
+  function showSignedInNotice(username) {
+    const notice = document.getElementById('signed-in-notice');
+    if (!notice) return;
+    document.getElementById('signed-in-user').textContent = username || 'tu cuenta';
+    notice.classList.remove('hidden');
+
+    document.getElementById('signed-in-logout').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      window.location.reload();
+    });
+  }
+
   const params = new URLSearchParams(window.location.search);
   const errorCode = params.get('error');
   if (errorCode && ERROR_MESSAGES[errorCode]) {
@@ -114,8 +129,11 @@
     .then((r) => r.json())
     .then((data) => {
       if (data.authenticated) {
-        window.location.href = '/admin/dashboard';
-        return;
+        // Deliberately does NOT bounce to the dashboard. Someone who comes
+        // here with a session open is here on purpose -- to sign in with a
+        // passkey, or as a different account -- and redirecting them away
+        // made both impossible without first hunting for the logout button.
+        showSignedInNotice(data.username);
       }
       setMode(params.get('mode') === 'register' ? 'register' : 'login');
       return fetch('/api/auth/providers').then((r) => r.json());

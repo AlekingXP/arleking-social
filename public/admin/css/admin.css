@@ -1018,3 +1018,18 @@ body {
   }
   .save-bar .btn-pill { width: 100%; }
 }
+
+/* Aviso al llegar al login con sesion ya abierta. Informativo, no una
+   alerta: no hay nada que corregir, solo que sepas donde estas. */
+.signed-in-notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.signed-in-notice strong { color: var(--text); }
+.signed-in-notice a { color: var(--text); }
