@@ -1046,3 +1046,170 @@ body {
   text-decoration: none;
 }
 .forgot-line a:hover { color: var(--text); }
+
+/* ---- Analiticas ----
+   Mismo lenguaje de vidrio del resto: sin relleno de color, jerarquia por
+   brillo y tamano. El unico acento es la curva de la grafica, que es donde
+   la vista tiene que ir primero. */
+
+.range-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.range-tabs button {
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  font: 600 0.78rem/1 inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.range-tabs button:hover { color: var(--text); }
+.range-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.live-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 20px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.live-line strong { color: var(--text); }
+
+/* Late para que se lea como "en vivo" sin necesitar la palabra. */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot { animation: none; }
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.metric {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.metric-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.metric-value {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  /* Tabulares: sin esto las cifras bailan de ancho al refrescarse solas. */
+  font-variant-numeric: tabular-nums;
+}
+.metric-change {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  min-height: 1em;
+}
+.metric-change.up { color: var(--ok); }
+.metric-change.down { color: var(--danger); }
+
+.chart-holder {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 10px 6px;
+}
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 4px 2px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de fondo dentro de la propia fila: se compara de un vistazo sin
+   necesitar ejes ni leyenda. */
+.stat-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.85rem;
+}
+.stat-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+}
+.stat-label,
+.stat-value { position: relative; }
+.stat-value {
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub {
+  margin: -2px 0 12px 12px;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+.stat-empty {
+  margin: 6px 0;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.analytics-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 14px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+@media (max-width: 600px) {
+  .card-title-row { flex-wrap: wrap; gap: 10px; }
+  .range-tabs { width: 100%; justify-content: space-between; }
+  .range-tabs button { flex: 1; padding: 8px 4px; font-size: 0.74rem; }
+  .metric-value { font-size: 1.35rem; }
+}

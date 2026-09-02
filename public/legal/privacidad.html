@@ -50,7 +50,7 @@
 
       <h2>3. Qué datos guardamos de ti</h2>
       <ul>
-        <li><strong>Cuenta:</strong> nombre de usuario y contraseña (guardada como hash bcrypt, nunca en texto plano).</li>
+        <li><strong>Cuenta:</strong> nombre de usuario y contraseña (guardada como hash <strong>Argon2id</strong>, nunca en texto plano). Opcionalmente un correo, sólo si lo añades para poder recuperar la cuenta.</li>
         <li><strong>Google (opcional):</strong> si vinculas Google, guardamos tu identificador y tu correo de Google.</li>
         <li><strong>Perfil público:</strong> nombre, descripción, enlaces, imágenes que subas y opciones visuales.</li>
         <li><strong>Actividad:</strong> la fecha de tu último acceso, para la limpieza de cuentas inactivas.</li>
@@ -62,13 +62,45 @@
 
       <h2>4. Seguridad de tu cuenta</h2>
       <ul>
-        <li>Las contraseñas se almacenan con <strong>bcrypt</strong>; ni siquiera nosotros podemos leerlas.</li>
+        <li>Las contraseñas se almacenan con <strong>Argon2id</strong>; ni siquiera nosotros podemos leerlas.</li>
         <li>Las sesiones usan cookies <code>httpOnly</code> y <code>SameSite</code>, servidas solo por HTTPS en producción.</li>
         <li>Los intentos de inicio de sesión y registro están limitados para frenar ataques de fuerza bruta.</li>
         <li>El tráfico viaja cifrado con HTTPS (HSTS activo en producción).</li>
       </ul>
 
-      <h2>5. Con quién compartimos datos</h2>
+      <h2>5. Analíticas de las páginas públicas</h2>
+      <p>
+        Cada página pública cuenta sus visitas y los clics en sus enlaces, para que
+        su dueño sepa qué funciona. Lo hacemos <strong>sin cookies y sin rastreadores
+        de terceros</strong>, y por eso no verás ningún banner de consentimiento.
+      </p>
+      <ul>
+        <li>
+          <strong>No guardamos tu dirección IP.</strong> Se usa sólo en memoria para
+          calcular un identificador con una clave que <strong>cambia cada día</strong>.
+          Al día siguiente ese mismo visitante produce un identificador distinto, así
+          que no se puede seguir a nadie de una jornada para otra.
+        </li>
+        <li>
+          <strong>No guardamos tu navegador completo.</strong> Sólo la familia
+          (Chrome, Safari, Firefox…), el sistema operativo y si es móvil o escritorio.
+        </li>
+        <li>
+          <strong>Del sitio de procedencia sólo el dominio</strong> —por ejemplo
+          «tiktok.com»—, nunca la dirección completa, que podría contener búsquedas.
+        </li>
+        <li>
+          <strong>El país</strong>, que nos llega ya calculado por nuestro proveedor de
+          red sin que nosotros veamos la dirección.
+        </li>
+        <li>Nada de esto se guarda en tu dispositivo: ni cookies, ni almacenamiento local.</li>
+      </ul>
+      <p>
+        Si tu navegador envía la señal «Do Not Track», o tienes activado el ahorro de
+        datos, no registramos nada. Los datos se borran automáticamente al cabo de un año.
+      </p>
+
+      <h2>6. Con quién compartimos datos</h2>
       <p>Solo con los proveedores necesarios para que el servicio funcione:</p>
       <ul>
         <li><strong>Stripe</strong> — procesamiento de pagos y suscripciones.</li>
@@ -76,7 +108,7 @@
         <li><strong>Google</strong> — únicamente si eliges iniciar sesión con Google.</li>
       </ul>
 
-      <h2>6. Tus derechos</h2>
+      <h2>7. Tus derechos</h2>
       <p>
         Puedes editar o borrar el contenido de tu perfil en cualquier
         momento desde tu panel. Si quieres eliminar por completo tu cuenta y
@@ -90,7 +122,7 @@
         registros de las operaciones durante cierto tiempo.
       </p>
 
-      <h2>7. Contacto</h2>
+      <h2>8. Contacto</h2>
       <p>
         Cualquier duda sobre privacidad o seguridad:
         <a href="mailto:ale-king@storexp.net">ale-king@storexp.net</a>.

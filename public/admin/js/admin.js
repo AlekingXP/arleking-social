@@ -46,7 +46,7 @@
     const panels = [...document.querySelectorAll('.tab-panel')];
     const STORAGE_KEY = 'aks.dash.tab';
 
-    function show(name) {
+    let show = function (name) {
       const known = tabs.some((t) => t.dataset.tab === name);
       const target = known ? name : 'perfil';
       tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === target)));
@@ -60,7 +60,7 @@
         // Private mode or blocked storage: the tab still switches, it just
         // will not be remembered.
       }
-    }
+    };
 
     tabs.forEach((tab) => tab.addEventListener('click', () => show(tab.dataset.tab)));
 
@@ -93,6 +93,20 @@
       }
     }
     show(initial || 'perfil');
+
+    // Las analiticas se cargan la primera vez que se abre su pestana, no en
+    // cada entrada al panel: la consulta es barata, pero pedirla a quien
+    // nunca la mira lo es aun mas.
+    let analiticasCargadas = false;
+    const showOriginal = show;
+    show = function (name) {
+      showOriginal(name);
+      if (name === 'analiticas' && !analiticasCargadas && window.initAnalytics) {
+        analiticasCargadas = true;
+        window.initAnalytics();
+      }
+    };
+    if (initial === 'analiticas' || (!initial && false)) show('analiticas');
 
     // Lets other code jump to a section without reaching into the DOM.
     window.showDashTab = show;

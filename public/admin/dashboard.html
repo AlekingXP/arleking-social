@@ -58,6 +58,7 @@
       <button type="button" class="tab" role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
       <button type="button" class="tab" role="tab" data-tab="apariencia" aria-selected="false">Apariencia</button>
       <button type="button" class="tab" role="tab" data-tab="enlaces" aria-selected="false">Enlaces</button>
+      <button type="button" class="tab" role="tab" data-tab="analiticas" aria-selected="false">Analíticas</button>
       <button type="button" class="tab" role="tab" data-tab="vip" aria-selected="false">VIP</button>
       <button type="button" class="tab" role="tab" data-tab="cuenta" aria-selected="false">Cuenta</button>
     </nav>
@@ -203,6 +204,103 @@
 
         <div id="links-admin-list" class="links-admin-list"></div>
       </section>
+    </div>
+
+    <div class="tab-panel hidden" data-panel="analiticas">
+
+      <section class="card">
+        <div class="card-title-row">
+          <h2 class="card-title">Analíticas</h2>
+          <div class="range-tabs" id="range-tabs" role="tablist">
+            <button type="button" data-range="today" role="tab" aria-selected="false">Hoy</button>
+            <button type="button" data-range="7d" role="tab" aria-selected="true">7 días</button>
+            <button type="button" data-range="30d" role="tab" aria-selected="false">30 días</button>
+            <button type="button" data-range="90d" role="tab" aria-selected="false">90 días</button>
+          </div>
+        </div>
+
+        <p class="live-line">
+          <span class="live-dot" aria-hidden="true"></span>
+          <strong id="live-count">0</strong> <span id="live-word">visitantes</span> en tu página ahora mismo
+        </p>
+
+        <div class="metric-grid">
+          <div class="metric" id="m-pageviews">
+            <p class="metric-label">Visitas a la página</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-visitors">
+            <p class="metric-label">Personas distintas</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-sessions">
+            <p class="metric-label">Sesiones</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-clicks">
+            <p class="metric-label">Clics en enlaces</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-ctr">
+            <p class="metric-label">Pulsan algún enlace</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-bounce">
+            <p class="metric-label">Se van sin pulsar</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+          <div class="metric" id="m-dwell">
+            <p class="metric-label">Tiempo medio</p>
+            <p class="metric-value">—</p><p class="metric-change"></p>
+          </div>
+        </div>
+
+        <div class="chart-holder" id="chart-holder"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Rendimiento de tus enlaces</h2>
+        <p class="hint">
+          Qué enlace se lleva los clics. El porcentaje es sobre las visitas totales,
+          así que dice si merece estar arriba del todo.
+        </p>
+        <div id="link-perf"></div>
+      </section>
+
+      <div class="analytics-columns">
+        <section class="card">
+          <h2 class="card-title">De dónde vienen</h2>
+          <div id="bd-referrers"></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Países</h2>
+          <div id="bd-countries"></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Navegador</h2>
+          <div id="bd-browsers"></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Sistema</h2>
+          <div id="bd-systems"></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Dispositivo</h2>
+          <div id="bd-devices"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2 class="card-title">Sobre estos datos</h2>
+        <p class="hint">
+          Sin cookies y sin rastreadores de terceros. La identidad de cada visitante
+          es un hash que <strong>cambia cada día</strong>, así que se puede contar
+          cuántas personas distintas entraron hoy, pero no seguir a nadie de un día
+          para otro. No se guarda ninguna dirección IP. Por eso tu página no
+          necesita banner de consentimiento.
+        </p>
+      </section>
+
     </div>
 
     <div class="tab-panel hidden" data-panel="vip">
@@ -553,6 +651,7 @@
   <script src="/js/button-fx.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script type="module" src="/js/vip-3d.js"></script>
+  <script src="/admin/js/analytics.js"></script>
   <script src="/admin/js/admin.js"></script>
 </body>
 </html>

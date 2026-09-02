@@ -44,6 +44,8 @@
     const a = el('a', 'link-card featured');
     a.href = link.url;
     a.dataset.url = link.url;
+    // Lo lee track.js para atribuir el clic a este enlace concreto.
+    a.dataset.linkId = link.id;
 
     const media = el('div', 'media');
     if (link.image_path) media.style.backgroundImage = `url('${link.image_path}')`;
@@ -72,6 +74,8 @@
     const a = el('a', 'link-card simple');
     a.href = link.url;
     a.dataset.url = link.url;
+    // Lo lee track.js para atribuir el clic a este enlace concreto.
+    a.dataset.linkId = link.id;
 
     a.appendChild(el('div', 'icon-circle', link.icon || platformIcon(link.platform)));
 

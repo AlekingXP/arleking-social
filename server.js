@@ -12,6 +12,7 @@ const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
 const oauthRoutes = require('./routes/oauth');
 const { router: stripeRoutes, webhookHandler } = require('./routes/stripe');
+const { router: analyticsRoutes, collector } = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,7 @@ const { csrfProtection } = require('./security/auth/csrf');
 const { createAuditLog, setIpSalt } = require('./security/auth/audit');
 const { buildPolicy } = require('./security/auth/csp');
 const { createAlerts } = require('./security/auth/alerts');
+const { setSalt: setAnalyticsSalt } = require('./analytics/collect');
 
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const secretPath = path.join(dataDir, '.session-secret');
@@ -39,6 +41,10 @@ if (fs.existsSync(secretPath)) {
 // across restarts without the session secret itself being recoverable from
 // the database if it ever leaks.
 setIpSalt(crypto.createHmac('sha256', sessionSecret).update('audit-ip-salt').digest('hex'));
+
+// Sal base de las analiticas. Derivada igual que la de auditoria, y distinta
+// de ella para que un hash de un sistema no sirva para cruzar con el otro.
+setAnalyticsSalt(crypto.createHmac('sha256', sessionSecret).update('analytics-salt').digest('hex'));
 
 // Don't advertise the framework: it tells a scanner which CVE list to try.
 app.disable('x-powered-by');
@@ -114,6 +120,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', oauthRoutes);
 app.use('/api', stripeRoutes);
+app.use('/api', analyticsRoutes);
 
 // `Cache-Control: no-cache` forces a revalidation round-trip (If-None-Match)
 // on every load instead of the browser silently reusing a stale copy after
