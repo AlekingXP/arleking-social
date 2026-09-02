@@ -4,15 +4,22 @@ Sistema de análisis para detectar contenido dañino en ArleKing Social:
 enlaces que pueden ejecutar código, archivos que no son lo que dicen ser, y
 texto con carga de inyección.
 
-## Lo importante primero: esto no toca la página
+## Qué está activo y qué no
 
-Nada de lo que hay en `security/` es requerido por `server.js`. Es un
-programa aparte que se ejecuta cuando tú quieras.
+| Superficie | Modo | Efecto |
+|---|---|---|
+| Enlaces | **bloqueo** | Rechaza con 400 los hallazgos `critical` al crear o editar |
+| Subidas | informe | Solo se ven ejecutando el escáner |
+| Texto | informe | Solo se ven ejecutando el escáner |
+
+`routes/admin.js` importa `rules/urls.js` — es el **único** punto de la
+aplicación acoplado a `security/`. Todo lo demás sigue siendo un programa
+aparte que se ejecuta cuando tú quieras:
 
 - Abre la base de datos **en modo solo lectura** (`readonly: true`), así que
   no puede escribir ni borrar aunque tuviera un fallo.
 - No arranca ningún servidor, no abre ningún puerto, no modifica archivos.
-- Lo peor que puede hacer una ejecución es imprimir texto.
+- Lo peor que puede hacer una ejecución del escáner es imprimir texto.
 
 Ejecutarlo con la web en marcha es seguro.
 
@@ -80,24 +87,50 @@ inerte. Lo que se señala es que la base de datos lo *guarda*, y pasaría a ser
 explotable el día que ese texto se renderice como HTML, se meta en un correo,
 en un PDF o en una página generada en el servidor.
 
-## Modo informe, no bloqueo
+## Estado actual: enlaces bloquean, subidas solo informan
 
-Ahora mismo el sistema **detecta y reporta**; no rechaza nada en el momento
-de subir ni de guardar. Es deliberado: así no puede romper la página ni
-bloquear a un usuario legítimo por un falso positivo.
+### Enlaces — ACTIVO (bloqueo)
 
-Para pasar a prevención hay dos enganches naturales, ambos ya cubiertos por
-estas reglas:
+`routes/admin.js` llama a `analyzeUrl()` al **crear y al editar** un enlace y
+responde 400 si hay algún hallazgo `critical`. Es el único punto de la
+aplicación que importa algo de `security/`.
 
-1. **Enlaces** — en `routes/admin.js`, al crear y editar un enlace, llamar a
-   `analyzeUrl(url)` y rechazar con 400 si hay algo `critical`.
-2. **Subidas** — en el `fileFilter`/después de `multer`, llamar a
-   `analyzeFile(ruta, ext)` y borrar el archivo si hay `critical` o `high`.
+Solo bloquea `critical` (esquemas ejecutables y caracteres de control): no
+hay uso honesto de `javascript:` en una página de enlaces. Los hallazgos
+`high`, `medium` y `low` — phishing, homógrafos, acortadores — se registran
+en el log del servidor con el prefijo `[seguridad]` pero **no** se rechazan,
+porque un falso positivo ahí dejaría a un usuario legítimo sin poder editar
+su propia página.
 
-Recomendación: pasar primero los enlaces (el riesgo real es que la
-plataforma distribuya phishing bajo tu dominio) y dejar las subidas en modo
-informe unas semanas, para medir falsos positivos con archivos de usuarios
-reales antes de empezar a rechazar.
+**Falla abierto a propósito.** Si `analyzeUrl` lanzara una excepción, se
+registra y el enlace se guarda igual. Esto es defensa en profundidad, no el
+único control: un fallo del escáner no puede tumbar la edición de enlaces
+para todo el mundo.
+
+Para revisar los avisos que no bloquean:
+
+```bash
+# en los logs de Render
+grep "\[seguridad\]"
+```
+
+### Subidas — INFORME (no bloquea)
+
+Deliberadamente sin activar todavía, para medir falsos positivos con
+archivos de usuarios reales antes de empezar a rechazar. Cuando se quiera
+activar, el enganche es llamar a `analyzeFile(ruta, ext)` después de multer
+y borrar el archivo si hay `critical` o `high`.
+
+### Texto — INFORME (no bloquea)
+
+Y probablemente deba quedarse así: hoy ese texto se escapa con
+`textContent`, así que rechazarlo molestaría a usuarios sin ganar seguridad
+real.
+
+### Enlaces ya guardados
+
+El bloqueo solo cubre lo que se guarda a partir de ahora. Para revisar lo que
+ya existe, `npm run security` los analiza todos.
 
 ## Estructura
 
@@ -111,5 +144,6 @@ security/
     text.js        análisis de campos de texto
 ```
 
-`scanner.js` no importa nada de la aplicación, así que las reglas se pueden
-reutilizar dentro del servidor cuando se decida pasar a modo bloqueo.
+`scanner.js` no importa nada de la aplicación. Esa independencia es lo que
+permite que `routes/admin.js` reutilice `rules/urls.js` en caliente sin
+arrastrar consigo el CLI ni el acceso a la base de datos.

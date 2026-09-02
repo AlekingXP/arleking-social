@@ -8,8 +8,33 @@ const rateLimit = require('express-rate-limit');
 const { db, slugify, RESERVED_SLUGS, VIP_TIERS, createUserWithProfile, touchUserActivity, isOwnerUsername } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadsDir } = require('../paths');
+const { analyzeUrl } = require('../security/rules/urls');
 
 const router = express.Router();
+
+// Link enforcement. Only `critical` blocks: an executable scheme or control
+// characters hidden in a URL have no honest use on a bio page. Everything
+// milder (phishing-shaped hostnames, homographs, shorteners) is logged for
+// review rather than rejected, because a false positive there would lock a
+// legitimate user out of their own page.
+//
+// Fails open by design. This is defence in depth, not the only control -- a
+// bug in the scanner must never take link editing down for everybody, so an
+// unexpected throw is logged and the save proceeds.
+function blockingUrlFinding(url) {
+  try {
+    const findings = analyzeUrl(url);
+    for (const f of findings) {
+      if (f.severity !== 'critical') {
+        console.warn(`[seguridad] enlace permitido con aviso ${f.severity}/${f.code}: ${f.message}`);
+      }
+    }
+    return findings.find((f) => f.severity === 'critical') || null;
+  } catch (err) {
+    console.error('[seguridad] el analisis de URL fallo, se permite el enlace:', err.message);
+    return null;
+  }
+}
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -249,6 +274,9 @@ router.post('/links', requireAuth, (req, res) => {
   const { type, platform, label, subtitle, badge_left, badge_right, url, icon, enabled } = req.body || {};
   if (!label || !url) return res.status(400).json({ error: 'Label y URL son obligatorios' });
 
+  const blocked = blockingUrlFinding(url);
+  if (blocked) return res.status(400).json({ error: blocked.message });
+
   const maxOrder = db.prepare('SELECT COALESCE(MAX(order_index), -1) AS m FROM links WHERE user_id = ?').get(req.session.userId).m;
   const info = db.prepare(`
     INSERT INTO links (user_id, order_index, type, platform, label, subtitle, badge_left, badge_right, url, image_path, icon, enabled)
@@ -275,6 +303,9 @@ router.put('/links/:id', requireAuth, (req, res) => {
 
   const { type, platform, label, subtitle, badge_left, badge_right, url, icon, enabled } = req.body || {};
   if (!label || !url) return res.status(400).json({ error: 'Label y URL son obligatorios' });
+
+  const blocked = blockingUrlFinding(url);
+  if (blocked) return res.status(400).json({ error: blocked.message });
 
   db.prepare(`
     UPDATE links SET type = ?, platform = ?, label = ?, subtitle = ?, badge_left = ?, badge_right = ?, url = ?, icon = ?, enabled = ?
