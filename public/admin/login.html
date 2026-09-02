@@ -37,7 +37,7 @@
     </div>
 
     <!-- Right panel: the form -->
-    <div class="lamp-form">
+    <div class="lamp-form" id="lamp-form">
       <!-- login.js swaps #orb-label between "Iniciar sesión" and "Crear
            cuenta", so it carries the whole heading — a fixed prefix would
            read wrong in one of the two modes. -->
@@ -163,15 +163,32 @@
   <script src="/js/particles.js"></script>
   <script src="/admin/js/login.js"></script>
   <script>
-    // Pull-cord toggle. The light starts on so the form is never unusable —
-    // the cord is a flourish, not a gate.
+    // Cordón de la lámpara. Apagarla pliega el formulario entero; encenderla
+    // lo despliega escalonado.
+    //
+    // Empieza ENCENDIDA a propósito. Si el estado inicial fuera apagado,
+    // alguien que llegue a iniciar sesión vería una lámpara y nada más, sin
+    // pista de que hay un cordón que tirar — y si este script fallara al
+    // cargar, se quedaría sin formulario. Al revés no puede pasar: sin
+    // JavaScript la clase `lit` ya está en el HTML y se ve todo.
     (function () {
       const card = document.getElementById('lamp-card');
       const toggle = document.getElementById('lamp-toggle');
-      toggle.addEventListener('click', () => {
-        const lit = card.classList.toggle('lit');
+      const form = document.getElementById('lamp-form');
+
+      function apply(lit) {
+        card.classList.toggle('lit', lit);
         toggle.setAttribute('aria-pressed', String(lit));
-      });
+        toggle.setAttribute('aria-label', lit ? 'Apagar la lámpara y ocultar el formulario' : 'Encender la lámpara y mostrar el formulario');
+        // Ocultarlo a la vista no basta: sin esto, un lector de pantalla
+        // seguiría leyendo los campos y el tabulador entraría en un
+        // formulario invisible.
+        form.setAttribute('aria-hidden', String(!lit));
+        if ('inert' in form) form.inert = !lit;
+      }
+
+      toggle.addEventListener('click', () => apply(!card.classList.contains('lit')));
+      apply(true);
     })();
   </script>
 </body>

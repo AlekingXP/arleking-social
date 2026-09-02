@@ -211,7 +211,12 @@ body {
 
 .lamp-card {
   display: grid;
+  /* Apagada la lampara, la columna del formulario se cierra a cero y la
+     tarjeta queda reducida al farol. La transicion va sobre esta propiedad,
+     asi que el panel se pliega en vez de desaparecer de golpe. */
   grid-template-columns: 240px minmax(0, 1fr);
+  transition: grid-template-columns 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   max-width: 720px;
   margin: 20px;
@@ -230,6 +235,7 @@ body {
   position: relative;
   overflow: hidden;
   min-height: 400px;
+  transition: min-height 0.55s cubic-bezier(0.4, 0, 0.2, 1);
   border-right: 1px solid var(--border);
   background:
     repeating-linear-gradient(60deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 22px),
@@ -350,7 +356,97 @@ body {
   z-index: 2;
 }
 
-.lamp-form { padding: 34px 32px; }
+.lamp-form {
+  padding: 34px 32px;
+  min-width: 0;
+  overflow: hidden;
+  /* Un tope alto, no `none`: max-height solo anima entre dos longitudes. */
+  max-height: 1400px;
+  transition: opacity 0.35s ease,
+              max-height 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- La lampara como interruptor de todo el formulario ----
+   El estado por defecto es ENCENDIDA: si la clase nunca llegara a aplicarse
+   —JavaScript desactivado, un fallo al cargar— la pagina se ve entera. Un
+   diseno donde la luz apagada es el punto de partida dejaria a la gente
+   mirando un formulario invisible sin saber que hay un cordon que tirar. */
+
+.lamp-card:not(.lit) {
+  grid-template-columns: 240px 0fr;
+  max-width: 242px; /* el farol y sus bordes: nada mas */
+}
+
+/* Apagada, el panel se acorta. Los 400px existen para que quepa el haz de
+   luz; sin haz sobran, y dejaban la pista del cordon fuera de pantalla en
+   portatiles. Apagado, esa pista es la UNICA forma de volver: si no se ve,
+   la persona se queda mirando una losa oscura sin saber que hacer. */
+.lamp-card:not(.lit) .lamp-stage {
+  min-height: 260px;
+}
+
+.lamp-card:not(.lit) .lamp-hint {
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.lamp-card:not(.lit) .lamp-form {
+  opacity: 0;
+  /* Sin retardo al apagar: la luz se va y el contenido con ella. */
+  transition-delay: 0s;
+  pointer-events: none;
+  /* El relleno tambien se pliega. Con `0fr` la columna mide cero, pero el
+     padding no: dejaba una franja vacia de 64px pegada al farol. */
+  padding-left: 0;
+  padding-right: 0;
+  /* Y el alto. `0fr` cierra la COLUMNA, pero la fila del grid sigue
+     midiendo lo que mide el contenido mas alto, asi que la tarjeta plegada
+     conservaba los 784px del formulario y dejaba la pista del cordon fuera
+     de pantalla. */
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Al encender, cada bloque entra escalonado: la luz "recorre" el formulario
+   de arriba abajo en vez de aparecer todo de golpe. */
+.lamp-card.lit .lamp-form > * {
+  animation: lamp-unfold 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.lamp-card.lit .lamp-form > *:nth-child(1) { animation-delay: 0.18s; }
+.lamp-card.lit .lamp-form > *:nth-child(2) { animation-delay: 0.23s; }
+.lamp-card.lit .lamp-form > *:nth-child(3) { animation-delay: 0.28s; }
+.lamp-card.lit .lamp-form > *:nth-child(4) { animation-delay: 0.33s; }
+.lamp-card.lit .lamp-form > *:nth-child(5) { animation-delay: 0.38s; }
+.lamp-card.lit .lamp-form > *:nth-child(n + 6) { animation-delay: 0.42s; }
+
+@keyframes lamp-unfold {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* El texto del cordon cambia segun lo que va a hacer al pulsarlo. */
+.lamp-hint::after {
+  content: ' · apagar';
+  opacity: 0.65;
+}
+.lamp-card:not(.lit) .lamp-hint::after { content: ' · encender'; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lamp-card,
+  .lamp-form { transition: none; }
+  .lamp-card.lit .lamp-form > * { animation: none; }
+}
+
+/* En movil las dos columnas ya se apilan, asi que plegar una columna no
+   significa nada: alli el formulario se colapsa en alto. */
+@media (max-width: 720px) {
+  .lamp-card:not(.lit) {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+}
 
 .lamp-title {
   font-family: 'Playfair Display', serif;
