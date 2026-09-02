@@ -414,12 +414,21 @@
     const label = document.getElementById('mfa-status');
     const toggle = document.getElementById('mfa-toggle-btn');
 
+    const devicesRow = document.getElementById('mfa-devices-row');
+    const devicesStatus = document.getElementById('mfa-devices-status');
+
     if (status.enabled) {
       label.textContent = `Activa · ${status.recoveryCodesLeft} código(s) de recuperación sin usar`;
       toggle.textContent = 'Desactivar';
+      devicesRow.classList.remove('hidden');
+      const n = status.trustedDevices || 0;
+      devicesStatus.textContent = n
+        ? `${n} · no piden código durante ${status.trustHours}h`
+        : 'Ninguno';
     } else {
       label.textContent = 'No activa';
       toggle.textContent = 'Activar';
+      devicesRow.classList.add('hidden');
     }
 
     if (mfaWired) return;
@@ -442,6 +451,21 @@
         setup.classList.remove('hidden');
         recovery.classList.add('hidden');
         document.getElementById('mfa-code').focus();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('mfa-forget-btn').addEventListener('click', async () => {
+      try {
+        const data = await api('/api/auth/mfa/forget-devices', { method: 'POST' });
+        showToast(
+          data.forgotten
+            ? `${data.forgotten} dispositivo(s) olvidado(s)`
+            : 'No había dispositivos recordados',
+          'success'
+        );
+        renderMfa();
       } catch (err) {
         showToast(err.message, 'error');
       }

@@ -123,6 +123,29 @@ SHA-256**. Se muestran una vez y no se pueden volver a mostrar.
 Para desactivar el MFA se exigen contraseña **y** código: una sesión robada
 no puede quitar por sí sola la protección que existe justo para eso.
 
+### Dispositivos recordados
+
+Pedir el código en cada inicio de sesión es la razón principal por la que la
+gente acaba desactivando el MFA, que cambia una molestia pequeña por perder
+toda la protección. Un dispositivo que ya pasó el segundo factor puede
+saltárselo durante **24 horas**.
+
+El límite que hace esto defendible: la cookie **sólo salta el segundo
+factor, nunca la contraseña**. Quien la robe está exactamente igual de lejos
+de la cuenta que quien se enfrenta a una cuenta sin MFA — que es justo el
+escenario con el que hay que comparar esta función, no con el ideal.
+
+- Se guarda **sólo el digest SHA-256**; el token nunca toca la base.
+- Cookie `HttpOnly`, así que ningún script de la página puede leerla.
+- Un token de otra cuenta no sólo se rechaza: se **borra**, porque sólo puede
+  significar una cookie manipulada o rancia.
+- La confianza se renueva únicamente tras verificar un código real, así que
+  nunca se prorroga sola.
+- Se revoca al desactivar el MFA, al cambiar la contraseña, y con el botón
+  **Olvidar todos** del panel.
+- Ante cualquier error interno **falla cerrado**: pide el código. El coste es
+  una molestia; el de fallar abierto sería saltarse el factor.
+
 ### CSP
 
 Las páginas son HTML estático con unos pocos `<script>` en línea, así que no

@@ -334,6 +334,16 @@
             </div>
           </div>
 
+          <!-- Dispositivos recordados. Sin un boton para olvidarlos, la
+               comodidad no tendria marcha atras desde un equipo prestado. -->
+          <div class="linked-row" id="mfa-devices-row">
+            <div>
+              <p class="hint" style="margin:0 0 4px;">Dispositivos recordados</p>
+              <p class="linked-status" id="mfa-devices-status">-</p>
+            </div>
+            <button type="button" class="btn-outline btn-sm" id="mfa-forget-btn">Olvidar todos</button>
+          </div>
+
           <!-- Los codigos de recuperacion solo existen en claro en esta
                respuesta; en la base solo se guarda su hash. -->
           <div id="mfa-recovery" class="hidden">

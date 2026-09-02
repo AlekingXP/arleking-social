@@ -13,6 +13,10 @@ const { hashPassword, verifyPassword, checkPasswordPolicy } = require('../securi
 const { createLockout } = require('../security/auth/lockout');
 const totp = require('../security/auth/totp');
 const { issueToken } = require('../security/auth/csrf');
+const { createTrustedDevices } = require('../security/auth/trusted-device');
+
+const trustedDevices = createTrustedDevices(db);
+const cookieSecure = process.env.NODE_ENV === 'production';
 
 const lockout = createLockout(db);
 
@@ -224,16 +228,28 @@ router.post('/auth/login', authLimiter, async (req, res) => {
   }
 
   if (user.mfa_enabled && user.mfa_secret) {
-    if (!totpCode) {
-      // The password was right; say only that a second factor is needed.
-      return res.status(401).json({ error: 'Introduce tu código de verificación.', mfaRequired: true });
+    // A browser that passed the second factor within the last 24h skips the
+    // prompt. It never skips the password -- see security/auth/trusted-device.js
+    // for why that boundary is what makes this safe to offer at all.
+    const trusted = trustedDevices.isTrusted(req, user.id);
+
+    if (!trusted) {
+      if (!totpCode) {
+        // The password was right; say only that a second factor is needed.
+        return res.status(401).json({ error: 'Introduce tu código de verificación.', mfaRequired: true });
+      }
+      if (!verifyMfa(user, totpCode)) {
+        lockout.recordFailure(cleanUsername);
+        audit.record('mfa_fail', req, { userId: user.id, username: user.username });
+        return res.status(401).json({ error: 'Código de verificación incorrecto.', mfaRequired: true });
+      }
+      audit.record('mfa_ok', req, { userId: user.id, username: user.username });
+      // Renewed only after a real code, so trust never extends itself: a
+      // device that has not shown a code in 24h has to show one again.
+      trustedDevices.remember(req, res, user.id, { secure: cookieSecure });
+    } else {
+      audit.record('mfa_ok', req, { userId: user.id, username: user.username, detail: 'dispositivo recordado' });
     }
-    if (!verifyMfa(user, totpCode)) {
-      lockout.recordFailure(cleanUsername);
-      audit.record('mfa_fail', req, { userId: user.id, username: user.username });
-      return res.status(401).json({ error: 'Código de verificación incorrecto.', mfaRequired: true });
-    }
-    audit.record('mfa_ok', req, { userId: user.id, username: user.username });
   }
 
   return completeLogin(req, res, user);
@@ -288,6 +304,12 @@ router.put('/auth/password', requireAuth, async (req, res) => {
   const store = storeOf(req);
   let revoked = 0;
   if (store) revoked = store.revokeOthers(user.id, req.sessionID);
+
+  // Same reasoning as the sessions: someone changing their password wants
+  // every previously-granted shortcut gone, including a remembered device
+  // sitting on a machine they no longer trust.
+  trustedDevices.forgetAll(user.id);
+  trustedDevices.clearCookie(res, { secure: cookieSecure });
 
   const audit = auditOf(req);
   audit.record('password_change', req, { userId: user.id, username: user.username });
@@ -370,6 +392,11 @@ router.post('/auth/mfa/disable', requireAuth, async (req, res) => {
   });
   disable();
 
+  // Otherwise the trust records would outlive the factor they belong to and
+  // silently wave through the next enrolment.
+  trustedDevices.forgetAll(user.id);
+  trustedDevices.clearCookie(res, { secure: cookieSecure });
+
   auditOf(req).record('mfa_disabled', req, { userId: user.id, username: user.username });
   res.json({ ok: true });
 });
@@ -383,7 +410,20 @@ router.get('/auth/mfa/status', requireAuth, (req, res) => {
     enabled: !!(user && user.mfa_enabled),
     enrolledAt: user ? user.mfa_enrolled_at : null,
     recoveryCodesLeft: unused,
+    trustedDevices: trustedDevices.countFor(req.session.userId),
+    trustHours: trustedDevices.TRUST_HOURS,
   });
+});
+
+router.post('/auth/mfa/forget-devices', requireAuth, (req, res) => {
+  const forgotten = trustedDevices.forgetAll(req.session.userId);
+  trustedDevices.clearCookie(res, { secure: cookieSecure });
+  auditOf(req).record('mfa_devices_forgotten', req, {
+    userId: req.session.userId,
+    username: req.session.username,
+    detail: `${forgotten} dispositivo(s)`,
+  });
+  res.json({ ok: true, forgotten });
 });
 
 // ---- Sessions and activity ----
