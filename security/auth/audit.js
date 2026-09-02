@@ -47,7 +47,11 @@ function shortUserAgent(ua) {
   return String(ua).slice(0, 120);
 }
 
-function createAuditLog(db) {
+function createAuditLog(db, options = {}) {
+  // Inyectado en vez de importado para que el registro siga funcionando
+  // igual sin canal de alertas configurado, y para poder probarlo aparte.
+  const alerts = options.alerts || { consider() { return false; } };
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS auth_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,13 +84,24 @@ function createAuditLog(db) {
         console.warn(`[auditoria] evento desconocido "${event}" ignorado`);
         return;
       }
+      const digest = hashIp(req && req.ip);
       insert.run({
         event,
         user_id: userId,
         username: username ? String(username).slice(0, 80) : null,
-        ip_hash: hashIp(req && req.ip),
+        ip_hash: digest,
         user_agent: shortUserAgent(req && req.get && req.get('user-agent')),
         detail: detail ? String(detail).slice(0, 300) : null,
+      });
+
+      // Fuera del try/catch de arriba no: si avisar falla, el evento ya
+      // quedó guardado y eso es lo que no se puede perder.
+      alerts.consider(event, {
+        username,
+        detail,
+        // Solo un prefijo del digest, para poder relacionar dos avisos sin
+        // que el mensaje lleve nada que identifique a nadie.
+        originTag: digest ? digest.slice(0, 8) : null,
       });
     } catch (err) {
       console.error('[auditoria] no se pudo registrar el evento:', err.message);

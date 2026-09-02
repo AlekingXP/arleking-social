@@ -47,6 +47,17 @@
     </footer>
   </main>
 
+  <!-- Mapa de importacion para Three.js: debe existir antes de que se cargue
+       cualquier modulo, asi que va aqui aunque vip-3d.js solo se pida cuando
+       el perfil tiene badge VIP. Pesa unos 100 bytes; el modulo, no. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
   <script src="/js/vip-badge.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/button-fx.js"></script>

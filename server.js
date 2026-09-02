@@ -23,6 +23,7 @@ const { SqliteSessionStore } = require('./security/auth/session-store');
 const { csrfProtection } = require('./security/auth/csrf');
 const { createAuditLog, setIpSalt } = require('./security/auth/audit');
 const { buildPolicy } = require('./security/auth/csp');
+const { createAlerts } = require('./security/auth/alerts');
 
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const secretPath = path.join(dataDir, '.session-secret');
@@ -102,8 +103,10 @@ app.use(csrfProtection());
 
 // Shared with the routes through app.locals so nothing has to reach back
 // into server.js.
-const audit = createAuditLog(db);
+const alerts = createAlerts();
+const audit = createAuditLog(db, { alerts });
 app.locals.audit = audit;
+app.locals.alerts = alerts;
 app.locals.sessionStore = sessionStore;
 
 app.use('/uploads', express.static(uploadsDir));

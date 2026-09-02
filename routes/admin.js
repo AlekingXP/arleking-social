@@ -22,6 +22,16 @@ const cookieSecure = process.env.NODE_ENV === 'production';
 
 const lockout = createLockout(db);
 
+// El envio de prueba sale hacia un tercero, asi que se limita aparte del
+// resto del panel para que no se pueda usar como amplificador.
+const paymentLimiterlessGuard = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas pruebas. Espera unos minutos.' },
+});
+
 // app.locals is populated in server.js; reached through req so this module
 // never has to import the app back.
 const NO_AUDIT = { record() {}, isKnownOrigin: () => true, recentFailures: () => 0, accountsTargetedFrom: () => 0 };
@@ -533,6 +543,28 @@ router.delete('/auth/passkeys/:id', requireAuth, async (req, res) => {
 
   auditOf(req).record('passkey_removed', req, { userId: user.id, username: user.username });
   res.json({ ok: true, passkeys: webauthn.listFor(user.id) });
+});
+
+// ---- Alertas ----
+
+// Solo para el propietario: el canal es de la plataforma, no de cada
+// cuenta, y un envio de prueba desde cualquier usuario seria un modo facil
+// de inundar el webhook.
+router.get('/alerts/status', requireAuth, (req, res) => {
+  if (!isOwnerUsername(req.session.username)) return res.status(403).json({ error: 'No autorizado' });
+  const alerts = req.app.locals.alerts;
+  res.json({ enabled: !!(alerts && alerts.enabled()) });
+});
+
+router.post('/alerts/test', paymentLimiterlessGuard, requireAuth, async (req, res) => {
+  if (!isOwnerUsername(req.session.username)) return res.status(403).json({ error: 'No autorizado' });
+  const alerts = req.app.locals.alerts;
+  if (!alerts || !alerts.enabled()) {
+    return res.status(503).json({ error: 'No hay ALERT_WEBHOOK_URL configurada en el servidor.' });
+  }
+  const result = await alerts.test();
+  if (!result.ok) return res.status(502).json({ error: result.error });
+  res.json({ ok: true });
 });
 
 // ---- Sessions and activity ----

@@ -3,6 +3,70 @@
     return 'data:image/svg+xml,' + encodeURIComponent(svg);
   }
 
+  // Sube el badge de imagen fija a modelo 3D girando, el mismo que muestra
+  // la demo del panel.
+  //
+  // Mejora progresiva a proposito: el PNG se pinta al instante y sigue ahi
+  // si algo del 3D falla. Cargar Three.js y un GLB de 2 MB antes de mostrar
+  // nada dejaria la pagina de un creador en blanco mientras descarga, en
+  // moviles y conexiones lentas incluidas -- y esa pagina existe para que la
+  // vean sus seguidores, no para lucir un modelo.
+  //
+  // Por eso solo se intenta cuando: el perfil tiene tier, el badge esta a la
+  // vista, y el visitante no pidio ahorro de datos. renderVip3D ademas mide
+  // los fps y devuelve null si el dispositivo no da, en cuyo caso no se
+  // toca nada.
+  let live3dModule = null;
+
+  function prefersLightweight() {
+    const conn = navigator.connection;
+    if (!conn) return false;
+    if (conn.saveData) return true;
+    return ['slow-2g', '2g'].includes(conn.effectiveType);
+  }
+
+  async function upgradeToLive3D(badge, tierKey) {
+    if (!MODEL_TIERS.has(tierKey)) return;
+    if (prefersLightweight()) return;
+    if (typeof IntersectionObserver !== 'function') return;
+
+    // Espera a que el badge se vea de verdad antes de pedir nada.
+    await new Promise((resolve) => {
+      const observer = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        observer.disconnect();
+        resolve();
+      });
+      observer.observe(badge);
+    });
+
+    try {
+      if (!live3dModule) live3dModule = await import('/js/vip-3d.js');
+
+      const stage = document.createElement('span');
+      stage.className = 'vip-badge-3d';
+      // Montado fuera de la vista: si renderVip3D devuelve null no llega a
+      // insertarse y el visitante nunca ve un hueco.
+      stage.style.position = 'absolute';
+      stage.style.left = '-9999px';
+      document.body.appendChild(stage);
+
+      const viewer = await live3dModule.renderVip3D(stage, tierKey);
+      if (!viewer) {
+        stage.remove();
+        return; // sin WebGL o demasiado lento: se queda el PNG
+      }
+
+      stage.style.position = '';
+      stage.style.left = '';
+      badge.classList.add('has-3d');
+      badge.replaceChildren(stage);
+    } catch (err) {
+      // Un fallo aqui no es un fallo de la pagina: el badge plano ya cumple.
+      console.warn('No se pudo cargar el badge 3D:', err.message);
+    }
+  }
+
   // Tier icons that live in a file can 404 or be blocked; drop back to the
   // inline SVG rather than leaving a broken-image box next to someone's name.
   function tierIcon(tier) {
@@ -84,6 +148,10 @@
       glowCss: 'rgba(255, 208, 90, 0.6)',
     },
   };
+
+  // Tiers con modelo 3D disponible en /models. Si un tier futuro no lo
+  // tiene, su badge se queda en la imagen fija sin ningun caso especial.
+  const MODEL_TIERS = new Set(['billete', 'king']);
 
   // Six-beat reveal: loose dust converges into the emoji shape, the emoji
   // charges up and bursts apart, the scattered particles converge again into
@@ -415,12 +483,16 @@
 
     if (readSeen(profile.slug)) {
       badge.classList.add('settled');
+      upgradeToLive3D(badge, profile.vip_tier);
       return;
     }
 
     playReveal(badge, tier, () => {
       markSeen(profile.slug);
       badge.classList.add('settled');
+      // Despues de la animacion de particulas, no durante: competir por la
+      // GPU con el canvas del reveal la volveria a trompicones.
+      upgradeToLive3D(badge, profile.vip_tier);
     });
   }
 

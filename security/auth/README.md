@@ -92,6 +92,7 @@ Le decía a cualquier escáner qué lista de CVE probar.
 | `audit.js` | Registro de eventos sin datos sensibles |
 | `webauthn.js` | Passkeys (Face ID, huella, Hello) como credencial completa |
 | `trusted-device.js` | Recordar un dispositivo 24h para no pedir el TOTP siempre |
+| `alerts.js` | Saca los eventos sospechosos por webhook |
 
 ### Contraseñas
 
@@ -201,6 +202,42 @@ cualquiera sin dispositivo compatible, y para un sitio de enlaces personales
 el coste en usuarios perdidos supera al riesgo que elimina. Como opción, que
 es como está, tiene todo el sentido.
 
+### Alertas
+
+Los eventos sospechosos ya no se quedan en una tabla que hay que ir a mirar.
+Configura `ALERT_WEBHOOK_URL` y salen por webhook.
+
+Por webhook y no por correo: no hay proveedor de envío configurado (el mismo
+bloqueo que impide la verificación de correo), y un webhook funciona con
+Discord, Slack o cualquier endpoint que acepte un POST, sin añadir ni una
+dependencia ni una cuenta más. El formato del cuerpo se adapta según el
+destino (`content` para Discord, `text` para Slack, objeto completo para el
+resto).
+
+Qué avisa: `suspicious_burst`, `login_locked`, `mfa_disabled`,
+`password_change`, `passkey_added`, `passkey_removed`, `account_delete`,
+`oauth_link`, `suspicious_new_ip` y `mfa_devices_forgotten`. Un `login_ok` o
+un `logout` no interrumpen a nadie: eso es para lo que está la auditoría.
+
+Tres reglas que lo gobiernan:
+
+1. **No manda nada sensible.** Misma regla que la auditoría: ni contraseñas,
+   ni códigos, ni identificadores de sesión, ni IP en claro. Del origen sale
+   sólo un prefijo de 8 caracteres del digest, suficiente para relacionar dos
+   avisos e inútil para localizar a nadie. Comprobado sobre los mensajes
+   reales.
+2. **Nunca rompe la petición.** Se envía sin esperar respuesta y cualquier
+   fallo se traga: quedarse sin avisar es malo, tumbar un inicio de sesión
+   por ello es peor. Verificado con un webhook que lanza.
+3. **Se limita sola.** Silencio de 10 minutos por tipo+cuenta y tope de 20
+   mensajes por hora. Un ataque de fuerza bruta genera cientos de eventos, y
+   mandar cientos de mensajes convierte la alerta en ruido que se silencia —
+   que es exactamente perder la alerta. Verificado: 10 eventos iguales
+   producen 1 aviso; 50 cuentas distintas con tope 5 producen 5.
+
+Hay un envío de prueba en `POST /api/alerts/test`, sólo para el propietario y
+con su propio limitador, para comprobar la URL sin esperar a un incidente.
+
 ### CSP
 
 Las páginas son HTML estático con unos pocos `<script>` en línea, así que no
@@ -289,13 +326,6 @@ códigos de MFA y el acceso por Google/GitHub.
 El alta funciona por introducción manual de la clave, que toda app de
 autenticación admite. Un QR mejoraría la adopción; generarlo requiere
 implementar la codificación QR o vendorizar una librería.
-
-### Monitoreo continuo con alertas — parcial
-
-Los eventos se registran y los patrones sospechosos se marcan, pero **nadie
-recibe un aviso**. Falta el canal de salida (correo, webhook, Slack). El
-`audit.js` ya expone `recentFailures()` y `accountsTargetedFrom()`, que es
-lo que necesitaría un trabajo periódico para disparar alertas.
 
 ---
 

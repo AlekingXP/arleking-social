@@ -46,23 +46,35 @@ function supportsWebGL() {
   }
 }
 
-// Renders a trivial scene for a few frames and measures the achieved FPS —
-// the same 30fps gate the original spec calls for before trusting a device
-// with the "real" 3D tier instead of a flatter fallback.
-function probeFps() {
-  return new Promise((resolve) => {
-    if (!supportsWebGL()) return resolve(0);
+// Mide lo que cuesta a la GPU dibujar un fotograma, en milisegundos.
+//
+// La version anterior contaba fotogramas de requestAnimationFrame y exigia
+// 30 fps. Eso mide el ritmo que CONCEDE el navegador, no lo que la GPU
+// aguanta: en una pestana de fondo, en ahorro de bateria o dentro de un
+// webview, rAF baja a ~1 Hz y un movil perfectamente capaz reprobaba. Ademas
+// tardaba doce fotogramas -- nueve segundos a esa cadencia -- en decidirlo.
+//
+// Este bucle es sincrono y no toca rAF, asi que el estrangulamiento no le
+// afecta. readPixels al final fuerza a esperar a la GPU: sin ese punto de
+// sincronizacion se estaria midiendo lo que tarda en encolar ordenes, que en
+// WebGL es casi cero y siempre pareceria rapidisimo.
+const FRAME_BUDGET_MS = 33; // 30 fps, el listado del planteamiento original
+const PROBE_FRAMES = 20;
 
-    // Sandboxed/software-rendered environments can have very low concurrent
-    // WebGL context limits — a context creation failure here (e.g. while a
-    // previous display renderer hasn't been disposed yet) should count as
-    // "too slow for 3D", not throw and hang the caller.
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-    } catch {
-      return resolve(0);
-    }
+function probeFrameCostMs() {
+  if (!supportsWebGL()) return Infinity;
+
+  let renderer;
+  try {
+    // Los entornos con render por software tienen limites bajos de contextos
+    // WebGL simultaneos; que falle al crearlo cuenta como "no apto", no como
+    // excepcion que rompa al que llama.
+    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+  } catch {
+    return Infinity;
+  }
+
+  try {
     renderer.setSize(64, 64);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
@@ -71,25 +83,25 @@ function probeFps() {
     scene.add(mesh);
     scene.add(new THREE.DirectionalLight(0xffffff, 1));
 
-    const SAMPLE_FRAMES = 12;
-    let frame = 0;
-    const start = performance.now();
+    const gl = renderer.getContext();
+    // Un fotograma de calentamiento: el primero paga la compilacion de
+    // shaders y la subida de buffers, que no se repiten despues.
+    renderer.render(scene, camera);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
 
-    function tick() {
+    const start = performance.now();
+    for (let i = 0; i < PROBE_FRAMES; i++) {
       mesh.rotation.y += 0.1;
       renderer.render(scene, camera);
-      frame++;
-      if (frame >= SAMPLE_FRAMES) {
-        const fps = (SAMPLE_FRAMES / (performance.now() - start)) * 1000;
-        renderer.dispose();
-        renderer.forceContextLoss(); // free the WebGL context now, not whenever GC gets to it
-        resolve(fps);
-        return;
-      }
-      requestAnimationFrame(tick);
     }
-    requestAnimationFrame(tick);
-  });
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    return (performance.now() - start) / PROBE_FRAMES;
+  } catch {
+    return Infinity;
+  } finally {
+    renderer.dispose();
+    renderer.forceContextLoss(); // libera el contexto ya, sin esperar al GC
+  }
 }
 
 /**
@@ -101,8 +113,8 @@ export async function renderVip3D(container, tierKey) {
   const url = MODEL_URLS[tierKey];
   if (!url) return null;
 
-  const fps = await probeFps();
-  if (fps < 30) return null;
+  const frameCostMs = probeFrameCostMs();
+  if (frameCostMs > FRAME_BUDGET_MS) return null;
 
   let modelSource;
   try {

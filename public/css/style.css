@@ -453,3 +453,27 @@ main {
 .vip-info-close:hover {
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* Badge VIP en 3D vivo. Mas grande que la imagen fija: a 22px una corona
+   girando es una mancha, y el punto de mostrarla es que se vea girar. */
+.vip-badge.has-3d {
+  margin-left: 10px;
+  vertical-align: -14px;
+}
+
+.vip-badge-3d {
+  display: block;
+  width: 56px;
+  height: 56px;
+}
+
+.vip-badge-3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (max-width: 600px) {
+  .vip-badge-3d { width: 44px; height: 44px; }
+  .vip-badge.has-3d { vertical-align: -11px; }
+}
