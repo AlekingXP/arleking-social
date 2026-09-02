@@ -336,6 +336,31 @@
 
           <hr class="divider" />
 
+          <p class="hint" style="margin:0 0 10px;">Correo de recuperación</p>
+          <div class="linked-row">
+            <div>
+              <p class="hint" style="margin:0 0 4px;">Dirección</p>
+              <p class="linked-status" id="email-status">—</p>
+            </div>
+            <button type="button" class="btn-outline btn-sm" id="email-edit-btn">Cambiar</button>
+          </div>
+          <div id="email-panel" class="hidden">
+            <label class="field">
+              <span>Correo</span>
+              <input type="email" id="email-input" autocomplete="email" />
+            </label>
+            <p class="hint" style="margin:0 0 10px;">
+              Te enviamos un enlace para confirmarla. Hasta que la confirmes no sirve
+              para recuperar la cuenta.
+            </p>
+            <div class="danger-actions">
+              <button type="button" class="btn-outline" id="email-cancel">Cancelar</button>
+              <button type="button" class="btn-pill btn-gradient" id="email-save">Guardar y confirmar</button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
           <p class="hint" style="margin:0 0 10px;">Llaves de acceso (Face ID, huella, Hello)</p>
           <div id="passkey-list"></div>
           <button type="button" class="btn-outline btn-sm hidden" id="passkey-add-btn">+ Añadir este dispositivo</button>

@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const EVENTS = new Set([
   'login_ok', 'login_fail', 'login_locked',
   'register', 'logout',
-  'password_change', 'password_reset_request', 'password_reset_ok',
+  'password_change', 'password_reset_request', 'password_reset_ok', 'email_verified',
   'mfa_enrolled', 'mfa_ok', 'mfa_fail', 'mfa_disabled', 'mfa_devices_forgotten',
   'passkey_added', 'passkey_removed', 'passkey_login', 'passkey_fail',
   'oauth_link', 'oauth_unlink', 'oauth_login',

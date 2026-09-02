@@ -213,6 +213,13 @@ if (!userColumnsNow.includes('mfa_enabled')) db.exec('ALTER TABLE users ADD COLU
 if (!userColumnsNow.includes('mfa_enrolled_at')) db.exec('ALTER TABLE users ADD COLUMN mfa_enrolled_at TEXT');
 if (!userColumnsNow.includes('password_changed_at')) db.exec('ALTER TABLE users ADD COLUMN password_changed_at TEXT');
 
+// Correo. Nullable: las cuentas existentes no lo tienen y no se les puede
+// exigir de golpe. `email_verified_at` separa "la escribio" de "demostro que
+// es suya" -- solo lo segundo sirve para recuperar el acceso.
+if (!userColumnsNow.includes('email')) db.exec('ALTER TABLE users ADD COLUMN email TEXT');
+if (!userColumnsNow.includes('email_verified_at')) db.exec('ALTER TABLE users ADD COLUMN email_verified_at TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+
 // Recovery codes are stored only as SHA-256 digests: the plaintext is shown
 // to the user once at enrolment and never again, so a copy of this table is
 // not a set of working second factors.

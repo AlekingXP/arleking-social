@@ -93,6 +93,9 @@ Le decía a cualquier escáner qué lista de CVE probar.
 | `webauthn.js` | Passkeys (Face ID, huella, Hello) como credencial completa |
 | `trusted-device.js` | Recordar un dispositivo 24h para no pedir el TOTP siempre |
 | `alerts.js` | Saca los eventos sospechosos por webhook |
+| `mailer.js` | Envío de correo, agnóstico del proveedor |
+| `tokens.js` | Tokens de un solo uso para verificar y recuperar |
+| `emails.js` | Plantillas de los mensajes |
 
 ### Contraseñas
 
@@ -238,6 +241,55 @@ Tres reglas que lo gobiernan:
 Hay un envío de prueba en `POST /api/alerts/test`, sólo para el propietario y
 con su propio limitador, para comprobar la URL sin esperar a un incidente.
 
+### Correo, verificación y recuperación
+
+`mailer.js` es agnóstico del proveedor: se detecta por las variables que
+haya, en este orden.
+
+| Variable | Proveedor | Dependencia |
+|---|---|---|
+| `RESEND_API_KEY` | Resend | ninguna (HTTP) |
+| `POSTMARK_API_TOKEN` | Postmark | ninguna (HTTP) |
+| `BREVO_API_KEY` | Brevo | ninguna (HTTP) |
+| `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` | cualquiera | nodemailer |
+
+Opcionales: `MAIL_FROM`, `MAIL_REPLY_TO`, `SMTP_PORT` (465 usa TLS
+implícito; 587 y 25 suben con STARTTLS, deducido del puerto). Sin ninguna
+configurada, `enabled()` devuelve false y las funciones que dependen del
+correo se desactivan solas en vez de fallar a mitad de un registro.
+
+**Recuperación de contraseña.** Todo se apoya en una idea: el correo **no
+es un canal de confianza**. Puede leerlo otra persona, reenviarse, quedarse
+en un portapapeles. De ahí las decisiones:
+
+- La respuesta a "he olvidado mi contraseña" es **idéntica exista o no la
+  cuenta**. Decir "ese correo no está registrado" convertiría el endpoint en
+  un comprobador de quién tiene cuenta aquí — justo lo que costó cerrar en
+  el login.
+- Sólo se envía a direcciones **verificadas**. Si no, cualquiera podría
+  apuntar una dirección que no controla y recibir el enlace después.
+- El enlace **caduca en una hora** y **sirve una sola vez**. En la base sólo
+  se guarda su hash SHA-256.
+- Restablecer **no inicia sesión** y **no salta el segundo factor**. Si no,
+  comprometer el buzón derrotaría al MFA por completo.
+- Al restablecer se revocan **todas** las sesiones y dispositivos
+  recordados: quien lo hace asume que la anterior está comprometida.
+- Limitado por IP (5 cada 15 min) y por cuenta (5 enlaces por hora), porque
+  cada petición manda un correo real y sin eso sería un amplificador para
+  inundar el buzón de cualquiera.
+
+Un detalle que salió de las pruebas: **mirar el token y gastarlo son dos
+pasos**. Consumirlo antes de validar la contraseña hacía que escribir una
+débil te costara el enlace y tuvieras que pedir otro. Ahora se comprueba
+primero (`peek`) y se gasta después, con las condiciones dentro del propio
+UPDATE para que dos peticiones simultáneas no puedan gastarlo las dos.
+
+Verificado de extremo a extremo contra un proveedor simulado que captura los
+mensajes: 11 comprobaciones, incluidas respuesta genérica para correo
+inexistente y sin verificar, token ausente de la base en claro, contraseña
+débil sin gastar el enlace, un solo uso, y que la contraseña vieja deje de
+servir.
+
 ### CSP
 
 Las páginas son HTML estático con unos pocos `<script>` en línea, así que no
@@ -303,23 +355,6 @@ víctima sigue viva.
 
 Dicho explícitamente, porque un README de seguridad que insinúa cobertura
 que no existe es peor que no tenerlo.
-
-### Verificación de correo — no implementada
-
-**Falta la infraestructura, no el código.** La tabla `users` no tiene
-columna de correo (sólo `google_email`, que llega por OAuth) y no hay
-proveedor de envío configurado. Hacerla obligatoria además dejaría fuera a
-todas las cuentas existentes de golpe.
-
-Para tenerla hacen falta: una columna `email`, un proveedor (Resend,
-Postmark, SES) con su clave en las variables de entorno, tabla de tokens de
-un solo uso con caducidad, y un periodo de gracia para las cuentas actuales.
-
-### Recuperación de cuenta — no implementada
-
-Depende de lo anterior: un "he olvidado mi contraseña" sin correo verificado
-no es recuperación, es una puerta trasera. Hoy la recuperación real son los
-códigos de MFA y el acceso por Google/GitHub.
 
 ### QR para el MFA — no implementado
 

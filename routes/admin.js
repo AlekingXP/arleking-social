@@ -15,9 +15,14 @@ const totp = require('../security/auth/totp');
 const { issueToken } = require('../security/auth/csrf');
 const { createTrustedDevices } = require('../security/auth/trusted-device');
 const { createWebAuthn } = require('../security/auth/webauthn');
+const { createMailer } = require('../security/auth/mailer');
+const { createTokens } = require('../security/auth/tokens');
+const emails = require('../security/auth/emails');
 
 const trustedDevices = createTrustedDevices(db);
 const webauthn = createWebAuthn(db);
+const mailer = createMailer();
+const tokens = createTokens(db);
 const cookieSecure = process.env.NODE_ENV === 'production';
 
 const lockout = createLockout(db);
@@ -436,6 +441,182 @@ router.post('/auth/mfa/forget-devices', requireAuth, (req, res) => {
     detail: `${forgotten} dispositivo(s)`,
   });
   res.json({ ok: true, forgotten });
+});
+
+// ---- Recuperacion de cuenta ----
+//
+// Todo lo de aqui se apoya en una idea: el correo NO es un canal de
+// confianza. Puede leerlo otra persona, puede reenviarse, puede quedarse en
+// un portapapeles. Por eso los enlaces caducan pronto, sirven una sola vez,
+// y restablecer la contrasena no inicia sesion ni salta el segundo factor.
+
+// Limitador propio y estrecho: cada peticion manda un correo de verdad, asi
+// que sin esto seria un amplificador para inundar el buzon de cualquiera.
+const recoveryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes. Espera unos minutos.' },
+});
+
+function baseUrl(req) {
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+router.get('/auth/recovery/status', (req, res) => {
+  // Publico: la pagina de login necesita saber si ofrecer el enlace de
+  // "olvide mi contrasena" o esconderlo. No revela nada de ninguna cuenta.
+  res.json({ available: mailer.enabled() });
+});
+
+router.post('/auth/recovery/request', recoveryLimiter, async (req, res) => {
+  const { email } = req.body || {};
+
+  // La respuesta es la MISMA exista o no la cuenta. Decir "ese correo no
+  // esta registrado" convierte este endpoint en un comprobador de quien
+  // tiene cuenta aqui, que es justo lo que costo cerrar en el login.
+  const genericOk = {
+    ok: true,
+    message: 'Si esa dirección tiene una cuenta, te enviamos un enlace para restablecer la contraseña.',
+  };
+
+  if (!mailer.enabled()) {
+    return res.status(503).json({ error: 'La recuperación por correo no está configurada en el servidor.' });
+  }
+  if (!email || typeof email !== 'string') return res.json(genericOk);
+
+  const clean = email.trim().toLowerCase();
+  const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND email_verified_at IS NOT NULL').get(clean);
+
+  // Sin cuenta, o con el correo sin verificar: se responde igual y no se
+  // manda nada. Exigir verificado importa -- si no, cualquiera podria
+  // apuntar una direccion que no controla y recibir el enlace despues.
+  if (!user) {
+    auditOf(req).record('password_reset_request', req, { detail: 'sin coincidencia' });
+    return res.json(genericOk);
+  }
+
+  // Tope por cuenta ademas del limitador por IP: impide usar muchas IPs
+  // para llenarle el buzon a una persona concreta.
+  if (tokens.recentCount(user.id, 'reset') >= 5) {
+    auditOf(req).record('password_reset_request', req, {
+      userId: user.id, username: user.username, detail: 'frenado por exceso',
+    });
+    return res.json(genericOk);
+  }
+
+  try {
+    const token = tokens.issue(user.id, 'reset');
+    const url = `${baseUrl(req)}/admin/login?reset=${encodeURIComponent(token)}`;
+    const message = emails.passwordReset({ username: user.username, url });
+    await mailer.send({ to: user.email, ...message });
+    auditOf(req).record('password_reset_request', req, { userId: user.id, username: user.username });
+  } catch (err) {
+    // El fallo se registra pero la respuesta no cambia: distinguirla
+    // volveria a filtrar que la cuenta existe.
+    console.error('[recuperacion] no se pudo enviar el correo:', err.message);
+  }
+
+  return res.json(genericOk);
+});
+
+router.post('/auth/recovery/reset', recoveryLimiter, async (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!token || !newPassword) return res.status(400).json({ error: 'Faltan datos.' });
+
+  // Mirar primero, gastar despues. Al reves, una contrasena rechazada por
+  // la politica se llevaria el enlace por delante y habria que pedir otro
+  // por escribirla mal una vez.
+  const preview = tokens.peek(token, 'reset');
+  if (!preview) return res.status(400).json({ error: 'El enlace no es válido o ya caducó. Pide uno nuevo.' });
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(preview.userId);
+  if (!user) return res.status(400).json({ error: 'El enlace no es válido.' });
+
+  const policyError = checkPasswordPolicy(newPassword, { username: user.username });
+  if (policyError) return res.status(400).json({ error: policyError });
+
+  // Ahora si. Atomico, asi que dos peticiones a la vez no lo gastan las dos.
+  if (!tokens.consume(token, 'reset')) {
+    return res.status(400).json({ error: 'El enlace no es válido o ya caducó. Pide uno nuevo.' });
+  }
+
+  const hash = await hashPassword(newPassword);
+  db.prepare("UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?")
+    .run(hash, user.id);
+
+  // Quien restablece asume que la contrasena anterior esta comprometida.
+  // Dejar viva una sesion o un dispositivo recordado del atacante haria
+  // inutil el gesto.
+  const store = storeOf(req);
+  if (store) store.revokeAll(user.id);
+  trustedDevices.forgetAll(user.id);
+
+  auditOf(req).record('password_reset_ok', req, { userId: user.id, username: user.username });
+
+  // A proposito NO inicia sesion. Quien tenga el correo no debe entrar solo
+  // por eso: si la cuenta tiene segundo factor, sigue haciendo falta. De lo
+  // contrario, comprometer el buzon derrotaria al MFA por completo.
+  res.json({
+    ok: true,
+    mfaRequired: !!(user.mfa_enabled && user.mfa_secret),
+    message: 'Contraseña actualizada. Inicia sesión con la nueva.',
+  });
+});
+
+// ---- Correo de la cuenta ----
+
+router.post('/auth/email', requireAuth, recoveryLimiter, async (req, res) => {
+  const { email } = req.body || {};
+  const clean = String(email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) {
+    return res.status(400).json({ error: 'Esa dirección no parece válida.' });
+  }
+  if (!mailer.enabled()) {
+    return res.status(503).json({ error: 'El envío de correo no está configurado en el servidor.' });
+  }
+
+  const taken = db.prepare('SELECT id FROM users WHERE lower(email) = ? AND id != ?').get(clean, req.session.userId);
+  if (taken) return res.status(409).json({ error: 'Esa dirección ya está en uso por otra cuenta.' });
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+
+  // Se guarda sin verificar. Hasta que confirme, no sirve para recuperar
+  // nada: por eso la consulta de /recovery/request exige email_verified_at.
+  db.prepare('UPDATE users SET email = ?, email_verified_at = NULL WHERE id = ?').run(clean, user.id);
+
+  try {
+    const token = tokens.issue(user.id, 'verify');
+    const url = `${baseUrl(req)}/admin/login?verify=${encodeURIComponent(token)}`;
+    const message = emails.emailVerification({ username: user.username, url });
+    await mailer.send({ to: clean, ...message });
+  } catch (err) {
+    console.error('[correo] no se pudo enviar la verificacion:', err.message);
+    return res.status(502).json({ error: 'Guardamos la dirección pero no pudimos enviar el correo. Inténtalo de nuevo.' });
+  }
+
+  res.json({ ok: true, email: clean, verified: false });
+});
+
+router.post('/auth/email/verify', recoveryLimiter, (req, res) => {
+  const { token } = req.body || {};
+  const claim = tokens.consume(token, 'verify');
+  if (!claim) return res.status(400).json({ error: 'El enlace no es válido o ya caducó.' });
+
+  db.prepare("UPDATE users SET email_verified_at = datetime('now') WHERE id = ?").run(claim.userId);
+  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(claim.userId);
+  auditOf(req).record('email_verified', req, { userId: claim.userId, username: user && user.username });
+  res.json({ ok: true });
+});
+
+router.get('/auth/email', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT email, email_verified_at FROM users WHERE id = ?').get(req.session.userId);
+  res.json({
+    email: user ? user.email : null,
+    verified: !!(user && user.email_verified_at),
+    canSend: mailer.enabled(),
+  });
 });
 
 // ---- Passkeys (WebAuthn) ----

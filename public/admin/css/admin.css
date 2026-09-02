@@ -1033,3 +1033,16 @@ body {
 }
 .signed-in-notice strong { color: var(--text); }
 .signed-in-notice a { color: var(--text); }
+
+/* Enlace de recuperacion bajo el formulario. Discreto: quien lo necesita lo
+   busca, y quien no, no deberia tropezarse con el. */
+.forgot-line {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+}
+.forgot-line a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.forgot-line a:hover { color: var(--text); }

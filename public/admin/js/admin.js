@@ -401,9 +401,59 @@
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
     setupDeleteAccount(data.username);
+    await renderEmail();
     await renderPasskeys();
     await renderMfa();
     await renderLinkedAccounts();
+  }
+
+  // ---- Correo de recuperacion ----
+
+  let emailWired = false;
+
+  async function renderEmail() {
+    const status = document.getElementById('email-status');
+    if (!status) return;
+    const data = await fetch('/api/auth/email').then((r) => r.json());
+
+    if (!data.canSend) {
+      status.textContent = 'El servidor no tiene envío de correo configurado';
+      document.getElementById('email-edit-btn').classList.add('hidden');
+      return;
+    }
+    // "Verificada" es la distincion que importa: solo una direccion
+    // confirmada sirve para recuperar la cuenta.
+    status.textContent = data.email
+      ? `${data.email} · ${data.verified ? 'verificada' : 'sin verificar'}`
+      : 'Ninguna';
+
+    if (emailWired) return;
+    emailWired = true;
+
+    const panel = document.getElementById('email-panel');
+    document.getElementById('email-edit-btn').addEventListener('click', () => {
+      document.getElementById('email-input').value = data.email || '';
+      panel.classList.remove('hidden');
+      document.getElementById('email-input').focus();
+    });
+    document.getElementById('email-cancel').addEventListener('click', () => panel.classList.add('hidden'));
+    document.getElementById('email-save').addEventListener('click', async () => {
+      const btn = document.getElementById('email-save');
+      btn.disabled = true;
+      try {
+        await api('/api/auth/email', {
+          method: 'POST',
+          body: JSON.stringify({ email: document.getElementById('email-input').value.trim() }),
+        });
+        panel.classList.add('hidden');
+        showToast('Te enviamos un enlace para confirmar la dirección', 'success');
+        renderEmail();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   // ---- Llaves de acceso (passkeys) ----

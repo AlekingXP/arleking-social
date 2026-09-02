@@ -36,6 +36,10 @@ const ALERTABLE = {
   mfa_disabled: { severity: 'alta', title: 'Verificación en dos pasos desactivada' },
   mfa_devices_forgotten: { severity: 'baja', title: 'Dispositivos de confianza olvidados' },
   password_change: { severity: 'media', title: 'Contraseña cambiada' },
+  // Un restablecimiento completado es la via de entrada mas potente que hay
+  // sin conocer la contrasena, asi que se avisa aunque haya sido legitimo:
+  // si no fuiste tu, quieres enterarte en ese momento y no despues.
+  password_reset_ok: { severity: 'alta', title: 'Contraseña restablecida por correo' },
   passkey_added: { severity: 'media', title: 'Llave de acceso añadida' },
   passkey_removed: { severity: 'media', title: 'Llave de acceso eliminada' },
   account_delete: { severity: 'alta', title: 'Cuenta eliminada' },
