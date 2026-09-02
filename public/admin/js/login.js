@@ -19,6 +19,49 @@
     discord: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.55 3.11A13.2 13.2 0 0 0 10.3 2.1a9.3 9.3 0 0 0-.42.86 12.3 12.3 0 0 0-3.66 0A9 9 0 0 0 5.79 2.1c-1.14.2-2.23.54-3.25 1.01C.47 6.2-.09 9.2.19 12.16a13.3 13.3 0 0 0 4.03 2.04c.33-.44.61-.91.86-1.4-.47-.18-.92-.4-1.35-.65.11-.8.22-.17.33-.26a9.5 9.5 0 0 0 8.08 0l.32.26c-.43.26-.88.48-1.35.66.25.49.54.95.86 1.39a13.2 13.2 0 0 0 4.04-2.04c.33-3.43-.56-6.4-2.36-9.05zM5.35 10.35c-.79 0-1.44-.72-1.44-1.6 0-.89.63-1.61 1.44-1.61s1.46.72 1.44 1.6c0 .89-.64 1.61-1.44 1.61zm5.31 0c-.79 0-1.44-.72-1.44-1.6 0-.89.63-1.61 1.44-1.61s1.45.72 1.44 1.6c0 .89-.63 1.61-1.44 1.61z"/></svg>',
   };
 
+  // ---- Passkeys ----
+
+  (function setupPasskeyLogin() {
+    const btn = document.getElementById('passkey-login-btn');
+    const label = document.getElementById('passkey-login-label');
+    if (!btn || !window.passkeys) return;
+
+    // Only offered when the device actually has a built-in authenticator.
+    window.passkeys.platformAvailable().then((available) => {
+      if (available) btn.classList.remove('hidden');
+    });
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const original = label.textContent;
+      label.textContent = 'Esperando…';
+      errorEl.classList.add('hidden');
+
+      try {
+        const options = await fetch('/api/auth/passkey/login/options', { method: 'POST' })
+          .then((r) => r.json());
+        if (options.error) throw new Error(options.error);
+
+        const assertion = await window.passkeys.authenticate(options);
+
+        const res = await fetch('/api/auth/passkey/login/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ response: assertion }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No se pudo verificar la llave.');
+
+        window.location.href = '/admin/dashboard';
+      } catch (err) {
+        errorEl.textContent = window.passkeys.describeError(err);
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        label.textContent = original;
+      }
+    });
+  })();
+
   const ERROR_MESSAGES = {
     oauth_failed: 'No se pudo completar el inicio de sesión.',
     oauth_state: 'La sesión expiró, intenta de nuevo.',

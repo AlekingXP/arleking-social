@@ -14,8 +14,10 @@ const { createLockout } = require('../security/auth/lockout');
 const totp = require('../security/auth/totp');
 const { issueToken } = require('../security/auth/csrf');
 const { createTrustedDevices } = require('../security/auth/trusted-device');
+const { createWebAuthn } = require('../security/auth/webauthn');
 
 const trustedDevices = createTrustedDevices(db);
+const webauthn = createWebAuthn(db);
 const cookieSecure = process.env.NODE_ENV === 'production';
 
 const lockout = createLockout(db);
@@ -424,6 +426,113 @@ router.post('/auth/mfa/forget-devices', requireAuth, (req, res) => {
     detail: `${forgotten} dispositivo(s)`,
   });
   res.json({ ok: true, forgotten });
+});
+
+// ---- Passkeys (WebAuthn) ----
+//
+// A passkey signs in on its own: no password, no TOTP. Both the registration
+// and the login demand user verification, so the device plus a biometric or
+// PIN are already two factors, and it is phishing-resistant in a way a
+// password never is. See security/auth/webauthn.js.
+
+router.post('/auth/passkey/register/options', requireAuth, async (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.session.userId);
+    const options = await webauthn.registrationOptions(req, user);
+    // Parked on the session: the challenge must come back from the server
+    // that issued it, or a replayed one would pass.
+    req.session.passkeyChallenge = options.challenge;
+    res.json(options);
+  } catch (err) {
+    console.error('[passkey] no se pudieron generar las opciones de registro:', err.message);
+    res.status(500).json({ error: 'No se pudo iniciar el registro de la llave.' });
+  }
+});
+
+router.post('/auth/passkey/register/verify', requireAuth, async (req, res) => {
+  const expected = req.session.passkeyChallenge;
+  if (!expected) return res.status(400).json({ error: 'Empieza el registro de nuevo.' });
+  // Single use, cleared before verifying so a failure cannot be retried
+  // against the same challenge.
+  delete req.session.passkeyChallenge;
+
+  try {
+    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.session.userId);
+    const { verified } = await webauthn.verifyRegistration(
+      req, user, req.body && req.body.response, expected, req.body && req.body.label
+    );
+    if (!verified) return res.status(400).json({ error: 'No se pudo verificar la llave.' });
+
+    auditOf(req).record('passkey_added', req, { userId: user.id, username: user.username });
+    res.json({ ok: true, passkeys: webauthn.listFor(user.id) });
+  } catch (err) {
+    console.error('[passkey] registro fallido:', err.message);
+    res.status(400).json({ error: 'No se pudo registrar la llave: ' + err.message });
+  }
+});
+
+router.post('/auth/passkey/login/options', authLimiter, async (req, res) => {
+  try {
+    const options = await webauthn.authenticationOptions(req);
+    req.session.passkeyLoginChallenge = options.challenge;
+    res.json(options);
+  } catch (err) {
+    console.error('[passkey] no se pudieron generar las opciones de acceso:', err.message);
+    res.status(500).json({ error: 'No se pudo iniciar el acceso con llave.' });
+  }
+});
+
+router.post('/auth/passkey/login/verify', authLimiter, async (req, res) => {
+  const expected = req.session.passkeyLoginChallenge;
+  if (!expected) return res.status(400).json({ error: 'La sesión expiró, inténtalo de nuevo.' });
+  delete req.session.passkeyLoginChallenge;
+
+  const audit = auditOf(req);
+  try {
+    const result = await webauthn.verifyAuthentication(req, req.body && req.body.response, expected);
+    if (!result.verified) {
+      audit.record('passkey_fail', req, { detail: result.reason });
+      // A counter that went backwards means a cloned authenticator, which is
+      // worth shouting about rather than filing as a normal failure.
+      if (result.reason === 'cloned_authenticator') {
+        audit.record('suspicious_burst', req, { detail: 'contador de passkey retrocedido' });
+      }
+      return res.status(401).json({ error: 'No se pudo verificar la llave.' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.userId);
+    if (!user) return res.status(401).json({ error: 'No se pudo verificar la llave.' });
+
+    audit.record('passkey_login', req, { userId: user.id, username: user.username });
+    return completeLogin(req, res, user);
+  } catch (err) {
+    console.error('[passkey] acceso fallido:', err.message);
+    audit.record('passkey_fail', req, { detail: err.message });
+    return res.status(401).json({ error: 'No se pudo verificar la llave.' });
+  }
+});
+
+router.get('/auth/passkeys', requireAuth, (req, res) => {
+  res.json(webauthn.listFor(req.session.userId));
+});
+
+router.delete('/auth/passkeys/:id', requireAuth, async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  const remaining = webauthn.countFor(user.id) - 1;
+  const oauthLinks = db.prepare('SELECT COUNT(*) AS n FROM oauth_accounts WHERE user_id = ?').get(user.id).n;
+
+  // Refuse to remove the last way in, same rule the OAuth unlink follows.
+  if (!user.password_hash && remaining < 1 && oauthLinks < 1) {
+    return res.status(400).json({
+      error: 'Es tu única forma de entrar. Configura una contraseña antes de eliminarla.',
+    });
+  }
+
+  const removed = webauthn.remove(user.id, Number(req.params.id));
+  if (!removed) return res.status(404).json({ error: 'Esa llave no existe.' });
+
+  auditOf(req).record('passkey_removed', req, { userId: user.id, username: user.username });
+  res.json({ ok: true, passkeys: webauthn.listFor(user.id) });
 });
 
 // ---- Sessions and activity ----

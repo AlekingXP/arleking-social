@@ -401,8 +401,103 @@
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
     setupDeleteAccount(data.username);
+    await renderPasskeys();
     await renderMfa();
     await renderLinkedAccounts();
+  }
+
+  // ---- Llaves de acceso (passkeys) ----
+
+  let passkeysWired = false;
+
+  async function renderPasskeys() {
+    const list = document.getElementById('passkey-list');
+    const addBtn = document.getElementById('passkey-add-btn');
+    const unsupported = document.getElementById('passkey-unsupported');
+    if (!list) return;
+
+    if (!window.passkeys || !window.passkeys.supported()) {
+      unsupported.classList.remove('hidden');
+      addBtn.classList.add('hidden');
+    } else {
+      unsupported.classList.add('hidden');
+      addBtn.classList.remove('hidden');
+    }
+
+    const keys = await fetch('/api/auth/passkeys').then((r) => r.json());
+    list.innerHTML = '';
+
+    if (!keys.length) {
+      const empty = document.createElement('p');
+      empty.className = 'linked-status';
+      empty.textContent = 'Ninguna';
+      list.appendChild(empty);
+    }
+
+    keys.forEach((key) => {
+      const row = document.createElement('div');
+      row.className = 'linked-row';
+
+      const info = document.createElement('div');
+      const label = document.createElement('p');
+      label.className = 'hint';
+      label.style.margin = '0 0 4px';
+      label.textContent = key.label || 'Dispositivo';
+      const status = document.createElement('p');
+      status.className = 'linked-status';
+      // "Sincronizada" matters: an iCloud/Google-synced passkey survives
+      // losing the phone, a device-bound one does not.
+      status.textContent = key.synced ? 'Sincronizada entre tus dispositivos' : 'Solo en este dispositivo';
+      info.append(label, status);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn-outline btn-sm btn-danger';
+      remove.textContent = 'Eliminar';
+      remove.addEventListener('click', async () => {
+        try {
+          await api(`/api/auth/passkeys/${key.id}`, { method: 'DELETE' });
+          showToast('Llave eliminada', 'success');
+          renderPasskeys();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+
+      row.append(info, remove);
+      list.appendChild(row);
+    });
+
+    if (passkeysWired) return;
+    passkeysWired = true;
+
+    addBtn.addEventListener('click', async () => {
+      addBtn.disabled = true;
+      const original = addBtn.textContent;
+      addBtn.textContent = 'Esperando…';
+      try {
+        const options = await api('/api/auth/passkey/register/options', { method: 'POST' });
+        const credential = await window.passkeys.register(options);
+        // A name the owner will recognise later; the browser never tells us
+        // what the device is called.
+        const guess = /iPhone|iPad/i.test(navigator.userAgent) ? 'iPhone'
+          : /Macintosh/i.test(navigator.userAgent) ? 'Mac'
+          : /Android/i.test(navigator.userAgent) ? 'Android'
+          : /Windows/i.test(navigator.userAgent) ? 'Windows'
+          : 'Dispositivo';
+        await api('/api/auth/passkey/register/verify', {
+          method: 'POST',
+          body: JSON.stringify({ response: credential, label: guess }),
+        });
+        showToast('Llave de acceso añadida', 'success');
+        renderPasskeys();
+      } catch (err) {
+        showToast(window.passkeys ? window.passkeys.describeError(err) : err.message, 'error');
+      } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = original;
+      }
+    });
   }
 
   // ---- Verificacion en dos pasos ----

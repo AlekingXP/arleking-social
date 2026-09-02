@@ -18,6 +18,7 @@ const EVENTS = new Set([
   'register', 'logout',
   'password_change', 'password_reset_request', 'password_reset_ok',
   'mfa_enrolled', 'mfa_ok', 'mfa_fail', 'mfa_disabled', 'mfa_devices_forgotten',
+  'passkey_added', 'passkey_removed', 'passkey_login', 'passkey_fail',
   'oauth_link', 'oauth_unlink', 'oauth_login',
   'account_delete', 'session_revoked_all',
   'suspicious_new_ip', 'suspicious_burst',

@@ -334,6 +334,18 @@
             </div>
           </div>
 
+          <hr class="divider" />
+
+          <p class="hint" style="margin:0 0 10px;">Llaves de acceso (Face ID, huella, Hello)</p>
+          <div id="passkey-list"></div>
+          <button type="button" class="btn-outline btn-sm hidden" id="passkey-add-btn">+ Añadir este dispositivo</button>
+          <p class="hint hidden" id="passkey-unsupported">
+            Este navegador no admite llaves de acceso. Prueba desde Safari en iPhone o Mac,
+            Chrome en Android, o Edge en Windows.
+          </p>
+
+          <hr class="divider" />
+
           <!-- Dispositivos recordados. Sin un boton para olvidarlos, la
                comodidad no tendria marcha atras desde un equipo prestado. -->
           <div class="linked-row" id="mfa-devices-row">
@@ -512,6 +524,7 @@
   </div>
 
   <script src="/js/particles.js"></script>
+  <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script type="module" src="/js/vip-3d.js"></script>

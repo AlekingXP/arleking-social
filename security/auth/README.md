@@ -90,6 +90,8 @@ Le decía a cualquier escáner qué lista de CVE probar.
 | `csp.js` | CSP con hashes calculados del HTML real |
 | `totp.js` | Segundo factor TOTP (RFC 6238) sin dependencias |
 | `audit.js` | Registro de eventos sin datos sensibles |
+| `webauthn.js` | Passkeys (Face ID, huella, Hello) como credencial completa |
+| `trusted-device.js` | Recordar un dispositivo 24h para no pedir el TOTP siempre |
 
 ### Contraseñas
 
@@ -145,6 +147,59 @@ escenario con el que hay que comparar esta función, no con el ideal.
   **Olvidar todos** del panel.
 - Ante cualquier error interno **falla cerrado**: pide el código. El coste es
   una molestia; el de fallar abierto sería saltarse el factor.
+
+### Passkeys (WebAuthn) — lo que el usuario llama "Face ID"
+
+No existe una API de Face ID para la web. Face ID, Touch ID, Windows Hello y
+la huella de Android se alcanzan todas a través del mismo autenticador de
+plataforma de WebAuthn, así que implementarlo una vez cubre las cuatro.
+
+**Una passkey es una credencial completa, no un segundo factor.** Tanto el
+registro como el acceso exigen `userVerification: 'required'`, así que el
+dispositivo más la biometría o el PIN ya son dos factores, y además es
+resistente al phishing de un modo que una contraseña nunca puede ser. Pedir
+además la contraseña la haría estrictamente peor que la contraseña sola: más
+fricción sin más garantía.
+
+**Por qué aquí sí uso una librería.** `totp.js` está escrito a mano porque
+TOTP son cuarenta líneas de HMAC-SHA1. WebAuthn es lo contrario:
+decodificación CBOR, análisis de claves COSE, verificación de attestation en
+varios formatos y comprobación de firmas. Escribir eso a mano es justo donde
+se cuela un bypass de autenticación silencioso, así que va sobre
+`@simplewebauthn/server` (JavaScript puro, sin compilación nativa).
+
+Se comprobó con un **autenticador por software** que genera una clave P-256 y
+firma de verdad, para verificar la criptografía del servidor y no sólo que
+el código compile:
+
+| Comprobación | Resultado |
+|---|---|
+| Registro y acceso con firma válida | acepta |
+| Acceso sin contraseña ni código | concede sesión |
+| Firma manipulada (un bit) | rechaza |
+| Origen falso (`...net.evil.tk`) | rechaza |
+| Challenge de otra sesión (replay) | rechaza |
+| Challenge reutilizado | rechaza |
+| Contador retrocedido (autenticador clonado) | rechaza |
+| Credencial no registrada | rechaza |
+
+El contador de firmas sólo avanza en un autenticador auténtico; que
+retroceda es la única señal que una clave pública robada no puede falsificar,
+y por eso se comprueba. Las passkeys sincronizadas informan 0 para siempre de
+forma legítima, así que la comprobación sólo se aplica cuando ya hay un
+contador en uso.
+
+`rpID` y origen se derivan de la petición, con `WEBAUTHN_RP_ID` y
+`WEBAUTHN_ORIGIN` como anulación. Esa vinculación al dominio es lo que hace
+que una passkey no se pueda replicar contra un sitio de phishing.
+
+Eliminar la última llave se rechaza si es la única forma de entrar, la misma
+regla que sigue el desvinculado de OAuth.
+
+**Sobre "WebAuthn obligatorio":** sigo sin recomendarlo. Dejaría fuera a
+cualquiera sin dispositivo compatible, y para un sitio de enlaces personales
+el coste en usuarios perdidos supera al riesgo que elimina. Como opción, que
+es como está, tiene todo el sentido.
 
 ### CSP
 
@@ -228,18 +283,6 @@ un solo uso con caducidad, y un periodo de gracia para las cuentas actuales.
 Depende de lo anterior: un "he olvidado mi contraseña" sin correo verificado
 no es recuperación, es una puerta trasera. Hoy la recuperación real son los
 códigos de MFA y el acceso por Google/GitHub.
-
-### WebAuthn / Passkeys — no implementado
-
-Es la pieza grande que falta. Requiere registro y verificación de
-attestation, almacenamiento de credenciales, y manejo de varios
-autenticadores por cuenta.
-
-**Sobre "WebAuthn obligatorio":** no lo recomiendo en esta plataforma.
-Dejaría fuera a cualquiera sin dispositivo compatible, y para un sitio de
-enlaces personales el coste en usuarios perdidos supera al riesgo que
-elimina. Tiene sentido como opción, e incluso como obligatorio sólo para
-cuentas propietarias.
 
 ### QR para el MFA — no implementado
 

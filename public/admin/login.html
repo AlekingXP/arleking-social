@@ -83,6 +83,17 @@
 
         <button type="submit" class="btn-pill btn-gradient" id="submit-btn" style="width:100%;">Entrar</button>
 
+        <!-- Solo se muestra si el dispositivo tiene autenticador integrado;
+             ofrecerlo sin biometria seria un boton muerto. -->
+        <button type="button" class="btn-outline hidden" id="passkey-login-btn" style="width:100%;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M5.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M3 7V5.5A2.5 2.5 0 0 1 5.5 3H7M17 3h1.5A2.5 2.5 0 0 1 21 5.5V7M21 17v1.5a2.5 2.5 0 0 1-2.5 2.5H17M7 21H5.5A2.5 2.5 0 0 1 3 18.5V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span id="passkey-login-label">Entrar con Face ID o huella</span>
+        </button>
+
         <div class="orb-divider hidden" id="google-divider"><span>o</span></div>
 
         <!-- Filled in by login.js from /api/auth/providers — only the ones
@@ -102,6 +113,7 @@
     </div>
   </div>
 
+  <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/admin/js/login.js"></script>
