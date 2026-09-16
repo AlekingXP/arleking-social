@@ -148,9 +148,19 @@ Object.entries(LEGAL_PAGES).forEach(([route, file]) => {
   app.get(`/${route}`, (req, res) => res.sendFile(file, { root: legalViewsDir }));
 });
 
-app.get('/admin/login', (req, res) => {
+// La portada del sitio es la pantalla de inicio de sesion. Se sirve el
+// mismo archivo en las dos rutas en vez de redirigir: un 302 de / a
+// /admin/login ensena una URL de administracion como direccion principal
+// del sitio, y ademas anade un salto a cada visita.
+//
+// Sus rutas de assets son absolutas (/admin/css/..., /js/...), asi que el
+// archivo funciona igual servido desde la raiz.
+function pantallaDeEntrada(req, res) {
   res.sendFile('login.html', { root: adminViewsDir });
-});
+}
+
+app.get('/', pantallaDeEntrada);
+app.get('/admin/login', pantallaDeEntrada);
 
 app.get('/admin/dashboard', (req, res) => {
   res.sendFile('dashboard.html', { root: adminViewsDir });

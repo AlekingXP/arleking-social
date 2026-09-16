@@ -48,7 +48,9 @@
       form.classList.add('hidden');
       toggle.classList.add('hidden');
       resetPanel.classList.remove('hidden');
-  window.history.replaceState({}, '', '/admin/login');
+      // Se borra el token de la URL, pero conservando la ruta: esta misma
+      // pagina se sirve en / y en /admin/login.
+      window.history.replaceState({}, '', window.location.pathname);
 
       const msg = document.getElementById('reset-msg');
       document.getElementById('reset-send').addEventListener('click', async () => {
@@ -222,7 +224,13 @@
     });
   }
 
-  window.history.replaceState({}, '', '/admin/login');
+  // Quita ?mode= y ?verify= de la barra de direcciones una vez leidos, sin
+  // tocar la ruta. Antes fijaba /admin/login siempre, y desde que esta
+  // pantalla es tambien la portada eso convertia la direccion principal del
+  // sitio en una URL de administracion nada mas cargar.
+  if (window.location.search) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 
       // Confirmacion de correo: ?verify=<token> desde el enlace del mensaje.
   (function handleVerify() {
