@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/admin/css/admin.css" />
+<link rel="stylesheet" href="/css/support.css" />
 <!-- No bundler on this page, so Three.js resolves via an import map — must
      come before the module script that imports "three" below. -->
 <script type="importmap">
@@ -61,6 +62,7 @@
       <button type="button" class="tab" role="tab" data-tab="analiticas" aria-selected="false">Analíticas</button>
       <button type="button" class="tab" role="tab" data-tab="vip" aria-selected="false">VIP</button>
       <button type="button" class="tab" role="tab" data-tab="cuenta" aria-selected="false">Cuenta</button>
+      <button type="button" class="tab hidden" role="tab" data-tab="soporte" aria-selected="false" id="tab-soporte">Soporte</button>
     </nav>
 
     <!-- Perfil y Apariencia comparten un unico formulario: el guardado manda
@@ -550,6 +552,77 @@
       </section>
     </div>
 
+    <!-- Soporte. Sólo aparece para quien lleva la plataforma: la pestaña
+         nace oculta y support.js la descubre cuando el servidor confirma
+         que esta cuenta tiene acceso al buzón. -->
+    <div class="tab-panel hidden" data-panel="soporte">
+
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">🎧 Buzón de soporte</h2>
+          <div class="sop-filtros" id="sop-filtros" role="tablist" aria-label="Filtrar tickets">
+            <button type="button" class="sop-filtro" data-estado="abierto" aria-selected="true">
+              Abiertos <span class="sop-cuenta" id="sop-n-abierto">0</span>
+            </button>
+            <button type="button" class="sop-filtro" data-estado="respondido" aria-selected="false">
+              Respondidos <span class="sop-cuenta" id="sop-n-respondido">0</span>
+            </button>
+            <button type="button" class="sop-filtro" data-estado="cerrado" aria-selected="false">Cerrados</button>
+            <button type="button" class="sop-filtro" data-estado="todos" aria-selected="false">Todos</button>
+          </div>
+        </div>
+
+        <div class="sop-split">
+          <div class="sop-lista" id="sop-lista">
+            <p class="stat-empty">Cargando…</p>
+          </div>
+
+          <div class="sop-detalle" id="sop-detalle">
+            <p class="stat-empty">Elige una consulta para leerla.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">🧠 Lo que sabe el asistente</h2>
+        <p class="hint">
+          El asistente responde <strong>sólo</strong> con lo que hay aquí. Si algo
+          no está escrito, no lo inventa: lo pasa a un ticket. Cuando te toque
+          responder lo mismo por tercera vez, conviértelo en un artículo y deja
+          de responderlo.
+        </p>
+
+        <div class="sop-asistente" id="sop-asistente"></div>
+
+        <div class="sop-kb" id="sop-kb">
+          <p class="stat-empty">Cargando…</p>
+        </div>
+
+        <button type="button" class="btn-outline btn-sm" id="sop-kb-nuevo" style="margin-top:14px;">
+          + Añadir artículo
+        </button>
+
+        <div class="sop-editor hidden" id="sop-editor">
+          <label class="field">
+            <span>Pregunta</span>
+            <input type="text" id="sop-ed-pregunta" placeholder="¿Cómo cambio mi foto de perfil?" maxlength="200" />
+          </label>
+          <label class="field">
+            <span>Respuesta</span>
+            <textarea id="sop-ed-respuesta" rows="6" maxlength="4000" placeholder="Escríbelo como se lo dirías a alguien: claro y corto."></textarea>
+          </label>
+          <label class="field">
+            <span>Otras formas de preguntarlo, separadas por comas</span>
+            <input type="text" id="sop-ed-etiquetas" placeholder="foto, avatar, imagen de perfil" maxlength="300" />
+          </label>
+          <div class="sop-editor-acciones">
+            <button type="button" class="btn-outline btn-sm" id="sop-ed-cancelar">Cancelar</button>
+            <button type="button" class="btn-pill btn-sm" id="sop-ed-guardar">Guardar</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <footer class="legal-footer">
       <a href="/terminos" target="_blank" rel="noopener">Términos</a>
       <a href="/privacidad" target="_blank" rel="noopener">Privacidad y Seguridad</a>
@@ -652,6 +725,8 @@
   <script src="/js/vip-badge.js"></script>
   <script type="module" src="/js/vip-3d.js"></script>
   <script src="/admin/js/analytics.js"></script>
+  <script src="/admin/js/support.js"></script>
   <script src="/admin/js/admin.js"></script>
+  <script src="/js/support-widget.js" defer></script>
 </body>
 </html>

@@ -18,3 +18,7 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # Enciende el asistente de soporte. Sin ella el soporte sigue
+      # funcionando, pero sin conversar.
+      - key: ANTHROPIC_API_KEY
+        sync: false

@@ -98,12 +98,17 @@
     // cada entrada al panel: la consulta es barata, pero pedirla a quien
     // nunca la mira lo es aun mas.
     let analiticasCargadas = false;
+    let soporteCargado = false;
     const showOriginal = show;
     show = function (name) {
       showOriginal(name);
       if (name === 'analiticas' && !analiticasCargadas && window.initAnalytics) {
         analiticasCargadas = true;
         window.initAnalytics();
+      }
+      if (name === 'soporte' && !soporteCargado && window.initSoporte) {
+        soporteCargado = true;
+        window.initSoporte();
       }
     };
     if (initial === 'analiticas' || (!initial && false)) show('analiticas');

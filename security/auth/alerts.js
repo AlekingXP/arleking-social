@@ -44,6 +44,11 @@ const ALERTABLE = {
   passkey_removed: { severity: 'media', title: 'Llave de acceso eliminada' },
   account_delete: { severity: 'alta', title: 'Cuenta eliminada' },
   oauth_link: { severity: 'baja', title: 'Cuenta externa vinculada' },
+
+  // Soporte. No es un evento de seguridad, pero comparte el unico canal que
+  // saca avisos de la aplicacion, y un ticket que nadie ve es un ticket sin
+  // responder.
+  support_ticket: { severity: 'baja', title: 'Nuevo ticket de soporte' },
 };
 
 function createAlerts(options = {}) {
@@ -97,7 +102,10 @@ function createAlerts(options = {}) {
       if (!meta) return false;
 
       const now = Date.now();
-      const key = `${event}:${context.username || context.originTag || '-'}`;
+      // `alertKey` permite que quien avisa fije el ambito del enfriamiento.
+      // El soporte lo usa para que dos tickets distintos no se agrupen en
+      // uno: alli cada aviso cuenta, al reves que en una rafaga de fallos.
+      const key = `${event}:${context.alertKey || context.username || context.originTag || '-'}`;
       const previous = lastSent.get(key);
       if (previous && now - previous < cooldownMs) return false;
       if (!withinGlobalCap(now)) return false;
