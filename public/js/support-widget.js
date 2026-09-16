@@ -1,7 +1,8 @@
 /* Widget de soporte.
  *
  * Se monta solo: basta con incluir el script y aparece el botón flotante.
- * No hay nada que llamar ni que configurar desde la página.
+ * Hoy sólo lo incluye el panel, y sus endpoints piden sesión — no sirve en
+ * una página pública aunque se le añada.
  *
  * Dos decisiones que conviene no deshacer:
  *

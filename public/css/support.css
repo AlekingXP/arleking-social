@@ -1,13 +1,12 @@
 /* Widget de soporte.
  *
- * Hoja aparte y no dentro de style.css porque el widget vive en páginas que
- * no comparten hoja: la portada, cada página pública, las legales y el
- * panel. Cargarla suelta evita repetir el bloque cuatro veces y que se
- * desincronicen.
+ * Sólo se carga en el panel: el chat es para quien tiene cuenta, no para
+ * los visitantes de las páginas públicas. Va en hoja aparte y no dentro de
+ * admin.css porque es un componente autocontenido con su propio prefijo
+ * (.sup-), y así se puede quitar o mover sin tocar el resto del panel.
  *
- * Hereda --accent-from y --accent-to, así que en la página de cada persona
- * el chat sale con SUS colores sin que haya que hacer nada. Los valores de
- * reserva son los de la marca, para las páginas que no definen ninguno.
+ * Hereda --accent-from y --accent-to, y cae en los colores de la marca
+ * cuando no hay ninguno definido.
  */
 
 .sup {

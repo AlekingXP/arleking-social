@@ -1,12 +1,17 @@
 'use strict';
 
-// Soporte: chat público, buzón de tickets y editor de la base de
+// Soporte: chat del panel, buzón de tickets y editor de la base de
 // conocimiento.
 //
-// Este archivo es la frontera. Todo lo que llega al chat viene de internet
-// abierto, sin sesión, y cada mensaje que pasa de aquí cuesta dinero de
-// verdad, así que los límites viven arriba del todo y no dentro del
-// asistente:
+// El chat sólo existe dentro del panel, así que todos sus endpoints piden
+// sesión. Estuvieron abiertos mientras el widget vivía en las páginas
+// públicas, para atender a visitantes anónimos; sin ese motivo, un endpoint
+// sin sesión que gasta dinero en la API de Anthropic era superficie de
+// ataque pura: cualquiera con curl podía agotar el presupuesto del día y
+// dejar sin soporte a los usuarios de verdad.
+//
+// Aun con sesión, cada mensaje cuesta dinero, así que los límites siguen
+// arriba del todo y no dentro del asistente:
 //
 //   · Límite por IP, para que un bucle no se convierta en una factura.
 //   · Tope de turnos por conversación, para el caso contrario: uno que se
@@ -92,6 +97,20 @@ function baseUrl(req) {
   return `${req.protocol}://${req.get('host')}`;
 }
 
+/**
+ * Recupera el hilo sólo si el testigo cuadra Y la conversación es de quien
+ * tiene la sesión. Con sesión obligatoria esto es defensa en profundidad:
+ * un testigo filtrado ya no basta para leer el hilo de otra cuenta. Los
+ * hilos sin dueño (abiertos cuando el chat era público) se dejan reclamar
+ * con su testigo, que es lo que ya hacía el chat al iniciar sesión.
+ */
+function hiloDe(req, conversationId, secret) {
+  const conversacion = store.authConversation(conversationId, secret);
+  if (!conversacion) return null;
+  if (conversacion.user_id && conversacion.user_id !== req.session.userId) return null;
+  return conversacion;
+}
+
 /** Sólo los campos que el visitante debe ver de su propio hilo. */
 function hiloPublico(conversationId) {
   return store.history(conversationId).map((m) => ({
@@ -101,9 +120,9 @@ function hiloPublico(conversationId) {
   }));
 }
 
-// ---- Chat público ----
+// ---- Chat del panel ----
 
-router.get('/support/status', lecturaLimiter, (req, res) => {
+router.get('/support/status', lecturaLimiter, requireAuth, (req, res) => {
   const estado = assistant.status();
   res.json({
     // El widget sólo necesita saber si conversar o mostrar la ayuda
@@ -114,7 +133,7 @@ router.get('/support/status', lecturaLimiter, (req, res) => {
   });
 });
 
-router.post('/support/chat', chatLimiter, async (req, res) => {
+router.post('/support/chat', chatLimiter, requireAuth, async (req, res) => {
   try {
     const cuerpo = req.body || {};
     const mensaje = String(cuerpo.message == null ? '' : cuerpo.message).trim();
@@ -129,7 +148,7 @@ router.post('/support/chat', chatLimiter, async (req, res) => {
 
     // Un testigo que no cuadra abre un hilo nuevo en vez de dar un error:
     // así no se puede distinguir "no existe" de "no es tuyo".
-    let conversacion = store.authConversation(cuerpo.conversationId, cuerpo.secret);
+    let conversacion = hiloDe(req, cuerpo.conversationId, cuerpo.secret);
     let credenciales = null;
 
     if (!conversacion) {
@@ -177,8 +196,8 @@ router.post('/support/chat', chatLimiter, async (req, res) => {
 });
 
 /** El hilo completo, para quien vuelve y quiere ver si ya le respondieron. */
-router.get('/support/thread', lecturaLimiter, (req, res) => {
-  const conversacion = store.authConversation(req.query.conversationId, req.query.secret);
+router.get('/support/thread', lecturaLimiter, requireAuth, (req, res) => {
+  const conversacion = hiloDe(req, req.query.conversationId, req.query.secret);
   if (!conversacion) return res.status(404).json({ error: 'Conversación no encontrada.' });
 
   const ticket = db
@@ -193,7 +212,7 @@ router.get('/support/thread', lecturaLimiter, (req, res) => {
 });
 
 /** Ticket directo, sin pasar por el asistente. Siempre disponible. */
-router.post('/support/ticket', ticketLimiter, (req, res) => {
+router.post('/support/ticket', ticketLimiter, requireAuth, (req, res) => {
   const cuerpo = req.body || {};
   const asunto = String(cuerpo.subject || '').trim();
   const detalle = String(cuerpo.body || '').trim();
@@ -208,7 +227,7 @@ router.post('/support/ticket', ticketLimiter, (req, res) => {
     ? db.prepare('SELECT username, email, email_verified_at FROM users WHERE id = ?').get(userId)
     : null;
 
-  const conversacion = store.authConversation(cuerpo.conversationId, cuerpo.secret);
+  const conversacion = hiloDe(req, cuerpo.conversationId, cuerpo.secret);
   let conversationId = conversacion ? conversacion.id : null;
   let credenciales = null;
 
