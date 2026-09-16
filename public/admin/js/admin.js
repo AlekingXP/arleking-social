@@ -119,13 +119,16 @@
 
   // ---- Auth ----
 
+  // Devuelve los datos de la sesion, no solo un si/no: loadAccountStatus los
+  // necesita enteros y antes los volvia a pedir, asi que /api/auth/me salia
+  // dos veces en cada carga.
   async function checkAuth() {
     const data = await fetch('/api/auth/me').then((r) => r.json());
     if (!data.authenticated) {
       window.location.href = '/admin/login';
-      return false;
+      return null;
     }
-    return true;
+    return data;
   }
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -185,6 +188,9 @@
   async function loadProfile() {
     const profile = await api('/api/profile');
     fillProfileForm(profile);
+    // particles.js necesita los mismos datos y antes los pedia aparte:
+    // dos /api/profile identicos por carga. Ahora se los damos.
+    if (window.aplicarParticulas) window.aplicarParticulas(profile);
     return profile;
   }
 
@@ -253,14 +259,45 @@
     if (params.has('checkout')) window.history.replaceState({}, '', '/admin/dashboard');
   })();
 
-  // ---- VIP: live 3D badge preview (Three.js, loaded as a module — may not
-  // be ready yet when this script runs, so wait for its ready event too) ----
+  // ---- VIP: visor 3D en vivo (Three.js) ----
+  //
+  // El modulo se trae con import() dinamico, no con una etiqueta <script>.
+  // Estatico costaba 2,1 MB de Three.js desde unpkg en CADA carga del panel
+  // —descarga, analisis y compilacion en el hilo principal— para una vista
+  // que solo existe dentro de la pestana VIP y que la mayoria de las
+  // visitas al panel no abre nunca. Ahora no se pide hasta que esa pestana
+  // esta de verdad en pantalla.
 
   let current3DHandle = null;
+  let promesaModulo3D = null;
+
+  /** Trae el modulo una sola vez, aunque se pida a la vez desde dos sitios. */
+  function cargarModulo3D() {
+    if (window.renderVip3D) return Promise.resolve(true);
+    if (!promesaModulo3D) {
+      promesaModulo3D = import('/js/vip-3d.js')
+        .then(() => true)
+        .catch((err) => {
+          console.error('No se pudo cargar el visor 3D:', err);
+          promesaModulo3D = null; // que un fallo de red no lo deje muerto
+          return false;
+        });
+    }
+    return promesaModulo3D;
+  }
 
   function show3DModel(tierKey) {
     const container = document.getElementById('vip-3d-viewer');
-    if (!container || !window.renderVip3D) return;
+    if (!container) return;
+
+    if (!window.renderVip3D) {
+      container.innerHTML = '<span class="vip-3d-hint">Cargando vista 3D…</span>';
+      cargarModulo3D().then((ok) => {
+        if (ok) show3DModel(tierKey);
+        else container.innerHTML = '<span class="vip-3d-hint">Vista 3D no disponible ahora mismo — se usa el badge plano.</span>';
+      });
+      return;
+    }
 
     // Dispose (and free the WebGL context) BEFORE requesting a new one —
     // sandboxed/low-end environments can have very few concurrent WebGL
@@ -311,11 +348,9 @@
     observer.observe(container);
   }
 
-  if (window.renderVip3D) {
-    initVip3DWhenVisible();
-  } else {
-    window.addEventListener('vip3d-ready', initVip3DWhenVisible, { once: true });
-  }
+  // Ya no hay que esperar al evento 'vip3d-ready': el observador de abajo
+  // dispara la carga del modulo cuando hace falta.
+  initVip3DWhenVisible();
 
   // ---- VIP: demo preview (replays the reveal + swaps the 3D model; touches
   // neither the profile's real vip_tier nor its "seen it already" flag) ----
@@ -409,8 +444,8 @@
 
   // ---- Google account ----
 
-  async function loadAccountStatus() {
-    const data = await fetch('/api/auth/me').then((r) => r.json());
+  async function loadAccountStatus(datosPrecargados) {
+    const data = datosPrecargados || await fetch('/api/auth/me').then((r) => r.json());
     if (!data.authenticated) return;
 
     document.getElementById('pw-current-field').classList.toggle('hidden', !data.hasPassword);
@@ -1092,10 +1127,17 @@
   // ---- Init ----
 
   (async function init() {
-    const ok = await checkAuth();
-    if (!ok) return;
-    await loadProfile();
-    await loadLinks();
-    await loadAccountStatus();
+    const sesion = await checkAuth();
+    if (!sesion) return;
+
+    // En paralelo, no en cadena. Las tres son independientes entre si, y
+    // encadenadas con await el panel pagaba cuatro viajes de ida y vuelta
+    // seguidos antes de pintar nada: en localhost no se nota, contra el
+    // servidor real son varios cientos de milisegundos de espera pura.
+    await Promise.all([
+      loadProfile(),
+      loadLinks(),
+      loadAccountStatus(sesion),
+    ]);
   })();
 })();

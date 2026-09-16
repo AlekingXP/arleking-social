@@ -31,6 +31,13 @@ const EXEMPT = [
   // The entry points a user reaches before any session exists.
   '/api/auth/login',
   '/api/auth/register',
+  // El registro de analiticas. Va por navigator.sendBeacon, que NO admite
+  // cabeceras, asi que jamas podra llevar el token: sin esta exencion, cada
+  // visita de alguien con sesion abierta a cualquier pagina publica se caia
+  // con un 403 y no se contaba. Y el token no aportaba nada aqui — el
+  // endpoint es publico y sin sesion, de modo que quien quisiera inflar las
+  // cifras puede hacerle POST directamente sin necesitar la cookie de nadie.
+  '/api/track',
 ];
 
 function issueToken(req, res) {

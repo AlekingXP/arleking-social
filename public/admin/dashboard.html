@@ -10,7 +10,10 @@
 <link rel="stylesheet" href="/admin/css/admin.css" />
 <link rel="stylesheet" href="/css/support.css" />
 <!-- No bundler on this page, so Three.js resolves via an import map — must
-     come before the module script that imports "three" below. -->
+     come before the module script that imports "three". Ese modulo ya no
+     se carga aqui: lo trae admin.js con import() dinamico cuando se abre
+     la pestana VIP. El mapa se queda porque debe estar en el documento
+     antes del primer import, y declararlo no descarga nada. -->
 <script type="importmap">
 {
   "imports": {
@@ -723,7 +726,6 @@
   <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/js/vip-badge.js"></script>
-  <script type="module" src="/js/vip-3d.js"></script>
   <script src="/admin/js/analytics.js"></script>
   <script src="/admin/js/support.js"></script>
   <script src="/admin/js/admin.js"></script>

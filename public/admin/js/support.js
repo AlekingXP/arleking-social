@@ -363,6 +363,7 @@
   // ---- Arranque ----
 
   var iniciado = false;
+  var primeraRespuestaTickets = null;
 
   function init() {
     if (iniciado) return;
@@ -384,23 +385,32 @@
     document.getElementById('sop-ed-guardar').addEventListener('click', guardarArticulo);
 
     api('/api/support/assistant').then(pintarAsistente).catch(function () { /* ya se vio arriba */ });
-    cargarTickets();
+
+    // La comprobacion de acceso, al cargar la pagina, ya trajo los tickets
+    // abiertos para poder marcar la pestana. Se reaprovecha esa respuesta en
+    // vez de pedir lo mismo otra vez al abrirla.
+    if (primeraRespuestaTickets) {
+      pintarLista(primeraRespuestaTickets.tickets);
+      pintarContadores(primeraRespuestaTickets.counts);
+      primeraRespuestaTickets = null;
+    } else {
+      cargarTickets();
+    }
     cargarKb();
   }
 
   /* Descubre la pestaña sólo si esta cuenta puede ver el buzón. Un 403 deja
      todo como estaba y nadie se entera de que existe. */
   function comprobarAcceso() {
-    api('/api/support/assistant')
-      .then(function (estado) {
+    // Una sola peticion: este endpoint tambien devuelve 403 a quien no es del
+    // equipo, asi que sirve de comprobacion de acceso y de contador a la vez.
+    // Antes eran dos, y las dos se repetian al abrir la pestana.
+    api('/api/support/tickets?status=abierto')
+      .then(function (d) {
         var pestana = document.getElementById('tab-soporte');
         if (pestana) pestana.classList.remove('hidden');
-        // El contador de pendientes se pide aunque no se abra la pestaña,
-        // para poder marcarla.
-        api('/api/support/tickets?status=abierto')
-          .then(function (d) { pintarContadores(d.counts); })
-          .catch(function () { /* sin marca, nada roto */ });
-        return estado;
+        pintarContadores(d.counts);
+        primeraRespuestaTickets = d;
       })
       .catch(function () { /* no es del equipo: la pestaña sigue oculta */ });
   }

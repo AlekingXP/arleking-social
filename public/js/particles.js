@@ -145,11 +145,11 @@
 
     if (path === '/' || path === '/admin/login') return DEFAULTS;
 
-    if (path === '/admin/dashboard') {
-      const res = await fetch('/api/profile').catch(() => null);
-      if (res && res.ok) return res.json();
-      return DEFAULTS;
-    }
+    // En el panel no se pide nada: admin.js carga /api/profile de todas
+    // formas para rellenar el formulario, y pedirlo aqui otra vez era una
+    // segunda peticion identica en cada carga. Se expone un enganche y se
+    // espera a que nos pase el perfil que ya tiene.
+    if (path === '/admin/dashboard') return null;
 
     const slug = path.replace(/^\/+/, '');
     const res = await fetch(`/api/public/${slug}/profile`).catch(() => null);
@@ -157,8 +157,17 @@
     return DEFAULTS;
   }
 
-  resolveSettings().then((profile) => {
-    if (!profile.particles_enabled) return;
+  function aplicar(profile) {
+    if (!profile || !profile.particles_enabled) return;
     start(profile);
+  }
+
+  // Definido antes de que corra admin.js (este script va antes en el HTML),
+  // que es quien lo llama con el perfil ya cargado.
+  window.aplicarParticulas = aplicar;
+
+  resolveSettings().then((profile) => {
+    // null = el panel, donde arranca admin.js al llamar a window.aplicarParticulas.
+    if (profile) aplicar(profile);
   });
 })();
