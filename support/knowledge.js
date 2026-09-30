@@ -50,7 +50,7 @@ const ARTICLES = [
     question: '¿Cómo añado, edito u ordeno mis enlaces?',
     tags: 'enlaces, links, anadir, agregar, editar, borrar, ordenar, orden',
     answer: [
-      'En tu panel, pestaña Enlaces. Desde ahí puedes crear uno nuevo, editar los que ya tienes, activarlos o desactivarlos sin borrarlos, y cambiarles el orden arrastrándolos.',
+      'En tu panel, pestaña Enlaces. Desde ahí puedes crear uno nuevo, editarlo con el lápiz, ocultarlo sin borrarlo con el ojo, y cambiar el orden con las flechas ↑ ↓.',
       'Cada enlace admite un título, un subtítulo, un icono o una imagen, y dos etiquetas pequeñas a los lados.',
       'Un enlace desactivado deja de verse en tu página pública pero no se pierde: sigue guardado para cuando lo quieras volver a mostrar.',
     ].join('\n\n'),
@@ -248,6 +248,19 @@ const ARTICLES = [
     answer: [
       'No se puede suplantar a otra persona, marca u organización; publicar contenido ilegal o enlaces a material que lo sea; ni intentar vulnerar, sobrecargar o interferir con el servicio.',
       'Las cuentas que incumplen esas reglas se pueden suspender o eliminar. Si se cancela una cuenta por incumplimiento, la suscripción se da de baja y no se generan cobros nuevos.',
+    ].join('\n\n'),
+  },
+  {
+    slug: 'asistente',
+    // Añadido después de la primera siembra: ver `desde` en kb.js.
+    desde: 2,
+    question: '¿Qué puede hacer el asistente? ¿Puedo hablarle?',
+    tags: 'asistente, voz, hablar, micro, microfono, dictar, guia, enseñar, pantalla, señalar',
+    answer: [
+      'Contesta tus dudas sobre la plataforma y, cuando algo se hace en el panel, te lo enseña en pantalla: cambia de pestaña, resalta el botón y te dice qué hacer, paso a paso.',
+      'También puedes hablarle: pulsa el micro del chat y empieza una conversación por voz. Te responde en voz alta y vuelve a escucharte, hasta que pulses el micro otra vez, escribas o cierres el chat. El navegador te pedirá permiso para usar el micrófono la primera vez.',
+      'Con el botón del altavoz, arriba en el chat, puedes hacer que también lea en voz alta las respuestas a lo que escribes.',
+      'Si no sabe resolver algo, lo pasa a una persona del equipo, que te responde en este mismo chat.',
     ].join('\n\n'),
   },
   {

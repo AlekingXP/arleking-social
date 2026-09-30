@@ -63,7 +63,10 @@ app.use((req, res, next) => {
   // Kept alongside frame-ancestors for browsers that predate CSP level 2.
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()');
+  // microphone=(self): el asistente del panel escucha por voz. Sólo este
+  // origen puede pedirlo —ni iframes ni terceros— y el navegador sigue
+  // preguntando a la persona antes de abrirlo.
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(self), camera=(), payment=(), usb=(), interest-cohort=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   if (isProduction) {

@@ -455,10 +455,49 @@
     document.getElementById('vip-owner-section').classList.toggle('hidden', !data.isOwner);
 
     setupDeleteAccount(data.username);
-    await renderEmail();
-    await renderPasskeys();
-    await renderMfa();
-    await renderLinkedAccounts();
+    // Independientes entre sí: en paralelo, no una detrás de otra.
+    await Promise.all([
+      renderEmail(),
+      renderPasskeys(),
+      renderMfa(),
+      renderLinkedAccounts(),
+      renderSesiones(),
+    ]);
+  }
+
+  // ---- Sesiones abiertas ----
+
+  let sesionesWired = false;
+
+  async function renderSesiones() {
+    const estado = document.getElementById('sessions-status');
+    const boton = document.getElementById('sessions-revoke-btn');
+    if (!estado || !boton) return;
+
+    try {
+      const { active } = await api('/api/auth/sessions');
+      const otras = Math.max(0, (active || 1) - 1);
+      estado.textContent = otras
+        ? `${active} en total · ${otras} además de esta`
+        : 'Sólo esta';
+      boton.disabled = otras === 0;
+    } catch {
+      estado.textContent = 'No se pudo comprobar';
+      boton.disabled = true;
+    }
+
+    if (sesionesWired) return;
+    sesionesWired = true;
+    boton.addEventListener('click', async () => {
+      boton.disabled = true;
+      try {
+        const { revoked } = await api('/api/auth/sessions/revoke-others', { method: 'POST' });
+        showToast(revoked ? `${revoked} sesión(es) cerrada(s)` : 'No había otras sesiones', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+      renderSesiones();
+    });
   }
 
   // ---- Correo de recuperacion ----

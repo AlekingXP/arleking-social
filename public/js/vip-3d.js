@@ -3,106 +3,14 @@
 // inline badge next to a profile's name stays the lightweight SVG from
 // vip-badge.js so every profile page load doesn't pay for a WebGL context.
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+// El cargador de modelos y la sonda de rendimiento son compartidos con el
+// personaje del asistente: ver three-kit.js.
+import { cargarModelo, dispositivoApto } from './three-kit.js';
 
 const MODEL_URLS = {
   billete: '/models/dollars.glb',
   king: '/models/king-crown.glb',
 };
-
-// Both models were run through gltf-transform's meshopt geometry
-// compression (56-58MB -> ~2MB from raw AI-generated exports) — the decoder
-// must be registered before loading or GLTFLoader rejects the file.
-const loader = new GLTFLoader();
-loader.setMeshoptDecoder(MeshoptDecoder);
-const modelCache = new Map();
-
-function loadModel(url) {
-  if (!modelCache.has(url)) {
-    modelCache.set(
-      url,
-      // MeshoptDecoder wraps a WASM module that finishes initializing
-      // asynchronously — using the loader before `.ready` resolves is a
-      // known way to get GLTFLoader to silently hang parsing a
-      // meshopt-compressed file instead of erroring.
-      MeshoptDecoder.ready.then(
-        () =>
-          new Promise((resolve, reject) => {
-            loader.load(url, (gltf) => resolve(gltf.scene), undefined, reject);
-          })
-      )
-    );
-  }
-  return modelCache.get(url);
-}
-
-function supportsWebGL() {
-  try {
-    const canvas = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-  } catch {
-    return false;
-  }
-}
-
-// Mide lo que cuesta a la GPU dibujar un fotograma, en milisegundos.
-//
-// La version anterior contaba fotogramas de requestAnimationFrame y exigia
-// 30 fps. Eso mide el ritmo que CONCEDE el navegador, no lo que la GPU
-// aguanta: en una pestana de fondo, en ahorro de bateria o dentro de un
-// webview, rAF baja a ~1 Hz y un movil perfectamente capaz reprobaba. Ademas
-// tardaba doce fotogramas -- nueve segundos a esa cadencia -- en decidirlo.
-//
-// Este bucle es sincrono y no toca rAF, asi que el estrangulamiento no le
-// afecta. readPixels al final fuerza a esperar a la GPU: sin ese punto de
-// sincronizacion se estaria midiendo lo que tarda en encolar ordenes, que en
-// WebGL es casi cero y siempre pareceria rapidisimo.
-const FRAME_BUDGET_MS = 33; // 30 fps, el listado del planteamiento original
-const PROBE_FRAMES = 20;
-
-function probeFrameCostMs() {
-  if (!supportsWebGL()) return Infinity;
-
-  let renderer;
-  try {
-    // Los entornos con render por software tienen limites bajos de contextos
-    // WebGL simultaneos; que falle al crearlo cuenta como "no apto", no como
-    // excepcion que rompa al que llama.
-    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-  } catch {
-    return Infinity;
-  }
-
-  try {
-    renderer.setSize(64, 64);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
-    camera.position.z = 3;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
-    scene.add(mesh);
-    scene.add(new THREE.DirectionalLight(0xffffff, 1));
-
-    const gl = renderer.getContext();
-    // Un fotograma de calentamiento: el primero paga la compilacion de
-    // shaders y la subida de buffers, que no se repiten despues.
-    renderer.render(scene, camera);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
-
-    const start = performance.now();
-    for (let i = 0; i < PROBE_FRAMES; i++) {
-      mesh.rotation.y += 0.1;
-      renderer.render(scene, camera);
-    }
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
-    return (performance.now() - start) / PROBE_FRAMES;
-  } catch {
-    return Infinity;
-  } finally {
-    renderer.dispose();
-    renderer.forceContextLoss(); // libera el contexto ya, sin esperar al GC
-  }
-}
 
 /**
  * Renders a slowly auto-rotating GLB model into `container`.
@@ -113,17 +21,13 @@ export async function renderVip3D(container, tierKey) {
   const url = MODEL_URLS[tierKey];
   if (!url) return null;
 
-  const frameCostMs = probeFrameCostMs();
-  if (frameCostMs > FRAME_BUDGET_MS) return null;
+  if (!dispositivoApto()) return null;
 
   let modelSource;
   try {
-    // Belt-and-suspenders timeout: loader/decoder issues should show the
-    // fallback hint, never hang the viewer forever.
-    modelSource = await Promise.race([
-      loadModel(url),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
-    ]);
+    // cargarModelo ya trae su propio tope de tiempo: un fallo del
+    // decodificador muestra el aviso, nunca deja el visor colgado.
+    modelSource = await cargarModelo(url);
   } catch (err) {
     console.error('No se pudo cargar el modelo 3D:', err);
     return null;

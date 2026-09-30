@@ -474,6 +474,18 @@
 
           <hr class="divider" />
 
+          <!-- Sesiones abiertas. El servidor ya sabia contarlas y cerrarlas;
+               faltaba el boton, y la ayuda del asistente lo daba por hecho. -->
+          <div class="linked-row" id="sessions-section">
+            <div>
+              <p class="hint" style="margin:0 0 4px;">Sesiones abiertas</p>
+              <p class="linked-status" id="sessions-status">Comprobando…</p>
+            </div>
+            <button type="button" class="btn-outline btn-sm" id="sessions-revoke-btn" disabled>Cerrar las demás</button>
+          </div>
+
+          <hr class="divider" />
+
           <!-- Dispositivos recordados. Sin un boton para olvidarlos, la
                comodidad no tendria marcha atras desde un equipo prestado. -->
           <div class="linked-row" id="mfa-devices-row">
@@ -729,6 +741,8 @@
   <script src="/admin/js/analytics.js"></script>
   <script src="/admin/js/support.js"></script>
   <script src="/admin/js/admin.js"></script>
+  <script src="/js/asistente/voz.js" defer></script>
+  <script src="/js/asistente/guia.js" defer></script>
   <script src="/js/support-widget.js" defer></script>
 </body>
 </html>

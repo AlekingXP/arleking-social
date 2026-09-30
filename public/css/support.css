@@ -1,9 +1,8 @@
-/* Widget de soporte.
+/* Asistente virtual del panel: personaje, chat, voz y guía.
  *
- * Sólo se carga en el panel: el chat es para quien tiene cuenta, no para
- * los visitantes de las páginas públicas. Va en hoja aparte y no dentro de
- * admin.css porque es un componente autocontenido con su propio prefijo
- * (.sup-), y así se puede quitar o mover sin tocar el resto del panel.
+ * Sólo se carga en el panel. Va en hoja aparte porque es un componente
+ * autocontenido con sus propios prefijos (.sup- para el asistente, .akg-
+ * para la guía), y así se puede quitar o mover sin tocar el resto.
  *
  * Hereda --accent-from y --accent-to, y cae en los colores de la marca
  * cuando no hay ninguno definido.
@@ -12,66 +11,189 @@
 .sup {
   --sup-from: var(--accent-from, #ff5f8f);
   --sup-to: var(--accent-to, #ff9a5a);
-  --sup-panel: rgba(23, 17, 26, 0.72);
+  --sup-panel: rgba(23, 17, 26, 0.74);
   --sup-text: var(--text, #f5eef0);
   --sup-dim: rgba(245, 238, 240, 0.58);
   --sup-border: rgba(255, 255, 255, 0.1);
+  --sup-ancho: 112px;
+  --sup-alto: 138px;
 
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 18px;
+  bottom: 12px;
   z-index: 2147483000;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  gap: 6px;
+  pointer-events: none; /* sólo sus piezas capturan clics, no la caja entera */
 }
 
-/* ---- Botón flotante ---- */
+.sup > * { pointer-events: auto; }
+
+[hidden] { display: none !important; }
+
+/* ---- Personaje ---- */
 
 .sup-launcher {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(135deg, var(--sup-from), var(--sup-to));
-  color: #fff;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
+  position: relative;
+  width: var(--sup-ancho);
+  height: var(--sup-alto);
   padding: 0;
-  /* Sombra neutra, no un halo del color de acento: el resto de la interfaz
-     no lleva resplandores de color alrededor de los botones. */
-  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.6);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: block;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 24px;
 }
 
-.sup-launcher:hover { transform: translateY(-2px) scale(1.04); }
-.sup-launcher:active { transform: scale(0.95); }
-.sup-launcher svg { width: 26px; height: 26px; display: block; }
-.sup-launcher .sup-icon-close { display: none; }
-.sup.is-open .sup-launcher .sup-icon-chat { display: none; }
-.sup.is-open .sup-launcher .sup-icon-close { display: block; }
+.sup-launcher:focus-visible {
+  outline: 2px solid var(--sup-from);
+  outline-offset: 2px;
+}
 
-/* Punto de aviso cuando hay respuesta nueva sin leer. */
+.sup-escenario {
+  position: absolute;
+  inset: 0;
+  display: block;
+  perspective: 500px;
+}
+
+/* Imagen fija: lo primero que se ve, y lo único si no hay 3D. Flota y se
+   inclina hacia el cursor (variables --gx/--gy) con puro CSS. */
+.sup-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: rotateX(var(--gx, 0deg)) rotateY(var(--gy, 0deg));
+  transform-origin: 50% 70%;
+  transition: transform 0.35s ease-out, opacity 0.45s ease;
+  animation: sup-flotar 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.sup-lienzo {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+}
+
+.sup-escenario.en-vivo .sup-lienzo { opacity: 1; }
+.sup-escenario.en-vivo .sup-poster { opacity: 0; animation: none; }
+
+@keyframes sup-flotar {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
+}
+
+/* Estados sobre la imagen fija (el 3D los anima por su cuenta). */
+.sup[data-estado="pensando"] .sup-escenario:not(.en-vivo) .sup-poster {
+  animation: sup-flotar 4.6s ease-in-out infinite;
+  rotate: 6deg;
+}
+.sup[data-estado="hablando"] .sup-escenario:not(.en-vivo) .sup-poster {
+  animation: sup-flotar 3.4s ease-in-out infinite, sup-hablar 0.34s ease-in-out infinite;
+}
+.sup[data-estado="escuchando"] .sup-escenario:not(.en-vivo) .sup-poster {
+  animation: sup-flotar 2.2s ease-in-out infinite;
+  scale: 1.04;
+}
+.sup-escenario.bote .sup-poster {
+  animation: sup-bote 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 1, sup-flotar 3.4s ease-in-out 0.6s infinite;
+}
+
+@keyframes sup-hablar {
+  0%, 100% { scale: 1 1; }
+  50% { scale: 1.015 1.035; }
+}
+@keyframes sup-bote {
+  0% { translate: 0 0; }
+  40% { translate: 0 -16px; }
+  70% { translate: 0 0; scale: 1.04 0.95; }
+  100% { translate: 0 0; scale: 1 1; }
+}
+
+/* Sombra en el suelo: vende que está flotando. */
+.sup-sombra {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 2px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent);
+  animation: sup-sombra 3.4s ease-in-out infinite;
+}
+@keyframes sup-sombra {
+  0%, 100% { transform: scaleX(1); opacity: 0.75; }
+  50% { transform: scaleX(0.82); opacity: 0.5; }
+}
+
+/* Escuchando: un aro de color bajo los pies. */
+.sup[data-estado="escuchando"] .sup-sombra {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--sup-from) 70%, transparent), transparent);
+  animation: sup-escucha 1.1s ease-in-out infinite;
+}
+@keyframes sup-escucha {
+  0%, 100% { transform: scaleX(0.9); opacity: 0.6; }
+  50% { transform: scaleX(1.25); opacity: 1; }
+}
+
+/* Aviso de respuesta nueva. */
 .sup-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 13px;
-  height: 13px;
+  top: 10px;
+  right: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #4ade80;
   border: 2px solid #0b0509;
+  animation: sup-latido 1.6s ease-in-out infinite;
 }
-.sup-dot[hidden] { display: none; }
+@keyframes sup-latido {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* Bocadillo de saludo. */
+.sup-bocadillo {
+  position: relative;
+  max-width: 200px;
+  margin-right: 18px;
+  padding: 9px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(23, 17, 26, 0.9);
+  border: 1px solid var(--sup-border);
+  color: var(--sup-text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transform-origin: bottom right;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.sup-bocadillo.visible { opacity: 1; transform: none; }
+.sup.is-open .sup-bocadillo { display: none; }
 
 /* ---- Panel ---- */
 
 .sup-panel {
-  width: min(380px, calc(100vw - 32px));
-  height: min(560px, calc(100vh - 120px));
+  width: min(384px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - var(--sup-alto) - 44px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -103,26 +225,42 @@
   transition-delay: 0s;
 }
 
+/* Durante una guía el panel se aparta para no tapar lo que se señala; el
+   personaje se queda, mirando hacia el paso. */
+.sup.is-open.guiando .sup-panel {
+  transform: translateY(16px) scale(0.9);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .sup-head {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 15px 17px;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
   border-bottom: 1px solid var(--sup-border);
   flex-shrink: 0;
 }
 
 .sup-avatar {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--sup-from), var(--sup-to));
-  display: grid;
-  place-items: center;
-  font-size: 1rem;
+  overflow: hidden;
   flex-shrink: 0;
+  background: linear-gradient(135deg, var(--sup-from), var(--sup-to));
+}
+.sup-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 8%;
+  transform: scale(1.9);
+  transform-origin: 50% 10%;
 }
 
+.sup-head-textos { flex: 1; min-width: 0; }
 .sup-title { font-size: 0.92rem; font-weight: 600; margin: 0; line-height: 1.2; }
 
 .sup-sub {
@@ -141,6 +279,27 @@
   background: #4ade80;
   flex-shrink: 0;
 }
+.sup-pulse.ambar { background: #fbbf24; }
+
+.sup-icono {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sup-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.sup-icono svg { width: 18px; height: 18px; }
+.sup-icono:hover { background: rgba(255, 255, 255, 0.08); color: var(--sup-text); }
+.sup-voz .sup-ic-on { display: none; }
+.sup-voz.activo { color: var(--sup-text); border-color: var(--sup-border); }
+.sup-voz.activo .sup-ic-on { display: block; }
+.sup-voz.activo .sup-ic-off { display: none; }
 
 /* ---- Mensajes ---- */
 
@@ -163,28 +322,20 @@
 }
 
 .sup-msg {
-  max-width: 85%;
+  max-width: 86%;
   padding: 10px 13px;
   border-radius: 15px;
   font-size: 0.875rem;
   line-height: 1.5;
-  /* El texto del asistente lleva saltos de línea reales y se inserta con
-     textContent; sin esto se vería como un párrafo continuo. */
+  /* El texto lleva saltos de línea reales y entra con textContent. */
   white-space: pre-wrap;
   word-wrap: break-word;
-  animation: sup-in 0.24s ease both;
+  animation: sup-entrar 0.24s ease both;
 }
 
-@keyframes sup-in {
+@keyframes sup-entrar {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sup-msg { animation: none; }
-  .sup-panel { transition: opacity 0.15s ease, visibility 0s linear 0.15s; transform: none; }
-  .sup.is-open .sup-panel { transform: none; }
-  .sup-launcher { transition: none; }
 }
 
 .sup-msg.de-visitante {
@@ -201,8 +352,21 @@
   border-bottom-left-radius: 5px;
 }
 
-/* Una persona de verdad se distingue a simple vista: si alguien escribió a
-   mano, quien lee tiene que saberlo sin fijarse. */
+/* Mientras llega el texto, un cursor al final. */
+.sup-msg.en-curso .sup-cuerpo:not(:empty)::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: var(--sup-dim);
+  animation: sup-cursor 0.9s steps(1) infinite;
+}
+@keyframes sup-cursor { 50% { opacity: 0; } }
+
+/* Una persona de verdad se distingue a simple vista. */
 .sup-msg.de-soporte {
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.055);
@@ -234,16 +398,10 @@
 
 .sup-ref { font-weight: 600; color: var(--sup-text); }
 
-/* Puntos de "escribiendo" */
 .sup-escribiendo {
-  align-self: flex-start;
-  display: flex;
+  display: inline-flex;
   gap: 4px;
-  padding: 13px 15px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid var(--sup-border);
-  border-radius: 15px;
-  border-bottom-left-radius: 5px;
+  padding: 4px 2px;
 }
 
 .sup-escribiendo i {
@@ -251,15 +409,38 @@
   height: 6px;
   border-radius: 50%;
   background: var(--sup-dim);
-  animation: sup-bote 1.3s infinite ease-in-out;
+  animation: sup-rebote 1.3s infinite ease-in-out;
 }
 .sup-escribiendo i:nth-child(2) { animation-delay: 0.16s; }
 .sup-escribiendo i:nth-child(3) { animation-delay: 0.32s; }
 
-@keyframes sup-bote {
+@keyframes sup-rebote {
   0%, 60%, 100% { transform: none; opacity: 0.45; }
   30% { transform: translateY(-5px); opacity: 1; }
 }
+
+/* Qué está haciendo: "Buscando en la ayuda…", "Te escucho…" */
+.sup-actividad {
+  margin: 0;
+  padding: 0 16px 10px;
+  font-size: 0.74rem;
+  color: var(--sup-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.sup-actividad::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--sup-from) 35%, transparent);
+  border-top-color: var(--sup-from);
+  animation: sup-girar 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes sup-girar { to { transform: rotate(360deg); } }
 
 /* ---- Sugerencias ---- */
 
@@ -293,8 +474,8 @@
 .sup-form {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 7px;
+  padding: 12px 12px 12px 14px;
   border-top: 1px solid var(--sup-border);
   flex-shrink: 0;
 }
@@ -321,23 +502,56 @@
   background: rgba(255, 255, 255, 0.07);
 }
 
-.sup-enviar {
+.sup-enviar,
+.sup-mic {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
   border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.14s ease, opacity 0.14s ease, background 0.14s ease;
+}
+
+.sup-enviar {
   border: none;
   background: linear-gradient(135deg, var(--sup-from), var(--sup-to));
   color: #fff;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: transform 0.14s ease, opacity 0.14s ease;
 }
 
-.sup-enviar svg { width: 18px; height: 18px; }
-.sup-enviar:hover:not(:disabled) { transform: scale(1.07); }
-.sup-enviar:disabled { opacity: 0.4; cursor: default; }
+.sup-mic {
+  border: 1px solid var(--sup-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sup-text);
+  position: relative;
+}
+
+.sup-enviar svg,
+.sup-mic svg { width: 18px; height: 18px; }
+.sup-enviar:hover:not(:disabled),
+.sup-mic:hover:not(:disabled) { transform: scale(1.07); }
+.sup-enviar:disabled,
+.sup-mic:disabled { opacity: 0.4; cursor: default; }
+
+/* Modo conversación activo. */
+.sup-mic.activo {
+  background: color-mix(in srgb, var(--sup-from) 22%, transparent);
+  border-color: color-mix(in srgb, var(--sup-from) 60%, transparent);
+}
+/* Y escuchando ahora mismo: un aro que late. */
+.sup-mic.escuchando::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--sup-from);
+  animation: sup-onda 1.2s ease-out infinite;
+}
+@keyframes sup-onda {
+  from { transform: scale(0.9); opacity: 0.9; }
+  to { transform: scale(1.35); opacity: 0; }
+}
 
 .sup-pie {
   padding: 0 16px 11px;
@@ -351,7 +565,7 @@
 
 .sup-pie a { color: rgba(245, 238, 240, 0.55); }
 
-/* ---- Formulario de contacto ---- */
+/* ---- Formulario para una persona ---- */
 
 .sup-contacto {
   padding: 0 16px 14px;
@@ -388,14 +602,149 @@
   cursor: pointer;
 }
 
-[hidden] { display: none !important; }
+/* ---- Guía visual ---- */
 
-/* En móvil ocupa la pantalla: un panel de 380px flotando sobre un teléfono
-   deja el teclado encima del campo de escribir. */
+.akg-capa {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482990; /* bajo el personaje, sobre todo lo demás */
+  pointer-events: none;
+  animation: akg-entrar 0.22s ease both;
+}
+.akg-capa.saliendo { animation: akg-salir 0.2s ease both; }
+@keyframes akg-entrar { from { opacity: 0; } to { opacity: 1; } }
+@keyframes akg-salir { from { opacity: 1; } to { opacity: 0; } }
+
+/* El foco: un hueco en una sombra enorme. Deja pasar los clics al
+   elemento resaltado. */
+.akg-foco {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 14px;
+  box-shadow: 0 0 0 200vmax rgba(8, 4, 10, 0.62);
+  outline: 2px solid var(--accent-from, #ff5f8f);
+  outline-offset: 0;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.akg-foco.pulso { animation: akg-pulso 1.6s ease-out 2; }
+@keyframes akg-pulso {
+  0% { outline-offset: 0; outline-color: var(--accent-from, #ff5f8f); }
+  100% { outline-offset: 10px; outline-color: transparent; }
+}
+
+.akg-globo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(300px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  background: rgba(23, 17, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text, #f5eef0);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-shadow: 0 22px 50px -20px rgba(0, 0, 0, 0.9);
+  pointer-events: auto;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+.akg-capa.moviendo .akg-globo { opacity: 0; }
+
+.akg-contador {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-to, #ff9a5a);
+}
+.akg-contador:empty { display: none; }
+
+.akg-texto {
+  margin: 0;
+  padding-right: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.akg-nota {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: rgba(245, 238, 240, 0.6);
+}
+
+.akg-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.akg-btn {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-from, #ff5f8f), var(--accent-to, #ff9a5a));
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.akg-btn-sec {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: inherit;
+}
+.akg-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.akg-cerrar {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(245, 238, 240, 0.55);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.akg-cerrar:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+/* ---- Movimiento reducido ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .sup-poster,
+  .sup-sombra,
+  .sup-dot,
+  .sup-msg,
+  .akg-capa,
+  .akg-foco.pulso,
+  .sup-escenario.bote .sup-poster { animation: none !important; }
+  .sup-panel { transition: opacity 0.15s ease, visibility 0s linear 0.15s; transform: none; }
+  .sup.is-open .sup-panel { transform: none; }
+  .akg-foco,
+  .akg-globo { transition: none; }
+}
+
+/* ---- Móvil ---- */
+
 @media (max-width: 480px) {
-  .sup { right: 14px; bottom: 14px; left: 14px; align-items: flex-end; }
+  .sup {
+    --sup-ancho: 86px;
+    --sup-alto: 106px;
+    right: 10px;
+    bottom: 8px;
+    left: 10px;
+  }
   .sup-panel {
     width: 100%;
-    height: min(74vh, 540px);
+    height: min(70vh, 540px);
   }
 }

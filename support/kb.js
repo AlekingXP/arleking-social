@@ -98,16 +98,72 @@ function createKb(db) {
     `),
   };
 
-  // Siembra única. `INSERT OR IGNORE` por slug: si el dueño borró un
-  // artículo de fábrica porque no le servía, un reinicio no debe
-  // resucitarlo, así que sólo se siembra cuando la tabla está vacía.
+  // Siembra de los artículos de fábrica.
+  //
+  // Se apunta qué artículos se sembraron alguna vez, y cada uno se siembra
+  // UNA sola vez. Así un artículo nuevo en knowledge.js llega también a las
+  // bases que ya existían, y uno que el dueño borró porque no le servía no
+  // resucita en el siguiente reinicio.
+  //
+  // Las bases sembradas antes de que existiera este registro no lo tienen:
+  // en ellas se dan por sembrados los artículos de la primera versión (los
+  // que no llevan `desde`), que es exactamente lo que aquella siembra metió.
+  db.exec('CREATE TABLE IF NOT EXISTS support_kb_semillas (slug TEXT PRIMARY KEY)');
+  const semillas = {
+    cuenta: db.prepare('SELECT COUNT(*) AS n FROM support_kb_semillas'),
+    existe: db.prepare('SELECT 1 FROM support_kb_semillas WHERE slug = ?'),
+    apuntar: db.prepare('INSERT OR IGNORE INTO support_kb_semillas (slug) VALUES (?)'),
+  };
+
   function seed() {
-    if (stmts.count.get().n > 0) return 0;
-    const sembrar = db.transaction((articulos) => {
-      articulos.forEach((a) => stmts.insert.run({ ...a, builtin: 1 }));
+    const sembrar = db.transaction(() => {
+      const tablaConArticulos = stmts.count.get().n > 0;
+      if (tablaConArticulos && semillas.cuenta.get().n === 0) {
+        ARTICLES.filter((a) => !a.desde).forEach((a) => semillas.apuntar.run(a.slug));
+      }
+      let nuevos = 0;
+      for (const a of ARTICLES) {
+        if (semillas.existe.get(a.slug)) continue;
+        if (!stmts.bySlug.get(a.slug)) {
+          stmts.insert.run({ slug: a.slug, question: a.question, answer: a.answer, tags: a.tags, builtin: 1 });
+          nuevos++;
+        }
+        semillas.apuntar.run(a.slug);
+      }
+      return nuevos;
     });
-    sembrar(ARTICLES);
-    return ARTICLES.length;
+    return sembrar();
+  }
+
+  // Correcciones de artículos de fábrica que ya estaban sembrados. Como la
+  // siembra sólo corre con la tabla vacía, un error en knowledge.js se
+  // quedaría para siempre en las bases que ya existen. Cada corrección toca
+  // la fila sólo si sigue siendo de fábrica Y su texto es exactamente el
+  // antiguo: si el dueño la editó, manda su versión.
+  const CORRECCIONES = [
+    {
+      // Decía que los enlaces se reordenan arrastrándolos; el panel usa flechas.
+      slug: 'anadir-enlaces',
+      antes: [
+        'En tu panel, pestaña Enlaces. Desde ahí puedes crear uno nuevo, editar los que ya tienes, activarlos o desactivarlos sin borrarlos, y cambiarles el orden arrastrándolos.',
+        'Cada enlace admite un título, un subtítulo, un icono o una imagen, y dos etiquetas pequeñas a los lados.',
+        'Un enlace desactivado deja de verse en tu página pública pero no se pierde: sigue guardado para cuando lo quieras volver a mostrar.',
+      ].join('\n\n'),
+    },
+  ];
+
+  function corregir() {
+    const actualizar = db.prepare(`
+      UPDATE support_articles SET answer = @nuevo, updated_at = datetime('now')
+      WHERE slug = @slug AND builtin = 1 AND answer = @antes
+    `);
+    let cambios = 0;
+    for (const c of CORRECCIONES) {
+      const actual = ARTICLES.find((a) => a.slug === c.slug);
+      if (!actual || actual.answer === c.antes) continue;
+      cambios += actualizar.run({ slug: c.slug, antes: c.antes, nuevo: actual.answer }).changes;
+    }
+    return cambios;
   }
 
   // El índice se reconstruye en memoria al arrancar y cada vez que se
@@ -230,6 +286,7 @@ function createKb(db) {
   }
 
   seed();
+  corregir();
   reindexar();
 
   return { search, markUsed, list, get, create, update, remove, reindexar, seed, normalizar, tokenizar };

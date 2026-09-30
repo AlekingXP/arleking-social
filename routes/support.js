@@ -33,6 +33,7 @@ const { requireAuth } = require('../middleware/auth');
 const { createKb } = require('../support/kb');
 const { createStore, correoValido, MAX_MENSAJE, MAX_TURNOS } = require('../support/store');
 const { createAssistant } = require('../support/assistant');
+const { PESTANAS } = require('../support/ai/instrucciones');
 const { createNotifier } = require('../support/notify');
 const { createMailer } = require('../security/auth/mailer');
 
@@ -133,59 +134,81 @@ router.get('/support/status', lecturaLimiter, requireAuth, (req, res) => {
   });
 });
 
+const PESTANAS_VALIDAS = new Set(Object.keys(PESTANAS));
+
+/**
+ * Lo común a las dos formas de chatear: validar el mensaje, encontrar o abrir
+ * el hilo y guardar lo que escribió. Devuelve { error, status } si no procede.
+ */
+function prepararMensaje(req) {
+  const cuerpo = req.body || {};
+  const mensaje = String(cuerpo.message == null ? '' : cuerpo.message).trim();
+
+  if (!mensaje) return { status: 400, error: 'Escribe tu consulta.' };
+  if (mensaje.length > MAX_MENSAJE) {
+    return { status: 400, error: `El mensaje es muy largo (máximo ${MAX_MENSAJE} caracteres).` };
+  }
+
+  const userId = (req.session && req.session.userId) || null;
+  const pestana = PESTANAS_VALIDAS.has(String(cuerpo.tab || '')) ? String(cuerpo.tab) : null;
+  const modoVoz = cuerpo.voice === true;
+
+  // Un testigo que no cuadra abre un hilo nuevo en vez de dar un error:
+  // así no se puede distinguir "no existe" de "no es tuyo".
+  let conversacion = hiloDe(req, cuerpo.conversationId, cuerpo.secret);
+  let credenciales = null;
+
+  if (!conversacion) {
+    const abierta = store.openConversation({ userId, slug: null });
+    conversacion = { id: abierta.id, public_id: abierta.publicId, turns: 0, user_id: userId };
+    credenciales = { conversationId: abierta.publicId, secret: abierta.secret };
+  } else if (conversacion.turns >= MAX_TURNOS) {
+    return {
+      status: 429,
+      error: 'Esta conversación ya es muy larga. Recárgala para empezar de nuevo, o pide que te atienda una persona.',
+      maxed: true,
+    };
+  } else if (userId && !conversacion.user_id) {
+    store.linkUser(conversacion.id, userId);
+    conversacion.user_id = userId;
+  }
+
+  store.addMessage(conversacion.id, 'visitante', mensaje);
+  store.touchConversation(conversacion.id);
+
+  return { conversacion, credenciales, userId, pestana, modoVoz };
+}
+
+const ticketPorReferencia = db.prepare('SELECT * FROM support_tickets WHERE public_id = ?');
+
+function avisarTicket(req, referencia) {
+  if (!referencia) return;
+  const ticket = ticketPorReferencia.get(referencia);
+  if (ticket) notificadorDe(req).ticketOpened(ticket);
+}
+
+/** Respuesta entera, de una vez. Se mantiene para clientes sin streaming. */
 router.post('/support/chat', chatLimiter, requireAuth, async (req, res) => {
   try {
-    const cuerpo = req.body || {};
-    const mensaje = String(cuerpo.message == null ? '' : cuerpo.message).trim();
-
-    if (!mensaje) return res.status(400).json({ error: 'Escribe tu consulta.' });
-    if (mensaje.length > MAX_MENSAJE) {
-      return res.status(400).json({ error: `El mensaje es muy largo (máximo ${MAX_MENSAJE} caracteres).` });
-    }
-
-    const userId = (req.session && req.session.userId) || null;
-    const slug = cuerpo.slug ? String(cuerpo.slug).slice(0, 60) : null;
-
-    // Un testigo que no cuadra abre un hilo nuevo en vez de dar un error:
-    // así no se puede distinguir "no existe" de "no es tuyo".
-    let conversacion = hiloDe(req, cuerpo.conversationId, cuerpo.secret);
-    let credenciales = null;
-
-    if (!conversacion) {
-      const abierta = store.openConversation({ userId, slug });
-      conversacion = { id: abierta.id, public_id: abierta.publicId, turns: 0, user_id: userId };
-      credenciales = { conversationId: abierta.publicId, secret: abierta.secret };
-    } else if (conversacion.turns >= MAX_TURNOS) {
-      return res.status(429).json({
-        error: 'Esta conversación ya es muy larga. Recárgala para empezar de nuevo, o pide que te atienda una persona.',
-        maxed: true,
-      });
-    } else if (userId && !conversacion.user_id) {
-      // Inició sin sesión y luego entró: a partir de aquí el asistente
-      // puede consultar su cuenta.
-      store.linkUser(conversacion.id, userId);
-      conversacion.user_id = userId;
-    }
-
-    store.addMessage(conversacion.id, 'visitante', mensaje);
-    store.touchConversation(conversacion.id);
+    const p = prepararMensaje(req);
+    if (p.error) return res.status(p.status).json({ error: p.error, ...(p.maxed ? { maxed: true } : {}) });
 
     const respuesta = await assistant.reply({
-      conversation: conversacion,
-      message: mensaje,
-      userId,
-      slug,
+      conversation: p.conversacion,
+      userId: p.userId,
+      pestana: p.pestana,
+      modoVoz: p.modoVoz,
     });
 
-    store.addMessage(conversacion.id, 'asistente', respuesta.text);
-
-    if (respuesta.ticket) notificadorDe(req).ticketOpened(respuesta.ticket);
+    store.addMessage(p.conversacion.id, 'asistente', respuesta.text);
+    if (respuesta.ticket) avisarTicket(req, respuesta.ticket.public_id);
 
     res.json({
-      ...(credenciales || {}),
+      ...(p.credenciales || {}),
       reply: respuesta.text,
       sources: respuesta.sources || [],
       ticket: respuesta.ticket ? { reference: respuesta.ticket.public_id } : null,
+      guide: respuesta.guide || null,
       degraded: Boolean(respuesta.degraded),
       offerTicket: Boolean(respuesta.offerTicket),
     });
@@ -193,6 +216,102 @@ router.post('/support/chat', chatLimiter, requireAuth, async (req, res) => {
     console.error('[soporte] fallo en el chat:', err.message);
     res.status(500).json({ error: 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.' });
   }
+});
+
+/**
+ * Respuesta en vivo, como Server-Sent Events sobre un POST.
+ *
+ * Es lo que hace que el asistente se sienta presente: el texto aparece —y se
+ * lee en voz alta— frase a frase según se genera, en vez de tras varios
+ * segundos de silencio. Los eventos son los del agente: texto, herramienta,
+ * guia, ticket, reinicio y fin.
+ *
+ * Si la persona cierra el chat, la petición al proveedor se cancela: no se
+ * paga por una respuesta que nadie va a leer.
+ */
+router.post('/support/chat/stream', chatLimiter, requireAuth, async (req, res) => {
+  const p = prepararMensaje(req);
+  if (p.error) return res.status(p.status).json({ error: p.error, ...(p.maxed ? { maxed: true } : {}) });
+
+  res.status(200);
+  res.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    // Sin esto, algunos proxies acumulan la respuesta y la entregan de golpe.
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders();
+
+  const control = new AbortController();
+  // 'close' en la RESPUESTA, no en la petición: en Node la petición se
+  // cierra en cuanto termina de leerse el cuerpo, aunque el cliente siga ahí.
+  res.on('close', () => {
+    if (!res.writableEnded) control.abort();
+  });
+
+  const enviar = (tipo, datos) => {
+    if (res.writableEnded || control.signal.aborted) return;
+    res.write(`event: ${tipo}\ndata: ${JSON.stringify(datos)}\n\n`);
+  };
+
+  // Un comentario cada 15 s mantiene viva la conexión mientras el modelo
+  // piensa; hay intermediarios que cortan lo que lleva un rato callado.
+  const latido = setInterval(() => {
+    if (!res.writableEnded) res.write(': latido\n\n');
+  }, 15000);
+
+  enviar('inicio', p.credenciales || {});
+
+  let texto = '';
+  let fin = null;
+  try {
+    for await (const ev of assistant.stream({
+      conversation: p.conversacion,
+      userId: p.userId,
+      pestana: p.pestana,
+      modoVoz: p.modoVoz,
+      senal: control.signal,
+    })) {
+      if (ev.tipo === 'texto') {
+        texto += ev.delta;
+        enviar('texto', { delta: ev.delta });
+      } else if (ev.tipo === 'reinicio') {
+        texto = ev.texto;
+        enviar('reinicio', { texto: ev.texto });
+      } else if (ev.tipo === 'herramienta') {
+        enviar('herramienta', { nombre: ev.nombre });
+      } else if (ev.tipo === 'guia') {
+        enviar('guia', { pasos: ev.pasos });
+      } else if (ev.tipo === 'ticket') {
+        avisarTicket(req, ev.referencia);
+        enviar('ticket', { referencia: ev.referencia });
+      } else if (ev.tipo === 'fin') {
+        fin = ev;
+      }
+    }
+  } catch (err) {
+    console.error('[soporte] fallo en el chat en vivo:', err.message);
+    enviar('error', { error: 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.' });
+  } finally {
+    clearInterval(latido);
+  }
+
+  // Se guarda lo que se llegó a decir aunque la persona haya cerrado: el
+  // hilo tiene que reflejar la conversación real.
+  const respuesta = fin ? fin.texto : texto;
+  if (respuesta && respuesta.trim()) store.addMessage(p.conversacion.id, 'asistente', respuesta);
+
+  if (fin) {
+    enviar('fin', {
+      texto: fin.texto,
+      fuentes: fin.fuentes,
+      ticket: fin.ticket,
+      guia: fin.guia,
+      degradado: fin.degradado,
+      ofrecerTicket: fin.ofrecerTicket,
+    });
+  }
+  if (!res.writableEnded) res.end();
 });
 
 /** El hilo completo, para quien vuelve y quiere ver si ya le respondieron. */
