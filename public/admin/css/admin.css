@@ -1095,6 +1095,38 @@ body {
   outline-offset: 2px;
 }
 
+/* El topbar está pegado arriba y es translúcido, así que lo que pasa por
+   debajo SE SIGUE VIENDO pero deja de recibir pulsaciones: el botón parece
+   que está ahí, lo tocas y no pasa nada —o peor, la pulsación se la queda
+   "Ver página pública" y te saca de la página—. A las pestañas les pasaba en
+   cuanto desplazabas un poco, y en el móvil era grave: allí el título parte
+   en dos líneas, el topbar mide el doble y la barra ocupa tres filas, así
+   que la franja muerta se comía media navegación.
+
+   Se arregla por los dos lados. En pantallas anchas la barra se queda pegada
+   JUSTO debajo del topbar, de modo que nunca llega a cruzar su franja. */
+@media (min-width: 761px) {
+  .tabs {
+    position: sticky;
+    /* Lo mide admin.js y lo publica aquí: el alto cambia según si el título
+       cabe en una línea, y un número fijo fallaría justo cuando no cabe. */
+    top: var(--alto-topbar, 0px);
+    z-index: 9; /* por debajo del topbar, que va en 10 */
+    /* Al quedarse pegada pasa contenido por detrás, así que se vuelve más
+       opaca: el mismo problema que arriba, evitado antes de que exista. */
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 60%),
+      rgba(23, 17, 26, 0.86);
+  }
+}
+
+/* Y en el móvil el topbar deja de estar pegado. Ahí ocupa tanto que tenerlo
+   fijo cuesta más pantalla de la que aporta, y quitarlo hace desaparecer la
+   franja muerta del todo en vez de esquivarla. */
+@media (max-width: 760px) {
+  .topbar { position: static; }
+}
+
 /* El boton de guardar vive fuera de la tarjeta: al partir el formulario en
    varias tarjetas, dejarlo dentro de una sugeriria que solo guarda esa. */
 .save-bar {
@@ -1311,6 +1343,13 @@ body {
 }
 
 @media (max-width: 600px) {
+  /* En una columna de 375px, la vista previa al lado del texto dejaba a
+     éste en unos 250px y la explicación se estiraba diez líneas, con la
+     miniatura flotando a media altura. Apilado, y la previa a lo ancho:
+     además se parece más a lo que va a ser, que es un fondo. */
+  .bg-editor { flex-direction: column; align-items: stretch; }
+  .bg-editor .background-preview { width: 100%; height: 120px; }
+
   .card-title-row { flex-wrap: wrap; gap: 10px; }
   .range-tabs { width: 100%; justify-content: space-between; }
   .range-tabs button { flex: 1; padding: 8px 4px; font-size: 0.74rem; }

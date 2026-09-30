@@ -37,6 +37,31 @@
     return data;
   }
 
+  // El topbar se queda pegado arriba, así que la barra de pestañas se pega
+  // justo debajo (ver la nota en admin.css). Para eso hace falta saber
+  // cuánto mide, y eso cambia: con la ventana estrecha el título parte en
+  // dos líneas y el alto se duplica. Un número fijo fallaría justo en ese
+  // caso, que es cuando más molesta.
+  (function medirTopbar() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    const publicar = () => {
+      // En móvil el topbar no está pegado; ahí el hueco es cero.
+      const pegado = getComputedStyle(topbar).position === 'sticky';
+      document.documentElement.style.setProperty(
+        '--alto-topbar', (pegado ? topbar.offsetHeight : 0) + 'px'
+      );
+    };
+
+    publicar();
+    // El alto cambia al redimensionar y también cuando llega la fuente web,
+    // que mueve el salto de línea del título.
+    if (window.ResizeObserver) new ResizeObserver(publicar).observe(topbar);
+    else window.addEventListener('resize', publicar);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(publicar);
+  })();
+
   // ---- Pestanas ----
 
   (function setupTabs() {
