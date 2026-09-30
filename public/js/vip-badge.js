@@ -176,7 +176,11 @@
     if (!ctx) return [];
 
     ctx.fillStyle = '#fff';
-    ctx.font = `700 ${fontPx}px "Playfair Display", Georgia, serif`;
+    // La misma familia que el resto del sitio. El respaldo es la
+    // monoespaciada del sistema, que tiene una silueta parecida: si la
+    // fuente web aún no ha cargado, las partículas dibujan casi la misma
+    // palabra en vez de otra distinta.
+    ctx.font = `700 ${fontPx}px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, width / 2, height / 2);

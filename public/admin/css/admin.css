@@ -21,7 +21,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -38,9 +38,9 @@ body {
 }
 
 .brand-name {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 
@@ -449,9 +449,9 @@ body {
 }
 
 .lamp-title {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   font-size: 1.55rem;
   margin: 0 0 4px;
   line-height: 1.25;
@@ -818,15 +818,22 @@ body {
    The blur is deliberately light (4px, not the 18-22px typical of frosted
    glass): the nodes are 1px lines and small dots, and anything heavier
    smears them into a flat wash — defeating the point of seeing them. */
+/* El filo de arriba y la sombra vienen de glass.css: son lo que hace que
+   una superficie translúcida se lea como vidrio y no como un rectángulo
+   medio transparente. El desenfoque se queda como estaba, por lo de los
+   nodos. */
 .card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%),
     rgba(23, 17, 26, 0.28);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
   padding: 24px;
   backdrop-filter: url(#liquid-glass) blur(4px) saturate(140%);
   -webkit-backdrop-filter: blur(4px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-shine),
+    var(--glass-shadow);
 }
 
 .card-title {
@@ -1016,7 +1023,7 @@ body {
 .mfa-secret,
 .mfa-codes {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-ui);
   font-size: 0.95rem;
   letter-spacing: 0.08em;
   background: rgba(255, 255, 255, 0.05);

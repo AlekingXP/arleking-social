@@ -87,16 +87,97 @@ const storage = multer.diskStorage({
   },
 });
 
+const EXT_IMAGEN = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+// Sólo los dos que reproduce cualquier navegador. Un .mov de iPhone se ve en
+// Safari y en Chrome no, y el fondo es lo que ven los visitantes de la
+// página: mejor rechazarlo con una explicación que servir un rectángulo
+// negro a la mitad de ellos.
+const EXT_VIDEO = ['.mp4', '.webm'];
+const MB = 1024 * 1024;
+const MAX_IMAGEN_MB = 5;
+const MAX_FONDO_MB = 20;
+
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_IMAGEN_MB * MB },
   fileFilter: (req, file, cb) => {
-    const allowed = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (!allowed.includes(ext)) return cb(new Error('Formato de imagen no soportado'));
+    if (!EXT_IMAGEN.includes(ext)) return cb(new Error('Formato de imagen no soportado'));
     cb(null, true);
   },
 });
+
+// El fondo de la página pública admite además vídeo, y con más margen de
+// peso: un vídeo de diez segundos no cabe en cinco megas.
+const uploadFondo = multer({
+  storage,
+  limits: { fileSize: MAX_FONDO_MB * MB },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (EXT_IMAGEN.includes(ext) || EXT_VIDEO.includes(ext)) return cb(null, true);
+    if (['.mov', '.avi', '.mkv', '.m4v', '.wmv'].includes(ext)) {
+      return cb(new Error('Ese formato de vídeo no lo reproducen todos los navegadores. Conviértelo a MP4 o WEBM.'));
+    }
+    cb(new Error('Formato no soportado. Imagen: PNG, JPG, WEBP o GIF. Vídeo: MP4 o WEBM.'));
+  },
+});
+
+/**
+ * Deja que los fallos de subida salgan como JSON con el mensaje que toca.
+ *
+ * Sin esto, un archivo que pasa del límite acaba en el manejador de errores
+ * general, que responde 500: le dice a la persona que el servidor se rompió
+ * cuando lo que pasa es que su vídeo pesa demasiado, y encima lo registra
+ * como error del servidor.
+ */
+function subir(middleware, limiteMb) {
+  return (req, res, next) => middleware(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: `El archivo pesa demasiado. El máximo son ${limiteMb} MB.` });
+    }
+    return res.status(400).json({ error: err.message || 'No se pudo subir el archivo.' });
+  });
+}
+
+// Los primeros bytes de cada formato. La extensión la pone quien sube el
+// archivo y no prueba nada; esto sí.
+const FIRMAS = {
+  '.png': (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  '.jpg': (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  '.gif': (b) => b.subarray(0, 6).toString('latin1').startsWith('GIF8'),
+  '.webp': (b) => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP',
+  // En MP4 el tamaño de la caja va primero y el tipo justo después.
+  '.mp4': (b) => b.subarray(4, 8).toString('latin1') === 'ftyp',
+  // WEBM es Matroska: la cabecera EBML.
+  '.webm': (b) => b.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])),
+};
+FIRMAS['.jpeg'] = FIRMAS['.jpg'];
+
+/**
+ * ¿El contenido es de verdad lo que dice la extensión?
+ *
+ * Se comprueba sólo en el fondo, que es la subida nueva y la que más pesa.
+ * Sin esto se puede dejar cualquier cosa en el disco con nombre de vídeo:
+ * no se ejecutaría —se sirve con su tipo y nosniff— pero ocupa sitio y a
+ * quien lo subió le queda un fondo negro sin explicación.
+ */
+function contenidoCoincide(ruta, ext) {
+  const comprobar = FIRMAS[ext];
+  if (!comprobar) return false;
+  let fd;
+  try {
+    fd = fs.openSync(ruta, 'r');
+    const cabecera = Buffer.alloc(16);
+    const leidos = fs.readSync(fd, cabecera, 0, 16, 0);
+    return leidos >= 12 && comprobar(cabecera);
+  } catch (err) {
+    console.error('[subidas] no se pudo leer el archivo para comprobarlo:', err.message);
+    return false;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
 
 // ---- Auth ----
 
@@ -845,7 +926,7 @@ router.put('/profile/vip-owner', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId));
 });
 
-router.post('/profile/avatar', requireAuth, upload.single('avatar'), (req, res) => {
+router.post('/profile/avatar', requireAuth, subir(upload.single('avatar'), MAX_IMAGEN_MB), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen' });
 
   const prev = db.prepare('SELECT avatar_path FROM profile WHERE user_id = ?').get(req.session.userId);
@@ -857,8 +938,16 @@ router.post('/profile/avatar', requireAuth, upload.single('avatar'), (req, res) 
   res.json(db.prepare('SELECT * FROM profile WHERE user_id = ?').get(req.session.userId));
 });
 
-router.post('/profile/background', requireAuth, upload.single('background'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen' });
+router.post('/profile/background', requireAuth, subir(uploadFondo.single('background'), MAX_FONDO_MB), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+
+  const ext = path.extname(req.file.filename).toLowerCase();
+  if (!contenidoCoincide(req.file.path, ext)) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({
+      error: 'El archivo no parece una imagen ni un vídeo. Comprueba que no esté a medio descargar o con la extensión cambiada.',
+    });
+  }
 
   const prev = db.prepare('SELECT background_path FROM profile WHERE user_id = ?').get(req.session.userId);
   db.prepare('UPDATE profile SET background_path = ? WHERE user_id = ?').run('/uploads/' + req.file.filename, req.session.userId);
@@ -949,7 +1038,7 @@ router.delete('/links/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/links/:id/image', requireAuth, upload.single('image'), (req, res) => {
+router.post('/links/:id/image', requireAuth, subir(upload.single('image'), MAX_IMAGEN_MB), (req, res) => {
   const existing = db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
   if (!existing) return res.status(404).json({ error: 'Link no encontrado' });
   if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen' });

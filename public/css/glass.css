@@ -1,0 +1,39 @@
+/* Lenguaje visual compartido: la tipografía y las piezas del cristal.
+ *
+ * Son sólo variables. Vive aparte porque lo usan cuatro hojas de estilo (la
+ * página pública, el panel, el soporte y las legales) y antes cada una
+ * repetía los mismos valores a mano; así, cambiar el grosor del desenfoque
+ * o la fuente es tocar una línea y no buscar veinte.
+ *
+ * Se carga ANTES que la hoja de cada página, para que sus reglas puedan
+ * pisar cualquier cosa de aquí.
+ *
+ * Los colores NO están aquí: cada página tiene su paleta y el cristal no la
+ * toca. Lo que hace es dejar pasar lo que haya detrás, sin teñirlo.
+ */
+
+:root {
+  /* Tipografía de código. El respaldo es la monoespaciada del sistema, que
+     en Mac, Windows y Linux ya es parecida, así que si la fuente web tarda
+     o no llega no se descoloca nada. */
+  --font-ui: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* El cristal, en cuatro piezas:
+       brillo      la línea clara del filo de arriba, donde pega la luz —
+                   es lo que hace que se lea como vidrio y no como un
+                   rectángulo medio transparente
+       superficie  el propio vidrio, casi transparente
+       borde       el canto
+       sombra      lo que lo despega del fondo  */
+  --glass-shine: rgba(255, 255, 255, 0.22);
+  --glass-surface: rgba(255, 255, 255, 0.055);
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+
+  /* Tres grosores de desenfoque. Cuanto mayor es la superficie, más
+     desenfoca: un botón con el mismo desenfoque que una tarjeta grande
+     parece sucio, no de cristal. */
+  --glass-blur-sm: blur(6px) saturate(150%);
+  --glass-blur-md: blur(12px) saturate(160%);
+  --glass-blur-lg: blur(20px) saturate(170%);
+}

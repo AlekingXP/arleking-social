@@ -6,7 +6,8 @@
 <title>Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/glass.css" />
 <link rel="stylesheet" href="/admin/css/admin.css" />
 <link rel="stylesheet" href="/css/support.css" />
 <!-- No bundler on this page, so Three.js resolves via an import map — must
@@ -122,15 +123,16 @@
           <h2 class="card-title">Fondo</h2>
         <div class="bg-editor">
           <img id="background-preview" class="background-preview" src="" alt="fondo" />
+          <video id="background-preview-video" class="background-preview hidden" muted loop playsinline aria-hidden="true"></video>
           <div>
             <div class="bg-editor-actions">
               <label class="btn-outline btn-sm file-btn">
                 Cambiar fondo
-                <input type="file" id="background-input" accept="image/*" hidden />
+                <input type="file" id="background-input" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden />
               </label>
               <button type="button" id="background-remove-btn" class="btn-outline btn-sm">Quitar fondo</button>
             </div>
-            <p class="hint">Fondo de toda la página pública. PNG, JPG o WEBP. Máx 5MB.</p>
+            <p class="hint">Fondo de toda la página pública. Imagen (PNG, JPG, WEBP, GIF) hasta 5 MB, o vídeo (MP4, WEBM) hasta 20 MB. El vídeo va solo, en bucle y sin sonido; lo descarga cada visitante, así que cuanto más corto, mejor. Quien tenga el ahorro de datos o menos movimiento activados en su sistema lo verá quieto.</p>
           </div>
         </div>
         </section>

@@ -2,7 +2,6 @@
   --accent-from: #ff5f8f;
   --accent-to: #ff9a5a;
   --bg: #0b0509;
-  --bg-card: rgba(255, 255, 255, 0.045);
   --border: rgba(255, 255, 255, 0.07);
   --text: #f5eef0;
   --text-dim: rgba(245, 238, 240, 0.6);
@@ -20,7 +19,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   position: relative;
 }
@@ -37,6 +36,29 @@ body {
     var(--bg);
 }
 
+/* Con fondo en vídeo, .bg-hero deja de pintar la foto y el color de debajo
+   —que es opaco y taparía el vídeo— y se queda sólo con los degradados: el
+   velo que oscurece el fondo para que el texto se lea. El vídeo va detrás. */
+.bg-hero.with-video {
+  background:
+    radial-gradient(ellipse 650px 420px at 50% 0%, color-mix(in srgb, var(--accent-from) 22%, transparent), transparent 70%) no-repeat,
+    linear-gradient(180deg, rgba(11, 5, 9, 0.55) 0%, rgba(11, 5, 9, 0.82) 55%, rgba(11, 5, 9, 0.96) 100%) no-repeat;
+}
+
+/* Lo inserta main.js sólo cuando el fondo subido es un vídeo. */
+.bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  pointer-events: none;
+  /* Hasta que llega el primer fotograma, el color de la página: si no,
+     parpadea en negro. */
+  background: var(--bg);
+}
+
 .particles-canvas {
   position: fixed;
   inset: 0;
@@ -50,9 +72,9 @@ body {
 .hidden { display: none !important; }
 
 .brand-name {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   font-size: 2rem;
   margin: 0 0 6px;
   letter-spacing: 0.01em;
@@ -162,10 +184,36 @@ body {
   padding: 24px;
 }
 
+/* La puerta de entrada es lo primero que se ve sobre el fondo, así que es
+   donde más se nota el cristal. Desenfoque más fuerte que las tarjetas
+   porque la superficie es mayor. */
 .gate-card {
   text-align: center;
   max-width: 360px;
   width: 100%;
+  padding: 32px 26px 26px;
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 58%),
+    var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-shine),
+    var(--glass-shadow);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .gate-card { background: rgba(18, 10, 16, 0.82); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .gate-card {
+    background: rgba(18, 10, 16, 0.9);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .avatar-wrap {
@@ -219,22 +267,50 @@ main {
   gap: 14px;
 }
 
+/* Cristal de verdad: lo de detrás —la foto o el vídeo de fondo— se ve
+   desenfocado a través de la tarjeta, y el filo de arriba coge la luz. Antes
+   era un rectángulo translúcido sin desenfoque, que sobre una foto con
+   detalle dejaba el texto ilegible. Las capas salen de glass.css. */
 .link-card {
   position: relative;
   display: block;
   border-radius: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 58%),
+    var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-shine),
+    var(--glass-shadow);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
 
 .link-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    var(--glass-shadow);
+}
+
+/* Sin desenfoque el cristal no separa la tarjeta del fondo, así que se
+   compensa con opacidad: se pierde el efecto, no la legibilidad. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .link-card { background: rgba(18, 10, 16, 0.82); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .link-card {
+    background: rgba(18, 10, 16, 0.9);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* Featured card */

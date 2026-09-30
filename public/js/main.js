@@ -104,11 +104,70 @@
     return { profile, links };
   }
 
+  // El fondo puede ser una foto o un vídeo; se distingue por la extensión,
+  // que la pone el servidor (siempre /uploads/<uuid>.<ext>) y no el visitante.
+  const FONDO_ES_VIDEO = /\.(mp4|webm)$/i;
+
+  /**
+   * Monta el fondo en vídeo detrás de .bg-hero.
+   *
+   * Va detrás y no dentro porque .bg-hero termina en un color opaco que lo
+   * taparía; con la clase `with-video` esa capa desaparece y quedan sólo
+   * los degradados, que son los que oscurecen el fondo para que se lea el
+   * texto. Así el vídeo recibe exactamente el mismo velo que tenía la foto.
+   */
+  function montarVideoDeFondo(url) {
+    const hero = document.querySelector('.bg-hero');
+    const video = document.createElement('video');
+    video.className = 'bg-video';
+    // muted + playsinline son requisito para que el navegador deje arrancar
+    // un vídeo solo; sin los dos, en el móvil no se reproduce nada.
+    video.muted = true;
+    video.defaultMuted = true;
+    video.setAttribute('muted', '');
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.loop = true;
+    video.setAttribute('aria-hidden', 'true');
+    video.tabIndex = -1;
+
+    // Quien pide menos movimiento, o va con ahorro de datos, no se queda sin
+    // el fondo que eligió el dueño: lo ve quieto, en su primer fotograma.
+    const conexion = navigator.connection || {};
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      || conexion.saveData === true;
+
+    video.preload = quieto ? 'metadata' : 'auto';
+    video.src = url;
+    if (hero) hero.classList.add('with-video');
+    document.body.insertBefore(video, document.body.firstChild);
+
+    if (quieto) {
+      // Un salto mínimo fuerza a decodificar y pintar un fotograma; sin él
+      // el elemento se queda en negro.
+      video.addEventListener('loadedmetadata', () => {
+        try { video.currentTime = 0.05; } catch (err) { /* da igual: queda el color de fondo */ }
+      }, { once: true });
+      return;
+    }
+
+    video.autoplay = true;
+    const arranque = video.play();
+    // Si el navegador lo bloquea igualmente, se queda en el primer
+    // fotograma: un fondo quieto, no un hueco negro.
+    if (arranque && arranque.catch) arranque.catch(() => {});
+  }
+
   function applyTheme(profile) {
     document.documentElement.style.setProperty('--accent-from', profile.accent_from);
     document.documentElement.style.setProperty('--accent-to', profile.accent_to);
-    const bgUrl = profile.background_path || '/images/hero-bg.jpg';
-    document.documentElement.style.setProperty('--hero-bg', `url('${bgUrl}')`);
+
+    const fondo = profile.background_path || '/images/hero-bg.jpg';
+    if (FONDO_ES_VIDEO.test(fondo)) {
+      montarVideoDeFondo(fondo);
+      return;
+    }
+    document.documentElement.style.setProperty('--hero-bg', `url('${fondo}')`);
   }
 
   function fillProfile(profile) {

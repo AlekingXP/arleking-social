@@ -138,9 +138,35 @@
 
   // ---- Profile ----
 
+  // El fondo puede ser foto o vídeo, así que la vista previa son dos
+  // elementos y se enseña el que toque. Una sola función para los tres
+  // sitios que la pintan: cargar el perfil, subir y quitar.
+  const FONDO_ES_VIDEO = /\.(mp4|webm)$/i;
+
+  function pintarFondo(ruta) {
+    const url = ruta || '/images/hero-bg.jpg';
+    const img = document.getElementById('background-preview');
+    const video = document.getElementById('background-preview-video');
+    if (FONDO_ES_VIDEO.test(url)) {
+      video.src = url;
+      video.muted = true;
+      video.classList.remove('hidden');
+      img.classList.add('hidden');
+      const arranque = video.play();
+      if (arranque && arranque.catch) arranque.catch(function () {});
+      return;
+    }
+    img.src = url;
+    img.classList.remove('hidden');
+    video.classList.add('hidden');
+    // Sin esto el vídeo anterior seguiría descargándose de fondo.
+    video.removeAttribute('src');
+    video.load();
+  }
+
   function fillProfileForm(profile) {
     document.getElementById('avatar-preview').src = profile.avatar_path || placeholder(profile.name);
-    document.getElementById('background-preview').src = profile.background_path || '/images/hero-bg.jpg';
+    pintarFondo(profile.background_path);
     document.getElementById('p-name').value = profile.name || '';
     document.getElementById('p-slug').value = profile.slug || '';
     document.getElementById('view-public-link').href = '/' + (profile.slug || '');
@@ -404,7 +430,7 @@
     formData.append('background', file);
     try {
       const profile = await api('/api/profile/background', { method: 'POST', body: formData });
-      document.getElementById('background-preview').src = profile.background_path;
+      pintarFondo(profile.background_path);
       showToast('Fondo actualizado', 'success');
     } catch (err) {
       showToast(err.message, 'error');
@@ -415,7 +441,7 @@
   document.getElementById('background-remove-btn').addEventListener('click', async () => {
     try {
       await api('/api/profile/background', { method: 'DELETE' });
-      document.getElementById('background-preview').src = '/images/hero-bg.jpg';
+      pintarFondo(null);
       showToast('Fondo restablecido al predeterminado', 'success');
     } catch (err) {
       showToast(err.message, 'error');
