@@ -48,7 +48,9 @@ function crearAgente({ db, kb, store, proveedores }) {
       provider: proveedores.nombre,
       model: principalActivo() && principal ? principal.modelo : null,
       effort: principal ? principal.esfuerzo || null : null,
-      fallbacks: principal ? principal.fallbacks !== false : false,
+      // Sólo Claude tiene reintento en otro modelo; el que no lo tenga dice
+      // false, no "no sé".
+      fallbacks: Boolean(principal && principal.fallbacks === true),
       today: {
         calls: uso.calls,
         tokens: uso.input_tokens + uso.output_tokens,
