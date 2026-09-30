@@ -18,7 +18,10 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-      # Enciende el asistente de soporte. Sin ella el soporte sigue
-      # funcionando, pero sin conversar.
+      # Enciende el asistente de soporte. Sin ninguna de las dos el soporte
+      # sigue funcionando (busca, guía y abre tickets), pero sin conversar.
+      # Si están las dos, atiende OpenAI.
+      - key: OPENAI_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false

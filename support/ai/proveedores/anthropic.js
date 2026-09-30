@@ -43,8 +43,8 @@ class JsonIlegible extends Error {}
 function crearProveedorAnthropic(opciones = {}) {
   const apiKey = opciones.apiKey !== undefined ? opciones.apiKey : process.env.ANTHROPIC_API_KEY;
   const baseURL = opciones.baseURL !== undefined ? opciones.baseURL : process.env.ANTHROPIC_BASE_URL;
-  const modelo = opciones.modelo || process.env.SUPPORT_MODEL || 'claude-opus-5';
-  const esfuerzo = opciones.esfuerzo || process.env.SUPPORT_EFFORT || 'low';
+  const modelo = opciones.modelo || process.env.ANTHROPIC_MODEL || process.env.SUPPORT_MODEL || 'claude-opus-5';
+  const esfuerzo = opciones.esfuerzo || process.env.ANTHROPIC_EFFORT || process.env.SUPPORT_EFFORT || 'low';
   // Respuestas deliberadamente cortas y un endpoint con tope de gasto: 4096
   // deja sitio al pensamiento sin permitir un monólogo.
   const maxTokens = opciones.maxTokens || 4096;

@@ -249,9 +249,15 @@
       ? (estado.exhausted
         ? 'Presupuesto del día agotado. Sigue buscando en la ayuda y abriendo tickets, pero no conversa hasta mañana.'
         : 'Activo. Responde solo y abre tickets cuando no sabe algo.')
-      : 'Sin ANTHROPIC_API_KEY: el soporte funciona buscando en estos artículos y abriendo tickets, pero no conversa.';
+      : 'Sin clave de IA configurada: el soporte funciona buscando en estos artículos, guiando en pantalla y abriendo tickets, pero no conversa.';
     fila.appendChild(el('span', null, texto));
     caja.appendChild(fila);
+
+    if (estado.provider && estado.model) {
+      var quien = el('p', 'hint');
+      quien.textContent = 'Proveedor: ' + estado.provider + ' · modelo: ' + estado.model;
+      caja.appendChild(quien);
+    }
 
     if (estado.enabled) {
       var uso = el('p', 'hint');

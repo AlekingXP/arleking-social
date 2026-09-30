@@ -6,8 +6,8 @@
 // El chat sólo existe dentro del panel, así que todos sus endpoints piden
 // sesión. Estuvieron abiertos mientras el widget vivía en las páginas
 // públicas, para atender a visitantes anónimos; sin ese motivo, un endpoint
-// sin sesión que gasta dinero en la API de Anthropic era superficie de
-// ataque pura: cualquiera con curl podía agotar el presupuesto del día y
+// sin sesión que gasta dinero en la API del proveedor de IA era superficie
+// de ataque pura: cualquiera con curl podía agotar el presupuesto del día y
 // dejar sin soporte a los usuarios de verdad.
 //
 // Aun con sesión, cada mensaje cuesta dinero, así que los límites siguen
