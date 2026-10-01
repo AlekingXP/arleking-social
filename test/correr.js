@@ -8,8 +8,10 @@ const path = require('path');
 const fs = require('fs');
 
 const AQUI = __dirname;
+// .mjs además de .js: las suites que prueban código de navegador se escriben
+// como módulos, porque eso es lo que son los archivos que prueban.
 const suites = fs.readdirSync(AQUI)
-  .filter((f) => f.endsWith('.js') && f !== 'correr.js')
+  .filter((f) => (f.endsWith('.js') || f.endsWith('.mjs')) && f !== 'correr.js')
   .sort();
 
 let fallaron = [];

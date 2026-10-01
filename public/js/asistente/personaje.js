@@ -6,11 +6,21 @@
 // asistente. Girar el cuerpo entero hacia donde miras se lee natural en un
 // chibi, y no depende de adivinar dónde empieza la cabeza en la malla.
 //
-// Estados:
-//   reposo      flota tranquilo y te sigue con la mirada
-//   escuchando  se inclina hacia ti y flota un poco más vivo
-//   pensando    ladea la cabeza y mira arriba, como quien recuerda algo
-//   hablando    da un pequeño bote con cada palabra
+// Hay dos capas de movimiento, y se suman:
+//
+//   El ESTADO, continuo, que dice en qué anda:
+//     reposo      flota tranquilo y te sigue con la mirada
+//     escuchando  se inclina hacia ti y flota un poco más vivo
+//     pensando    ladea la cabeza y mira arriba, como quien recuerda algo
+//     hablando    da un pequeño bote con cada palabra
+//
+//   El GESTO, puntual, que reacciona a algo que acaba de pasar: saluda al
+//   abrir, brinca cuando resuelve, niega cuando lo pasa a una persona, se
+//   sorprende si lo pulsas y se marea si insistes. Están en gestos.js, y el
+//   motor que los reproduce —curvas y líneas de tiempo— en anim.js.
+//
+// Un gesto NO sustituye al estado: sigues mirando al cursor mientras das el
+// brinco, que es lo que hace que no parezca un vídeo pegado encima.
 //
 // Coste: una malla de 40.000 triángulos en un lienzo de ~120 px, a 30 fps
 // cuando está quieto y a ritmo de pantalla cuando pasa algo. Se para del
@@ -24,6 +34,10 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { cargarModelo, dispositivoApto } from '../three-kit.js';
+import { Linea } from './anim.js';
+import { GESTOS, SIN_GIRO_EN_CALMA, FUERZA_EN_CALMA } from './gestos.js';
+
+
 
 const MODELO = '/models/asistente.glb';
 const ALTURA_MODELO = 0.98; // medida al preparar el GLB (pies en y=0)
@@ -114,12 +128,55 @@ export async function montarPersonaje(contenedor, { alPerderse, calmado = false 
     objetivoYaw: -0.35, objetivoPitch: -0.12,
     ultimoPuntero: 0,
     miradaFija: null,         // { x, y } en coordenadas de página, o null
-    saltoDesde: -10,
-    giroDesde: -10,
     pulso: 0,
     proximoPulsoFalso: 0,
     ultimoPulsoReal: -10,
+    toques: [],               // marcas de tiempo de los toques recientes
   };
+
+  // La coreografía en curso, separada del estado continuo: lo de arriba
+  // responde a dónde está el cursor y a qué hace el asistente; esto responde
+  // a cosas puntuales que acaban de pasar.
+  const gesto = new Linea();
+  ['oy', 'ox', 'tilt', 'giro'].forEach((p) => gesto.fijar(p, 0));
+  ['sx', 'sy'].forEach((p) => gesto.fijar(p, 1));
+
+  function emocionar(nombre) {
+    const receta = GESTOS[nombre];
+    if (!receta) return;
+    const fuerza = calmado ? FUERZA_EN_CALMA : 1;
+    Object.keys(receta).forEach((prop) => {
+      if (calmado && prop === 'giro' && SIN_GIRO_EN_CALMA.includes(nombre)) return;
+      // Las escalas parten de 1, el resto de 0: atenuar es acercar al reposo
+      // de cada una, no multiplicar sin más.
+      const reposo = (prop === 'sx' || prop === 'sy') ? 1 : 0;
+      gesto.a(prop, receta[prop].map((tramo) => [
+        reposo + (tramo[0] - reposo) * fuerza, tramo[1], tramo[2],
+      ]));
+    });
+  }
+
+  /**
+   * Alguien ha pulsado al personaje.
+   *
+   * En Coucou picas a Mochi y se mosquea; aquí el personaje ES el botón que
+   * abre el chat, así que un clic no puede ser las dos cosas. La versión
+   * honesta de "insistir" en un botón que se alterna es abrirlo y cerrarlo
+   * sin parar: al tercer toque en menos de dos segundos, se marea.
+   */
+  function alTocar(abriendo) {
+    const ahora = performance.now();
+    anim.toques = anim.toques.filter((t) => ahora - t < 1700);
+    anim.toques.push(ahora);
+
+    if (anim.toques.length >= 3) {
+      anim.toques = [];
+      emocionar('mareado');
+      return;
+    }
+    if (abriendo) emocionar('saludo');
+    else if (anim.toques.length > 1) emocionar('sorpresa');
+  }
 
   function objetivoDesde(x, y) {
     const r = contenedor.getBoundingClientRect();
@@ -150,8 +207,7 @@ export async function montarPersonaje(contenedor, { alPerderse, calmado = false 
     const ahora = performance.now();
     return anim.modo !== 'reposo'
       || ahora - anim.ultimoPuntero < 1500
-      || (reloj.getElapsed() - anim.saltoDesde) < 1.2
-      || (reloj.getElapsed() - anim.giroDesde) < 1.2
+      || gesto.activa()
       || anim.pulso > 0.01;
   }
 
@@ -213,20 +269,17 @@ export async function montarPersonaje(contenedor, { alPerderse, calmado = false 
     // En modo tranquilo, hablar apenas se nota: un leve asentimiento.
     const fuerzaPulso = calmado ? 0.3 : 1;
 
-    // Saludo: bote y media vuelta (nada de eso en modo tranquilo).
-    const s = calmado ? 99 : t - anim.saltoDesde;
-    const bote = s < 0.55 ? Math.sin((s / 0.55) * Math.PI) * 0.13 : 0;
-    const aplaste = s >= 0.55 && s < 0.8 ? Math.sin(((s - 0.55) / 0.25) * Math.PI) * 0.06 : 0;
-    const g = calmado ? 99 : t - anim.giroDesde;
-    const giro = g < 0.9 ? Math.sin((g / 0.9) * Math.PI * 2) * 0.5 * (1 - g / 0.9) : 0;
+    // El gesto en curso se suma a todo lo anterior, no lo sustituye: sigues
+    // mirando al cursor mientras das el brinco.
+    gesto.paso(d);
 
     const pulso = anim.pulso * fuerzaPulso;
-    flotador.position.y = Math.sin(t * velocidad) * amplitud + bote + pulso * 0.018;
-    pivote.rotation.y = anim.yaw + giro;
+    flotador.position.y = Math.sin(t * velocidad) * amplitud - gesto.v('oy') + pulso * 0.018;
+    flotador.position.x = gesto.v('ox');
+    pivote.rotation.y = anim.yaw + gesto.v('giro');
     pivote.rotation.x = anim.pitch + pulso * 0.05;
-    pivote.rotation.z = anim.ladeo;
-    const estira = 1 + pulso * 0.03 - aplaste;
-    pivote.scale.set(1 + aplaste * 0.6, estira, 1 + aplaste * 0.6);
+    pivote.rotation.z = anim.ladeo + gesto.v('tilt');
+    pivote.scale.set(gesto.v('sx'), gesto.v('sy') + pulso * 0.03, gesto.v('sx'));
 
     renderer.render(escena, camara);
   }
@@ -283,12 +336,11 @@ export async function montarPersonaje(contenedor, { alPerderse, calmado = false 
       anim.pulso = 1;
       anim.ultimoPulsoReal = reloj.getElapsed();
     },
-    saltar() {
-      anim.saltoDesde = reloj.getElapsed();
-    },
-    girar() {
-      anim.giroDesde = reloj.getElapsed();
-    },
+    /** Una reacción puntual: 'saludo', 'alegre', 'niega', 'sorpresa',
+     *  'molesto' o 'mareado'. Un nombre que no existe no hace nada. */
+    emocionar,
+    /** Lo llama el widget cada vez que se pulsa el lanzador. */
+    tocar: alTocar,
     /** Mira a un punto de la página (una guía); null para volver al cursor. */
     mirarA(x, y) {
       if (x == null) {

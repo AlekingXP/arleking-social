@@ -320,12 +320,22 @@
         if (personaje) personaje.pulso();
       },
       saltar: function () {
-        if (personaje) personaje.saltar();
+        if (personaje) personaje.emocionar('bote');
         else if (!movimientoReducido) {
           ui.escenario.classList.remove('bote');
           void ui.escenario.offsetWidth;
           ui.escenario.classList.add('bote');
         }
+      },
+      /** Una reacción del personaje. Sin 3D no hay nada que reaccione: el
+       *  póster es una imagen fija y no se le inventa un sustituto. */
+      emocionar: function (nombre) {
+        if (personaje) personaje.emocionar(nombre);
+      },
+      /** Cada pulsación del lanzador, para que pueda marearse si insistes. */
+      tocar: function (abriendo) {
+        if (personaje) personaje.tocar(abriendo);
+        else if (abriendo) avatar.saltar();
       },
       mirarA: function (x, y) {
         if (personaje) personaje.mirarA(x, y);
@@ -756,13 +766,19 @@
         } else if (tipo === 'ticket') {
           aviso('He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.', datos.referencia);
           ui.contacto.hidden = true;
+          // No supo resolverlo: lo dice con el cuerpo, no sólo con el texto.
+          avatar.emocionar('niega');
         } else if (tipo === 'fin') {
           if (datos.texto && datos.texto !== textoActual) pintar(datos.texto);
           if (datos.guia) guiaPendiente = datos.guia;
           if (datos.ofrecerTicket && !datos.ticket) mostrarContacto();
+          // Resolvió él solo: un brinco corto. Si acabó en ticket o se ofreció
+          // a abrirlo, no hay nada que celebrar.
+          if (!datos.ticket && !datos.ofrecerTicket) avatar.emocionar('alegre');
         } else if (tipo === 'error') {
           quitarPuntos();
           if (!textoActual) pintar(datos.error || 'No pude responder ahora mismo.');
+          avatar.emocionar('niega');
         }
       }
 
@@ -792,10 +808,15 @@
           pintar(r.datos.reply || '');
           if (hablarEsta) AKVoz.decir(r.datos.reply || '');
           if (r.datos.guide) guiaPendiente = r.datos.guide;
+          // Las mismas reacciones que por el camino en vivo: no puede
+          // depender de si el navegador soporta streaming.
           if (r.datos.ticket) {
             aviso('He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.', r.datos.ticket.reference);
+            avatar.emocionar('niega');
           } else if (r.datos.offerTicket) {
             mostrarContacto();
+          } else {
+            avatar.emocionar('alegre');
           }
           terminar();
         }).catch(function () {
@@ -826,10 +847,10 @@
       ui.lanzador.setAttribute('aria-label', abierto ? 'Cerrar el asistente' : 'Abrir el asistente');
       ocultarBocadillo();
 
+      avatar.tocar(abierto);
+
       if (abierto) {
         marcarSinLeer(false);
-        avatar.saltar();
-        if (personaje) personaje.girar();
         var listo = hiloCargado ? Promise.resolve() : cargarHilo();
         listo.then(function () {
           alFondo();
