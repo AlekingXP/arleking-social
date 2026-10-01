@@ -142,6 +142,8 @@ const texto = (evs) => {
 
   process.env.PORT = '3995';
   process.env.DATA_DIR = DATOS;
+  // Para poder leer el estado que ve quien lleva la plataforma.
+  process.env.OWNER_USERNAMES = 'ana-openai';
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.SUPPORT_AI_PROVIDER;
   process.env.OPENAI_API_KEY = 'sk-prueba';
@@ -297,6 +299,21 @@ const texto = (evs) => {
   const fin7 = r7.eventos.find((e) => e.tipo === 'fin');
   ok('degrada sin romperse', fin7 && fin7.datos.degradado === true);
   ok('y aun así guía', r7.eventos.some((e) => e.tipo === 'guia'));
+
+  console.log('\n== 7b. El panel del dueño dice POR QUÉ dejó de conversar ==');
+  // Tener clave no es funcionar. Si la razón sólo queda en el registro del
+  // servidor, quien lleva la plataforma ve un chat "que no funciona" y nada
+  // que lo explique.
+  const verEstado = () => fetch(SRV + '/api/support/assistant', { headers: { Cookie: ana.cookie } }).then((r) => r.json());
+  const e7 = await verEstado();
+  ok('registra el fallo con su motivo', e7.lastError && /500|caido/.test(e7.lastError.mensaje), e7.lastError);
+  ok('y cuándo fue', Boolean(e7.lastError && Date.parse(e7.lastError.cuando)), e7.lastError);
+  ok('sigue diciendo que hay clave configurada', e7.enabled === true, e7.enabled);
+
+  guiones.push({ texto: 'Ya vuelvo a responder.', motivo: 'stop' });
+  await chatEnVivo(SRV, ana, { message: 'otra vez' });
+  const e7b = await verEstado();
+  ok('y al volver a funcionar, lo olvida', e7b.lastError === null, e7b.lastError);
 
   console.log('\n== 8. Cerrar el chat cancela la petición ==');
   const lento = { lento: true };

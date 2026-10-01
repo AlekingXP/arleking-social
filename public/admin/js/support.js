@@ -237,19 +237,54 @@
 
   // ---- Estado del asistente ----
 
+  // El mensaje crudo del proveedor es correcto pero no dice qué hacer. Esto
+  // traduce los casos que de verdad pasan al montar una clave nueva.
+  var PISTAS = [
+    { busca: /insufficient_quota|exceeded your current quota|billing/i,
+      dice: 'La clave es válida pero la cuenta no tiene saldo. Añade crédito en la facturación de tu proveedor; tener una clave no incluye uso.' },
+    { busca: /invalid_api_key|Incorrect API key|401/i,
+      dice: 'La clave no la reconoce el proveedor. Suele ser que se copió a medias, que le sobra un espacio, o que se borró al rotarla.' },
+    { busca: /does not exist|do not have access to|model_not_found|404/i,
+      dice: 'Ese modelo no existe para tu cuenta. Pon uno al que sí tengas acceso en la variable OPENAI_MODEL y reinicia el servicio.' },
+    { busca: /must be verified|verify organization/i,
+      dice: 'El proveedor pide verificar la organización para usar ese modelo en streaming. Verifícala, o cambia OPENAI_MODEL a uno que no lo exija.' },
+    { busca: /rate limit|429/i,
+      dice: 'Demasiadas peticiones seguidas para el límite de tu cuenta. Suele resolverse solo; si no, revisa los límites de tu plan.' },
+    { busca: /country|region|territory/i,
+      dice: 'El proveedor no da servicio desde la región donde corre el servidor.' },
+  ];
+
+  function pistaPara(mensaje) {
+    for (var i = 0; i < PISTAS.length; i++) {
+      if (PISTAS[i].busca.test(mensaje)) return PISTAS[i].dice;
+    }
+    return 'Revisa la clave y el modelo en las variables del servicio, y reinícialo para que las vuelva a leer.';
+  }
+
   function pintarAsistente(estado) {
     var caja = document.getElementById('sop-asistente');
     caja.textContent = '';
 
-    var fila = el('div', 'sop-estado-asistente');
-    var punto = el('span', 'sop-luz ' + (estado.enabled ? (estado.exhausted ? 'ambar' : 'verde') : 'gris'));
-    fila.appendChild(punto);
+    // Tener clave no es funcionar: si la última petición falló, el asistente
+    // está degradado aunque esté configurado, y decir "Activo" ahí es
+    // mentir justo cuando hace falta la verdad.
+    var roto = estado.enabled && estado.lastError;
 
-    var texto = estado.enabled
-      ? (estado.exhausted
-        ? 'Presupuesto del día agotado. Sigue buscando en la ayuda y abriendo tickets, pero no conversa hasta mañana.'
-        : 'Activo. Responde solo y abre tickets cuando no sabe algo.')
-      : 'Sin clave de IA configurada: el soporte funciona buscando en estos artículos, guiando en pantalla y abriendo tickets, pero no conversa.';
+    var fila = el('div', 'sop-estado-asistente');
+    var color = 'gris';
+    if (estado.enabled) color = (roto || estado.exhausted) ? 'ambar' : 'verde';
+    fila.appendChild(el('span', 'sop-luz ' + color));
+
+    var texto;
+    if (!estado.enabled) {
+      texto = 'Sin clave de IA configurada: el soporte funciona buscando en estos artículos, guiando en pantalla y abriendo tickets, pero no conversa.';
+    } else if (roto) {
+      texto = 'Configurado, pero la última petición al proveedor falló, así que no está conversando. Sigue buscando en la ayuda, guiando y abriendo tickets.';
+    } else if (estado.exhausted) {
+      texto = 'Presupuesto del día agotado. Sigue buscando en la ayuda y abriendo tickets, pero no conversa hasta mañana.';
+    } else {
+      texto = 'Activo. Responde solo y abre tickets cuando no sabe algo.';
+    }
     fila.appendChild(el('span', null, texto));
     caja.appendChild(fila);
 
@@ -257,6 +292,17 @@
       var quien = el('p', 'hint');
       quien.textContent = 'Proveedor: ' + estado.provider + ' · modelo: ' + estado.model;
       caja.appendChild(quien);
+    }
+
+    if (roto) {
+      var motivo = el('p', 'sop-fallo');
+      // textContent, no innerHTML: esto viene de un tercero.
+      motivo.textContent = 'Lo que respondió el proveedor: ' + estado.lastError.mensaje;
+      caja.appendChild(motivo);
+
+      var pista = el('p', 'hint');
+      pista.textContent = pistaPara(estado.lastError.mensaje);
+      caja.appendChild(pista);
     }
 
     if (estado.enabled) {

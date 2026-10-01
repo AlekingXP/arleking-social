@@ -26,6 +26,25 @@ function crearAgente({ db, kb, store, proveedores }) {
   const { ejecutar, consultaCuenta } = crearEjecutor({ db, kb, store });
   const HERRAMIENTAS = definiciones();
 
+  // Por qué dejó de conversar la última vez.
+  //
+  // Tener clave no es lo mismo que funcionar: con una clave sin saldo, un
+  // modelo que no existe en esa cuenta o una organización sin verificar, el
+  // asistente degrada al modo sin modelo —que es lo correcto, sigue
+  // atendiendo— pero el panel decía "Activo" igualmente y la razón sólo
+  // quedaba en el registro del servidor. Quien lleva la plataforma acababa
+  // mirando un chat que "no funciona" sin nada que lo explique.
+  let ultimoFallo = null;
+
+  function anotarFallo(err) {
+    ultimoFallo = {
+      // El mensaje del SDK ya trae el código y el motivo ("429 You exceeded
+      // your current quota..."). No lleva la clave: se manda en la cabecera.
+      mensaje: String((err && err.message) || err).slice(0, 300),
+      cuando: new Date().toISOString(),
+    };
+  }
+
   function presupuestoAgotado() {
     const uso = store.usageToday();
     return uso.calls >= TOPE_LLAMADAS || (uso.input_tokens + uso.output_tokens) >= TOPE_TOKENS;
@@ -51,6 +70,8 @@ function crearAgente({ db, kb, store, proveedores }) {
       // Sólo Claude tiene reintento en otro modelo; el que no lo tenga dice
       // false, no "no sé".
       fallbacks: Boolean(principal && principal.fallbacks === true),
+      // null mientras la última petición fuera bien.
+      lastError: ultimoFallo,
       today: {
         calls: uso.calls,
         tokens: uso.input_tokens + uso.output_tokens,
@@ -224,12 +245,14 @@ function crearAgente({ db, kb, store, proveedores }) {
     const proveedor = elegir();
     try {
       yield* bucle(proveedor, { mensajes: historial(conversation.id), ctx, textoContexto, senal });
+      if (proveedor.id !== 'local') ultimoFallo = null; // conversó: lo anterior ya no vale
       return;
     } catch (err) {
       if (senal && senal.aborted) return;
       if (proveedor.esAbandono && proveedor.esAbandono(err)) return;
       console.error(`[soporte] falló el proveedor ${proveedor.id}:`, err.message);
       if (proveedor.id === 'local') throw err;
+      anotarFallo(err);
 
       if (ctx.emitido) {
         const frase = '\n\nSe me cortó la conexión a mitad. Pregúntamelo otra vez en un momento.';

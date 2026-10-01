@@ -1615,6 +1615,21 @@ body {
 .sop-luz.ambar { background: #fbbf24; }
 .sop-luz.gris { background: rgba(255, 255, 255, 0.28); }
 
+/* Lo que respondió el proveedor cuando dejó de conversar. Monoespaciada y
+   seleccionable porque se copia y se busca tal cual. */
+.sop-fallo {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  word-break: break-word;
+  user-select: text;
+}
+
 .sop-kb {
   display: flex;
   flex-direction: column;
