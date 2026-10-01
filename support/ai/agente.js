@@ -36,11 +36,21 @@ function crearAgente({ db, kb, store, proveedores }) {
   // mirando un chat que "no funciona" sin nada que lo explique.
   let ultimoFallo = null;
 
+  // Algunos proveedores devuelven la clave dentro del mensaje de error. El
+  // 401 de OpenAI es literalmente «Incorrect API key provided: sk-proj-****».
+  // Viene enmascarada, y esto sólo lo ve quien lleva la plataforma —que es
+  // quien la puso—, pero un secreto que no hace falta guardar no se guarda.
+  // Ceñida a la forma real de las claves de OpenAI y Anthropic (sk-…,
+  // sk-proj-…, sk-ant-…). Una más amplia se comería cosas útiles: el nombre
+  // de una cabecera beta como "server-side-fallback-2026-07-01" encaja en
+  // casi cualquier patrón de "palabras con guiones y números".
+  const CLAVE = /\b(?:sk|rk|pk)-[A-Za-z0-9_*-]{6,}/g;
+
   function anotarFallo(err) {
     ultimoFallo = {
       // El mensaje del SDK ya trae el código y el motivo ("429 You exceeded
-      // your current quota..."). No lleva la clave: se manda en la cabecera.
-      mensaje: String((err && err.message) || err).slice(0, 300),
+      // your current quota...), que es lo que hace falta para arreglarlo.
+      mensaje: String((err && err.message) || err).replace(CLAVE, '«clave oculta»').slice(0, 300),
       cuando: new Date().toISOString(),
     };
   }

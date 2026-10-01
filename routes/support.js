@@ -61,9 +61,15 @@ function notificadorDe(req) {
 const barrido = setInterval(() => store.sweep(), 24 * 60 * 60 * 1000);
 if (barrido.unref) barrido.unref();
 
+// Doce mensajes por IP cada cinco minutos: de sobra para una conversación
+// real y poco para agotar el presupuesto del día a base de curl. Se puede
+// subir en despliegues con mucha gente detrás de la misma salida a internet
+// —una oficina, una universidad— donde doce se quedan cortos para todos.
+const TOPE_CHAT_POR_IP = Number(process.env.SUPPORT_CHAT_PER_IP) || 12;
+
 const chatLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 12,
+  max: TOPE_CHAT_POR_IP,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Has escrito muchos mensajes seguidos. Espera un par de minutos.' },

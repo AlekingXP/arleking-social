@@ -144,6 +144,10 @@ const texto = (evs) => {
   process.env.DATA_DIR = DATOS;
   // Para poder leer el estado que ve quien lleva la plataforma.
   process.env.OWNER_USERNAMES = 'ana-openai';
+  // La suite mantiene muchas más conversaciones que una persona real, y el
+  // tope por IP es de doce. Se sube PARA LA PRUEBA, y la sección 10
+  // comprueba que el límite sigue existiendo y corta donde se le dice.
+  process.env.SUPPORT_CHAT_PER_IP = '30';
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.SUPPORT_AI_PROVIDER;
   process.env.OPENAI_API_KEY = 'sk-prueba';
@@ -315,6 +319,18 @@ const texto = (evs) => {
   const e7b = await verEstado();
   ok('y al volver a funcionar, lo olvida', e7b.lastError === null, e7b.lastError);
 
+  // Algunos proveedores meten la clave en el mensaje de error: el 401 de
+  // OpenAI es «Incorrect API key provided: sk-proj-****». Aunque esto sólo
+  // lo vea el dueño, no se guarda un secreto que no hace falta.
+  guiones.push({ status: 401, mensaje: 'Incorrect API key provided: sk-proj-AbCd1234EfGh5678. You can find your API key at…' });
+  await chatEnVivo(SRV, ana, { message: 'con clave mala' });
+  const e7c = await verEstado();
+  ok('tapa la clave si el proveedor la devuelve',
+    e7c.lastError && !/sk-proj/.test(e7c.lastError.mensaje) && /clave oculta/.test(e7c.lastError.mensaje),
+    e7c.lastError);
+  ok('pero deja el motivo, que es lo que sirve',
+    /401|Incorrect API key/.test(e7c.lastError.mensaje), e7c.lastError);
+
   console.log('\n== 8. Cerrar el chat cancela la petición ==');
   const lento = { lento: true };
   guiones.push(lento);
@@ -331,6 +347,22 @@ const texto = (evs) => {
   const estado = a.status();
   ok('dice qué proveedor y qué modelo', estado.provider === 'openai' && estado.model === 'gpt-prueba', estado);
   ok('y que está activo', estado.enabled === true);
+
+  console.log('\n== 10. El tope por IP sigue cortando ==');
+  // Se subió al principio para que la suite quepa. Esto comprueba que eso no
+  // lo desactivó: el endpoint que cuesta dinero tiene que seguir cerrándose
+  // a quien lo aporrea, y hacerlo donde dice la variable.
+  let corto = 0;
+  for (let i = 0; i < 45; i++) {
+    const r = await fetch(SRV + '/api/support/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: ana.cookie, 'X-CSRF-Token': ana.csrf },
+      body: JSON.stringify({ message: 'aporreando' }),
+    });
+    if (r.status === 429) { corto = i; break; }
+  }
+  ok('acaba devolviendo 429', corto > 0, corto);
+  ok('y corta cerca del tope configurado (30)', corto <= 31, corto);
 
   console.log(`\n=== ${pasadas} pasadas, ${fallos} fallos ===`);
   process.exit(fallos ? 1 : 0);

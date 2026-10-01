@@ -218,6 +218,9 @@
     }
 
     applyTheme(profile);
+    // Las partículas necesitan el mismo perfil y antes lo pedían por su
+    // cuenta: eran dos peticiones idénticas en cada visita.
+    if (window.aplicarParticulas) window.aplicarParticulas(profile);
     fillProfile(profile);
     renderLinks(links);
     if (window.renderVipBadge) window.renderVipBadge(profile);
