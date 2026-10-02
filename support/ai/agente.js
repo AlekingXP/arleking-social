@@ -229,7 +229,7 @@ function crearAgente({ db, kb, store, proveedores }) {
    * Atiende un mensaje ya guardado en la conversación. Generador de eventos;
    * nunca lanza salvo que la petición se haya cancelado.
    */
-  async function* atender({ conversation, userId = null, pestana = null, modoVoz = false, senal = null }) {
+  async function* atender({ conversation, userId = null, pestana = null, modoVoz = false, idioma = null, senal = null }) {
     const ctx = {
       conversationId: conversation.id,
       userId,
@@ -250,6 +250,7 @@ function crearAgente({ db, kb, store, proveedores }) {
       username: ctx.cuenta ? ctx.cuenta.username : null,
       pestana,
       modoVoz,
+      idioma,
     });
 
     const proveedor = elegir();

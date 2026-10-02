@@ -24,7 +24,7 @@
       <h1 id="gate-title" class="brand-name"></h1>
       <p id="gate-subtitle" class="tagline"></p>
       <button id="enter-btn" class="btn-pill btn-gradient">
-        <span>Entrar</span>
+        <span data-i18n="perfil.entrar">Entrar</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <p id="gate-confirm" class="fine-print"></p>
@@ -62,6 +62,7 @@
   <!-- particles.js antes que main.js: define window.aplicarParticulas, y es
        main.js quien se lo pasa cuando tiene el perfil, para no pedirlo dos
        veces en la pagina que cargan los visitantes. -->
+  <script src="/js/i18n.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script src="/js/main.js"></script>

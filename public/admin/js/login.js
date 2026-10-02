@@ -1,4 +1,6 @@
 (function () {
+  // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
+  var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
   const form = document.getElementById('login-form');
   const errorEl = document.getElementById('login-error');
   const subtitleEl = document.getElementById('login-subtitle');
@@ -136,7 +138,7 @@
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       const original = label.textContent;
-      label.textContent = 'Esperando…';
+      label.textContent = T('login.esperando', 'Esperando…');
       errorEl.classList.add('hidden');
 
       try {
@@ -200,18 +202,18 @@
     errorEl.classList.add('hidden');
 
     if (mode === 'register') {
-      subtitleEl.textContent = 'Crea tu página en segundos';
-      orbLabelEl.textContent = 'Crear cuenta';
-      submitBtn.textContent = 'Crear cuenta';
+      subtitleEl.textContent = T('login.crea_tu_pagina_en_segundos', 'Crea tu página en segundos');
+      orbLabelEl.textContent = T('login.crear_cuenta', 'Crear cuenta');
+      submitBtn.textContent = T('login.crear_cuenta', 'Crear cuenta');
       confirmField.classList.remove('hidden');
       confirmInput.setAttribute('required', 'required');
       document.getElementById('password').setAttribute('minlength', '6');
       document.getElementById('password').setAttribute('autocomplete', 'new-password');
       modeToggle.innerHTML = '¿Ya tienes cuenta? <a href="#" id="mode-toggle-link">Inicia sesión</a>';
     } else {
-      subtitleEl.textContent = 'Inicia sesión para administrar tu página';
-      orbLabelEl.textContent = 'Iniciar sesión';
-      submitBtn.textContent = 'Entrar';
+      subtitleEl.textContent = T('login.inicia_sesion_para_administrar_tu_pagina', 'Inicia sesión para administrar tu página');
+      orbLabelEl.textContent = T('login.iniciar_sesion', 'Iniciar sesión');
+      submitBtn.textContent = T('login.entrar', 'Entrar');
       confirmField.classList.add('hidden');
       confirmInput.removeAttribute('required');
       document.getElementById('password').setAttribute('autocomplete', 'current-password');
@@ -291,7 +293,7 @@
     const password = document.getElementById('password').value;
 
     if (mode === 'register' && password !== confirmInput.value) {
-      errorEl.textContent = 'Las contraseñas no coinciden';
+      errorEl.textContent = T('login.las_contrasenas_no_coinciden', 'Las contraseñas no coinciden');
       errorEl.classList.remove('hidden');
       return;
     }
@@ -323,7 +325,7 @@
 
       window.location.href = '/admin/dashboard';
     } catch (err) {
-      errorEl.textContent = 'Error de conexión con el servidor';
+      errorEl.textContent = T('login.error_de_conexion_con_el_servidor', 'Error de conexión con el servidor');
       errorEl.classList.remove('hidden');
     }
   });

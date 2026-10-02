@@ -1,4 +1,6 @@
 (function () {
+  // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
+  var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
   let currentLinks = [];
   document.getElementById('slug-prefix').textContent = window.location.host + '/';
 
@@ -286,7 +288,7 @@
           particles_density: parseInt(document.getElementById('p-particles-density').value, 10),
         }),
       });
-      showToast('Perfil actualizado', 'success');
+      showToast(T('adm.perfil_actualizado', 'Perfil actualizado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -326,7 +328,7 @@
   (function handleCheckoutQueryParams() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') showToast('¡Listo! Tu suscripción quedará activa en unos segundos.', 'success');
-    if (params.get('checkout') === 'cancel') showToast('Pago cancelado', 'error');
+    if (params.get('checkout') === 'cancel') showToast(T('adm.pago_cancelado', 'Pago cancelado'), 'error');
     if (params.has('checkout')) window.history.replaceState({}, '', '/admin/dashboard');
   })();
 
@@ -447,7 +449,7 @@
         body: JSON.stringify({ vip_tier: document.getElementById('vip-tier').value || null }),
       });
       renderVipStatus(profile);
-      showToast('Tier VIP actualizado', 'success');
+      showToast(T('adm.tier_vip_actualizado', 'Tier VIP actualizado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -461,7 +463,7 @@
     try {
       const profile = await api('/api/profile/avatar', { method: 'POST', body: formData });
       document.getElementById('avatar-preview').src = profile.avatar_path;
-      showToast('Foto actualizada', 'success');
+      showToast(T('adm.foto_actualizada', 'Foto actualizada'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -476,7 +478,7 @@
     try {
       const profile = await api('/api/profile/background', { method: 'POST', body: formData });
       pintarFondo(profile.background_path);
-      showToast('Fondo actualizado', 'success');
+      showToast(T('adm.fondo_actualizado', 'Fondo actualizado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -487,7 +489,7 @@
     try {
       await api('/api/profile/background', { method: 'DELETE' });
       pintarFondo(null);
-      showToast('Fondo restablecido al predeterminado', 'success');
+      showToast(T('adm.fondo_restablecido_al_predeterminado', 'Fondo restablecido al predeterminado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -506,7 +508,7 @@
         }),
       });
       document.getElementById('password-form').reset();
-      showToast('Contraseña actualizada', 'success');
+      showToast(T('adm.contrasena_actualizada', 'Contraseña actualizada'), 'success');
       loadAccountStatus();
     } catch (err) {
       showToast(err.message, 'error');
@@ -553,7 +555,7 @@
         : 'Sólo esta';
       boton.disabled = otras === 0;
     } catch {
-      estado.textContent = 'No se pudo comprobar';
+      estado.textContent = T('adm.no_se_pudo_comprobar', 'No se pudo comprobar');
       boton.disabled = true;
     }
 
@@ -581,7 +583,7 @@
     const data = await fetch('/api/auth/email').then((r) => r.json());
 
     if (!data.canSend) {
-      status.textContent = 'El servidor no tiene envío de correo configurado';
+      status.textContent = T('adm.el_servidor_no_tiene_envio_de_correo_configu', 'El servidor no tiene envío de correo configurado');
       document.getElementById('email-edit-btn').classList.add('hidden');
       return;
     }
@@ -589,7 +591,7 @@
     // confirmada sirve para recuperar la cuenta.
     status.textContent = data.email
       ? `${data.email} · ${data.verified ? 'verificada' : 'sin verificar'}`
-      : 'Ninguna';
+      : T('adm.ninguna', 'Ninguna');
 
     if (emailWired) return;
     emailWired = true;
@@ -610,7 +612,7 @@
           body: JSON.stringify({ email: document.getElementById('email-input').value.trim() }),
         });
         panel.classList.add('hidden');
-        showToast('Te enviamos un enlace para confirmar la dirección', 'success');
+        showToast(T('adm.te_enviamos_un_enlace_para_confirmar_la_dire', 'Te enviamos un enlace para confirmar la dirección'), 'success');
         renderEmail();
       } catch (err) {
         showToast(err.message, 'error');
@@ -644,7 +646,7 @@
     if (!keys.length) {
       const empty = document.createElement('p');
       empty.className = 'linked-status';
-      empty.textContent = 'Ninguna';
+      empty.textContent = T('adm.ninguna', 'Ninguna');
       list.appendChild(empty);
     }
 
@@ -667,11 +669,11 @@
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'btn-outline btn-sm btn-danger';
-      remove.textContent = 'Eliminar';
+      remove.textContent = T('adm.eliminar', 'Eliminar');
       remove.addEventListener('click', async () => {
         try {
           await api(`/api/auth/passkeys/${key.id}`, { method: 'DELETE' });
-          showToast('Llave eliminada', 'success');
+          showToast(T('adm.llave_eliminada', 'Llave eliminada'), 'success');
           renderPasskeys();
         } catch (err) {
           showToast(err.message, 'error');
@@ -688,7 +690,7 @@
     addBtn.addEventListener('click', async () => {
       addBtn.disabled = true;
       const original = addBtn.textContent;
-      addBtn.textContent = 'Esperando…';
+      addBtn.textContent = T('adm.esperando', 'Esperando…');
       try {
         const options = await api('/api/auth/passkey/register/options', { method: 'POST' });
         const credential = await window.passkeys.register(options);
@@ -703,7 +705,7 @@
           method: 'POST',
           body: JSON.stringify({ response: credential, label: guess }),
         });
-        showToast('Llave de acceso añadida', 'success');
+        showToast(T('adm.llave_de_acceso_anadida', 'Llave de acceso añadida'), 'success');
         renderPasskeys();
       } catch (err) {
         showToast(window.passkeys ? window.passkeys.describeError(err) : err.message, 'error');
@@ -728,15 +730,15 @@
 
     if (status.enabled) {
       label.textContent = `Activa · ${status.recoveryCodesLeft} código(s) de recuperación sin usar`;
-      toggle.textContent = 'Desactivar';
+      toggle.textContent = T('adm.desactivar', 'Desactivar');
       devicesRow.classList.remove('hidden');
       const n = status.trustedDevices || 0;
       devicesStatus.textContent = n
         ? `${n} · no piden código durante ${status.trustHours}h`
         : 'Ninguno';
     } else {
-      label.textContent = 'No activa';
-      toggle.textContent = 'Activar';
+      label.textContent = T('adm.no_activa', 'No activa');
+      toggle.textContent = T('adm.activar', 'Activar');
       devicesRow.classList.add('hidden');
     }
 
@@ -796,7 +798,7 @@
         // Shown once. They are stored hashed, so this cannot be repeated.
         document.getElementById('mfa-codes').textContent = (data.recoveryCodes || []).join('\n');
         recovery.classList.remove('hidden');
-        showToast('Verificación en dos pasos activada', 'success');
+        showToast(T('adm.verificacion_en_dos_pasos_activada', 'Verificación en dos pasos activada'), 'success');
         renderMfa();
       } catch (err) {
         showToast(err.message, 'error');
@@ -864,7 +866,7 @@
 
     submit.addEventListener('click', async () => {
       submit.disabled = true;
-      submit.textContent = 'Eliminando…';
+      submit.textContent = T('adm.eliminando', 'Eliminando…');
       try {
         await api('/api/account/delete', {
           method: 'POST',
@@ -874,7 +876,7 @@
       } catch (err) {
         error.textContent = err.message;
         error.classList.remove('hidden');
-        submit.textContent = 'Eliminar definitivamente';
+        submit.textContent = T('adm.eliminar_definitivamente', 'Eliminar definitivamente');
         submit.disabled = input.value !== username;
       }
     });
@@ -916,11 +918,11 @@
         const reveal = document.createElement('button');
         reveal.type = 'button';
         reveal.className = 'linked-reveal';
-        reveal.textContent = 'Ver correo';
+        reveal.textContent = T('adm.ver_correo', 'Ver correo');
         reveal.setAttribute('aria-expanded', 'false');
         reveal.addEventListener('click', () => {
           const shown = reveal.getAttribute('aria-expanded') === 'true';
-          reveal.textContent = shown ? 'Ver correo' : account.email;
+          reveal.textContent = shown ? T('adm.ver_correo', 'Ver correo') : account.email;
           reveal.setAttribute('aria-expanded', String(!shown));
           reveal.classList.toggle('is-revealed', !shown);
         });
@@ -931,7 +933,7 @@
       action.className = 'btn-outline btn-sm';
       if (account) {
         action.type = 'button';
-        action.textContent = 'Desvincular';
+        action.textContent = T('adm.desvincular', 'Desvincular');
         action.addEventListener('click', async () => {
           try {
             // Scoped to this account id — without it the server would drop
@@ -974,7 +976,7 @@
     const linked = params.get('linked');
     if (linked) showToast(`Cuenta de ${linked} vinculada`, 'success');
     if (params.get('error') === 'oauth_taken') {
-      showToast('Esa cuenta ya está vinculada a otro usuario', 'error');
+      showToast(T('adm.esa_cuenta_ya_esta_vinculada_a_otro_usuario', 'Esa cuenta ya está vinculada a otro usuario'), 'error');
     }
     if (params.has('linked') || params.has('error')) {
       window.history.replaceState({}, '', '/admin/dashboard');
@@ -1103,7 +1105,7 @@
     if (!confirm(`¿Eliminar el enlace "${link.label}"?`)) return;
     try {
       await api(`/api/links/${link.id}`, { method: 'DELETE' });
-      showToast('Enlace eliminado', 'success');
+      showToast(T('adm.enlace_eliminado', 'Enlace eliminado'), 'success');
       await loadLinks();
     } catch (err) {
       showToast(err.message, 'error');
@@ -1179,14 +1181,14 @@
   document.getElementById('l-image-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file || !editingImageLinkId) {
-      if (file && !editingImageLinkId) showToast('Primero guarda el enlace, luego súbele la imagen', 'error');
+      if (file && !editingImageLinkId) showToast(T('adm.primero_guarda_el_enlace_luego_subele_la_ima', 'Primero guarda el enlace, luego súbele la imagen'), 'error');
       return;
     }
     const formData = new FormData();
     formData.append('image', file);
     try {
       await api(`/api/links/${editingImageLinkId}/image`, { method: 'POST', body: formData });
-      showToast('Imagen actualizada', 'success');
+      showToast(T('adm.imagen_actualizada', 'Imagen actualizada'), 'success');
       await loadLinks();
     } catch (err) {
       showToast(err.message, 'error');
@@ -1215,15 +1217,15 @@
     try {
       if (id) {
         await api(`/api/links/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-        showToast('Enlace actualizado', 'success');
+        showToast(T('adm.enlace_actualizado', 'Enlace actualizado'), 'success');
         closeLinkModal();
       } else {
         const created = await api('/api/links', { method: 'POST', body: JSON.stringify(payload) });
-        showToast('Enlace creado', 'success');
+        showToast(T('adm.enlace_creado', 'Enlace creado'), 'success');
         if (payload.type === 'featured') {
           editingImageLinkId = created.id;
           document.getElementById('l-id').value = created.id;
-          document.getElementById('link-modal-title').textContent = 'Editar enlace — ahora sube la imagen';
+          document.getElementById('link-modal-title').textContent = T('adm.editar_enlace_ahora_sube_la_imagen', 'Editar enlace — ahora sube la imagen');
         } else {
           closeLinkModal();
         }

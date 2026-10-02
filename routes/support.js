@@ -151,6 +151,7 @@ function prepararMensaje(req) {
   const userId = (req.session && req.session.userId) || null;
   const pestana = PESTANAS_VALIDAS.has(String(cuerpo.tab || '')) ? String(cuerpo.tab) : null;
   const modoVoz = cuerpo.voice === true;
+  const idioma = idiomaDe(req, cuerpo);
 
   // Un testigo que no cuadra abre un hilo nuevo en vez de dar un error:
   // así no se puede distinguir "no existe" de "no es tuyo".
@@ -175,7 +176,26 @@ function prepararMensaje(req) {
   store.addMessage(conversacion.id, 'visitante', mensaje);
   store.touchConversation(conversacion.id);
 
-  return { conversacion, credenciales, userId, pestana, modoVoz };
+  return { conversacion, credenciales, userId, pestana, modoVoz, idioma };
+}
+
+/**
+ * En qué idioma hay que contestarle.
+ *
+ * Primero lo que diga el cliente, porque ahí se respeta el idioma que la
+ * persona haya elegido a mano; si no lo manda, la cabecera que envía el
+ * navegador, que es la del sistema o la del teléfono. Se queda sólo con la
+ * raíz ("es-419" -> "es") y se valida la forma: esto acaba dentro de las
+ * instrucciones que lee el modelo, así que no entra texto libre.
+ */
+function idiomaDe(req, cuerpo) {
+  const delCliente = String((cuerpo && cuerpo.lang) || '').trim();
+  if (/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$/.test(delCliente)) return delCliente.toLowerCase().split('-')[0];
+
+  const cabecera = String(req.headers['accept-language'] || '');
+  const primera = cabecera.split(',')[0].trim();
+  if (/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$/.test(primera)) return primera.toLowerCase().split('-')[0];
+  return null;
 }
 
 const ticketPorReferencia = db.prepare('SELECT * FROM support_tickets WHERE public_id = ?');
@@ -197,6 +217,7 @@ router.post('/support/chat', chatLimiter, requireAuth, async (req, res) => {
       userId: p.userId,
       pestana: p.pestana,
       modoVoz: p.modoVoz,
+      idioma: p.idioma,
     });
 
     store.addMessage(p.conversacion.id, 'asistente', respuesta.text);
@@ -269,6 +290,7 @@ router.post('/support/chat/stream', chatLimiter, requireAuth, async (req, res) =
       userId: p.userId,
       pestana: p.pestana,
       modoVoz: p.modoVoz,
+      idioma: p.idioma,
       senal: control.signal,
     })) {
       if (ev.tipo === 'texto') {

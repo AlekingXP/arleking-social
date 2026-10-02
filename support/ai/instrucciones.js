@@ -36,11 +36,37 @@ const PESTANAS = {
 };
 
 /** La parte que cambia en cada petición. Nada de aquí sale del cuerpo sin validar. */
-function contexto({ username, pestana, modoVoz }) {
+// Nombre del idioma a partir de la etiqueta que manda el navegador, para
+// poder decírselo al modelo con palabras. Intl lo sabe para cualquier
+// etiqueta; la lista de abajo es sólo el respaldo si el entorno no lo trae.
+const IDIOMAS = { es: 'español', en: 'inglés', pt: 'portugués', fr: 'francés', it: 'italiano', de: 'alemán' };
+
+function nombreDeIdioma(etiqueta) {
+  const raiz = String(etiqueta || '').toLowerCase().split(/[-_]/)[0];
+  if (!raiz) return null;
+  try {
+    const n = new Intl.DisplayNames(['es'], { type: 'language' }).of(raiz);
+    if (n && n !== raiz) return n;
+  } catch (err) { /* entorno sin Intl completo: se usa la lista */ }
+  return IDIOMAS[raiz] || null;
+}
+
+function contexto({ username, pestana, modoVoz, idioma }) {
   const lineas = ['Contexto de esta conversación:'];
   lineas.push(username
     ? `- Hablas con ${username}, que tiene su panel abierto.`
     : '- No hay sesión identificada.');
+
+  // El asistente responde en el idioma de quien pregunta, sea cual sea: es
+  // un modelo de lenguaje y eso no cuesta un diccionario. La base de
+  // conocimiento está en castellano, así que se le dice explícitamente que
+  // traduzca lo que encuentre en vez de pegarlo tal cual.
+  const nombre = nombreDeIdioma(idioma);
+  if (nombre && nombre !== 'español') {
+    lineas.push(`- Su dispositivo está en ${nombre}: respóndele SIEMPRE en ${nombre}.`);
+    lineas.push(`- Los artículos de ayuda están en español. Tradúcelos a ${nombre} al explicarlos; no copies el español tal cual.`);
+    lineas.push('- Los nombres de los botones y pestañas que le señales en pantalla sí van como aparecen en su interfaz.');
+  }
   if (pestana && Object.prototype.hasOwnProperty.call(PESTANAS, pestana)) {
     lineas.push(`- Ahora mismo está en la pestaña ${PESTANAS[pestana]}.`);
   }
@@ -51,4 +77,4 @@ function contexto({ username, pestana, modoVoz }) {
   return lineas.join('\n');
 }
 
-module.exports = { FIJAS, contexto, PESTANAS };
+module.exports = { FIJAS, contexto, PESTANAS, nombreDeIdioma };

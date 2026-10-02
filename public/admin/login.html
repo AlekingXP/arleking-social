@@ -28,13 +28,13 @@
 
     <!-- Left panel: the lamp. Click the cord to toggle the light. -->
     <div class="lamp-stage">
-      <button type="button" class="lamp" id="lamp-toggle" aria-pressed="true" aria-label="Encender o apagar la lámpara">
+      <button type="button" class="lamp" id="lamp-toggle" aria-pressed="true" aria-label="Encender o apagar la lámpara" data-i18n-aria="login.aria_encender_o_apagar_la_lampara">
         <span class="lamp-cord" aria-hidden="true"><span class="lamp-cord-grip"></span></span>
         <span class="lamp-shade" aria-hidden="true"></span>
         <span class="lamp-bulb" aria-hidden="true"></span>
         <span class="lamp-beam" aria-hidden="true"></span>
       </button>
-      <p class="lamp-hint">Tira del cordón</p>
+      <p class="lamp-hint" data-i18n="login.tira_del_cordon">Tira del cordón</p>
     </div>
 
     <!-- Right panel: the form -->
@@ -42,18 +42,18 @@
       <!-- login.js swaps #orb-label between "Iniciar sesión" and "Crear
            cuenta", so it carries the whole heading — a fixed prefix would
            read wrong in one of the two modes. -->
-      <h1 class="lamp-title">✨ <span id="orb-label">Iniciar sesión</span></h1>
-      <p class="login-sub" id="login-subtitle">Inicia sesión para administrar tu página</p>
+      <h1 class="lamp-title">✨ <span id="orb-label" data-i18n="login.iniciar_sesion">Iniciar sesión</span></h1>
+      <p class="login-sub" id="login-subtitle" data-i18n="login.inicia_sesion_para_administrar_tu_pagina">Inicia sesión para administrar tu página</p>
 
       <p class="signed-in-notice hidden" id="signed-in-notice">
         Ya tienes sesión abierta como <strong id="signed-in-user"></strong>.
-        <a href="/admin/dashboard">Ir al panel</a> &middot;
-        <a href="#" id="signed-in-logout">Cerrar sesión</a>
+        <a href="/admin/dashboard" data-i18n="login.ir_al_panel">Ir al panel</a> &middot;
+        <a href="#" id="signed-in-logout" data-i18n="login.cerrar_sesion">Cerrar sesión</a>
       </p>
 
       <form id="login-form">
         <label class="field field-icon">
-          <span>Usuario</span>
+          <span data-i18n="login.usuario">Usuario</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="text" id="username" name="username" autocomplete="username" required />
@@ -61,7 +61,7 @@
         </label>
 
         <label class="field field-icon">
-          <span>Contraseña</span>
+          <span data-i18n="login.contrasena">Contraseña</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.6a3.5 3.5 0 0 1 7 0v2.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="password" id="password" name="password" autocomplete="current-password" required />
@@ -69,7 +69,7 @@
         </label>
 
         <label class="field field-icon hidden" id="password-confirm-field">
-          <span>Confirmar contraseña</span>
+          <span data-i18n="login.confirmar_contrasena">Confirmar contraseña</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.6a3.5 3.5 0 0 1 7 0v2.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="password" id="password-confirm" name="password-confirm" autocomplete="new-password" />
@@ -79,7 +79,7 @@
         <!-- Solo aparece cuando el servidor responde que la cuenta tiene
              segundo factor: pedirlo antes revelaria quien lo tiene activo. -->
         <label class="field field-icon hidden" id="totp-field">
-          <span>Código de verificación</span>
+          <span data-i18n="login.codigo_de_verificacion">Código de verificación</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.5" y="3" width="15" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="text" id="totp" name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="11" placeholder="000000" />
@@ -88,7 +88,7 @@
 
         <p id="login-error" class="error-text hidden"></p>
 
-        <button type="submit" class="btn-pill btn-gradient" id="submit-btn" style="width:100%;">Entrar</button>
+        <button type="submit" class="btn-pill btn-gradient" id="submit-btn" style="width:100%;" data-i18n="login.entrar">Entrar</button>
 
         <!-- Solo se muestra si el dispositivo tiene autenticador integrado;
              ofrecerlo sin biometria seria un boton muerto. -->
@@ -98,7 +98,7 @@
             <path d="M5.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             <path d="M3 7V5.5A2.5 2.5 0 0 1 5.5 3H7M17 3h1.5A2.5 2.5 0 0 1 21 5.5V7M21 17v1.5a2.5 2.5 0 0 1-2.5 2.5H17M7 21H5.5A2.5 2.5 0 0 1 3 18.5V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
-          <span id="passkey-login-label">Entrar con Face ID o huella</span>
+          <span id="passkey-login-label" data-i18n="login.entrar_con_face_id_o_huella">Entrar con Face ID o huella</span>
         </button>
 
         <div class="orb-divider hidden" id="google-divider"><span>o</span></div>
@@ -111,16 +111,16 @@
       <!-- Solo aparece si el servidor tiene proveedor de correo; sin el, el
            enlace llevaria a un callejon sin salida. -->
       <p class="forgot-line hidden" id="forgot-line">
-        <a href="#" id="forgot-link">¿Olvidaste tu contraseña?</a>
+        <a href="#" id="forgot-link" data-i18n="login.olvidaste_tu_contrasena">¿Olvidaste tu contraseña?</a>
       </p>
 
       <!-- Pedir el enlace -->
       <div class="hidden" id="forgot-panel">
-        <p class="hint" style="margin:0 0 10px;">
+        <p class="hint" style="margin:0 0 10px;" data-i18n="login.escribe_el_correo_de_tu_cuenta_y_te_enviamos">
           Escribe el correo de tu cuenta y te enviamos un enlace para elegir una nueva.
         </p>
         <label class="field field-icon">
-          <span>Correo</span>
+          <span data-i18n="login.correo">Correo</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="email" id="forgot-email" autocomplete="email" />
@@ -128,37 +128,38 @@
         </label>
         <p id="forgot-msg" class="hint hidden"></p>
         <div class="danger-actions">
-          <button type="button" class="btn-outline" id="forgot-cancel">Cancelar</button>
-          <button type="button" class="btn-pill btn-gradient" id="forgot-send">Enviar enlace</button>
+          <button type="button" class="btn-outline" id="forgot-cancel" data-i18n="login.cancelar">Cancelar</button>
+          <button type="button" class="btn-pill btn-gradient" id="forgot-send" data-i18n="login.enviar_enlace">Enviar enlace</button>
         </div>
       </div>
 
       <!-- Elegir la contrasena nueva, tras abrir el enlace del correo -->
       <div class="hidden" id="reset-panel">
-        <p class="hint" style="margin:0 0 10px;">Elige tu contraseña nueva.</p>
+        <p class="hint" style="margin:0 0 10px;" data-i18n="login.elige_tu_contrasena_nueva">Elige tu contraseña nueva.</p>
         <label class="field field-icon">
-          <span>Contraseña nueva</span>
+          <span data-i18n="login.contrasena_nueva">Contraseña nueva</span>
           <span class="field-input">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.6a3.5 3.5 0 0 1 7 0v2.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="password" id="reset-password" autocomplete="new-password" />
           </span>
         </label>
         <p id="reset-msg" class="hint hidden"></p>
-        <button type="button" class="btn-pill btn-gradient" id="reset-send" style="width:100%;">Guardar contraseña</button>
+        <button type="button" class="btn-pill btn-gradient" id="reset-send" style="width:100%;" data-i18n="login.guardar_contrasena">Guardar contraseña</button>
       </div>
 
       <p class="mode-toggle" id="mode-toggle">
-        ¿No tienes cuenta? <a href="#" id="mode-toggle-link">Crea una</a>
+        ¿No tienes cuenta? <a href="#" id="mode-toggle-link" data-i18n="login.crea_una">Crea una</a>
       </p>
 
       <footer class="legal-footer">
-        <a href="/terminos">Términos</a>
-        <a href="/privacidad">Privacidad</a>
-        <a href="/reembolsos">Reembolsos</a>
+        <a href="/terminos" data-i18n="login.terminos">Términos</a>
+        <a href="/privacidad" data-i18n="login.privacidad">Privacidad</a>
+        <a href="/reembolsos" data-i18n="login.reembolsos">Reembolsos</a>
       </footer>
     </div>
   </div>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/js/particles.js"></script>

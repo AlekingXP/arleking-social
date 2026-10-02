@@ -32,6 +32,9 @@
 (function () {
   'use strict';
 
+  // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
+  var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
+
   var CLAVE_HILO = 'aks.soporte.hilo';
   var CLAVE_VOZ = 'aks.soporte.voz';
   var CLAVE_SALUDO = 'aks.soporte.saludo';
@@ -40,19 +43,29 @@
 
   var movimientoReducido = Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  var SUGERENCIAS = [
-    '¿Cómo cancelo mi suscripción?',
-    '¿Cómo cambio la URL de mi página?',
-    'Quiero activar Face ID',
-    'Quiero hablar con una persona',
-  ];
+  // Funciones y no constantes: una constante se evalua al cargar el archivo,
+  // que es ANTES de que llegue el diccionario de idiomas, y se queda con el
+  // castellano congelado. Como el diccionario a veces viene de la cache y a
+  // veces no, eso salia traducido unas veces si y otras no. Se traduce en el
+  // momento de pintar, que es cuando ya esta.
+  function sugerencias() {
+    return [
+      T('sop.como_cancelo_mi_suscripcion', '¿Cómo cancelo mi suscripción?'),
+      T('sop.como_cambio_la_url_de_mi_pagina', '¿Cómo cambio la URL de mi página?'),
+      T('sop.quiero_activar_face_id', 'Quiero activar Face ID'),
+      T('sop.quiero_hablar_con_una_persona', 'Quiero hablar con una persona'),
+    ];
+  }
 
-  var ACTIVIDAD = {
-    buscar_ayuda: 'Buscando en la ayuda…',
-    estado_de_mi_cuenta: 'Mirando tu cuenta…',
-    guiar_en_pantalla: 'Preparando la guía…',
-    abrir_ticket: 'Avisando al equipo…',
-  };
+  function actividadDe(herramienta) {
+    var textos = {
+      buscar_ayuda: T('sop.buscando_en_la_ayuda', 'Buscando en la ayuda…'),
+      estado_de_mi_cuenta: T('sop.mirando_tu_cuenta', 'Mirando tu cuenta…'),
+      guiar_en_pantalla: T('sop.preparando_la_guia', 'Preparando la guía…'),
+      abrir_ticket: T('sop.avisando_al_equipo', 'Avisando al equipo…'),
+    };
+    return Object.prototype.hasOwnProperty.call(textos, herramienta) ? textos[herramienta] : null;
+  }
 
   var ICONO_ENVIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
   var ICONO_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/></svg>';
@@ -197,16 +210,16 @@
     mini.alt = '';
     avatar.appendChild(mini);
     var textos = el('div', 'sup-head-textos');
-    var titulo = el('p', 'sup-title', 'Asistente');
+    var titulo = el('p', 'sup-title', T('sop.asistente', 'Asistente'));
     var sub = el('p', 'sup-sub');
     var pulso = el('span', 'sup-pulse');
     pulso.setAttribute('aria-hidden', 'true');
-    var subTexto = el('span', null, 'En línea');
+    var subTexto = el('span', null, T('sop.en_linea', 'En línea'));
     sub.append(pulso, subTexto);
     textos.append(titulo, sub);
     var voz = boton('sup-icono sup-voz', 'Leer las respuestas en voz alta', ICONO_VOZ);
     voz.setAttribute('aria-pressed', 'false');
-    var cerrar = boton('sup-icono', 'Cerrar el asistente', ICONO_CERRAR);
+    var cerrar = boton('sup-icono', T('sop.cerrar_el_asistente', 'Cerrar el asistente'), ICONO_CERRAR);
     cabecera.append(avatar, textos, voz, cerrar);
 
     var registro = el('div', 'sup-log');
@@ -221,14 +234,14 @@
     var formulario = el('form', 'sup-form');
     var entrada = el('textarea', 'sup-input');
     entrada.rows = 1;
-    entrada.placeholder = 'Escribe o pulsa el micro…';
+    entrada.placeholder = T('sop.escribe_o_pulsa_el_micro', 'Escribe o pulsa el micro…');
     entrada.maxLength = 2000;
     entrada.setAttribute('aria-label', 'Tu pregunta');
-    var mic = boton('sup-mic', 'Hablar con el asistente', ICONO_MIC);
+    var mic = boton('sup-mic', T('sop.hablar_con_el_asistente', 'Hablar con el asistente'), ICONO_MIC);
     mic.setAttribute('aria-pressed', 'false');
     var enviar = el('button', 'sup-enviar');
     enviar.type = 'submit';
-    enviar.setAttribute('aria-label', 'Enviar');
+    enviar.setAttribute('aria-label', T('sop.enviar', 'Enviar'));
     enviar.innerHTML = ICONO_ENVIAR;
     formulario.append(entrada, mic, enviar);
 
@@ -243,8 +256,8 @@
     contacto.append(correo, botonContacto);
 
     var pie = el('p', 'sup-pie');
-    pie.append(document.createTextNode('Asistente automático · '));
-    var enlacePriv = el('a', null, 'Privacidad');
+    pie.append(document.createTextNode(T('sop.asistente_automatico', 'Asistente automático · ')));
+    var enlacePriv = el('a', null, T('sop.privacidad', 'Privacidad'));
     enlacePriv.href = '/privacidad';
     enlacePriv.target = '_blank';
     enlacePriv.rel = 'noopener';
@@ -255,7 +268,7 @@
     // ---- Personaje ----
     var lanzador = el('button', 'sup-launcher');
     lanzador.type = 'button';
-    lanzador.setAttribute('aria-label', 'Abrir el asistente');
+    lanzador.setAttribute('aria-label', T('sop.abrir_el_asistente', 'Abrir el asistente'));
     lanzador.setAttribute('aria-expanded', 'false');
     var escenario = el('span', 'sup-escenario');
     var poster = el('img', 'sup-poster');
@@ -268,7 +281,7 @@
     punto.hidden = true;
     lanzador.append(sombra, escenario, punto);
 
-    var bocadillo = el('div', 'sup-bocadillo', '¿Te echo una mano?');
+    var bocadillo = el('div', 'sup-bocadillo', T('sop.te_echo_una_mano', '¿Te echo una mano?'));
     bocadillo.setAttribute('role', 'status');
     bocadillo.hidden = true;
 
@@ -443,7 +456,7 @@
 
     function pintarSugerencias() {
       ui.sugerencias.textContent = '';
-      SUGERENCIAS.forEach(function (texto) {
+      sugerencias().forEach(function (texto) {
         var chip = el('button', 'sup-chip', texto);
         chip.type = 'button';
         chip.addEventListener('click', function () {
@@ -457,8 +470,8 @@
 
     function bienvenida() {
       burbuja('asistente', asistenteActivo
-        ? '¡Hola! Soy tu asistente. Pregúntame lo que quieras sobre tu página, la insignia VIP o tu cuenta, y si hace falta te lo enseño en pantalla. También puedes hablarme con el micro.'
-        : 'Hola. Busco por ti en la ayuda y te enseño en pantalla dónde está cada cosa. Si no lo encuentro, paso tu consulta a una persona del equipo.');
+        ? T('sop.hola_soy_tu_asistente_preguntame_lo_que_quie', '¡Hola! Soy tu asistente. Pregúntame lo que quieras sobre tu página, la insignia VIP o tu cuenta, y si hace falta te lo enseño en pantalla. También puedes hablarme con el micro.')
+        : T('sop.hola_busco_por_ti_en_la_ayuda_y_te_enseno_en', 'Hola. Busco por ti en la ayuda y te enseño en pantalla dónde está cada cosa. Si no lo encuentro, paso tu consulta a una persona del equipo.'));
       pintarSugerencias();
     }
 
@@ -490,10 +503,10 @@
           }
           pintarHistorial(r.datos.messages);
           if (r.datos.ticket && r.datos.ticket.status !== 'cerrado') {
-            aviso('Tu consulta está con el equipo.', r.datos.ticket.reference);
+            aviso(T('sop.tu_consulta_esta_con_el_equipo', 'Tu consulta está con el equipo.'), r.datos.ticket.reference);
           }
           if (r.datos.maxed) {
-            aviso('Esta conversación ya es larga. Recarga la página para empezar una nueva.');
+            aviso(T('sop.esta_conversacion_ya_es_larga_recarga_la_pag', 'Esta conversación ya es larga. Recarga la página para empezar una nueva.'));
             bloquear();
           }
         })
@@ -507,7 +520,7 @@
       ui.entrada.disabled = true;
       ui.enviar.disabled = true;
       ui.mic.disabled = true;
-      ui.entrada.placeholder = 'Conversación cerrada';
+      ui.entrada.placeholder = T('sop.conversacion_cerrada', 'Conversación cerrada');
       terminarConversacion();
     }
 
@@ -584,12 +597,12 @@
         },
         alError: function (codigo) {
           if (codigo === 'not-allowed' || codigo === 'service-not-allowed') {
-            aviso('Para hablarme, permite el micrófono en el candado de la barra de direcciones.');
+            aviso(T('sop.para_hablarme_permite_el_microfono_en_el_can', 'Para hablarme, permite el micrófono en el candado de la barra de direcciones.'));
             terminarConversacion();
           } else if (codigo === 'no-speech') {
             silencios += 1;
           } else if (codigo === 'network') {
-            aviso('El dictado necesita conexión con el servicio de voz del navegador y ahora no responde.');
+            aviso(T('sop.el_dictado_necesita_conexion_con_el_servicio', 'El dictado necesita conexión con el servicio de voz del navegador y ahora no responde.'));
             terminarConversacion();
           } else if (codigo !== 'aborted') {
             terminarConversacion();
@@ -740,7 +753,14 @@
         terminar();
       }
 
-      var cuerpo = { message: texto, tab: pestanaActual(), voice: porVoz };
+      // El idioma va en el cuerpo y no se deja sólo a la cabecera del
+      // navegador: si la persona eligió uno a mano, manda ese.
+      var cuerpo = {
+        message: texto,
+        tab: pestanaActual(),
+        voice: porVoz,
+        lang: (window.AKI18n && window.AKI18n.idioma) || navigator.language || '',
+      };
       if (hilo) { cuerpo.conversationId = hilo.conversationId; cuerpo.secret = hilo.secret; }
 
       controlEnvio = typeof AbortController === 'function' ? new AbortController() : null;
@@ -759,12 +779,12 @@
           pintar(datos.texto || '');
           if (hablarEsta) AKVoz.descartarPendiente();
         } else if (tipo === 'herramienta') {
-          mostrarActividad(ACTIVIDAD[datos.nombre] || 'Pensando…');
+          mostrarActividad(actividadDe(datos.nombre) || T('sop.pensando', 'Pensando…'));
           if (ui.raiz.dataset.estado !== 'hablando') avatar.estado('pensando');
         } else if (tipo === 'guia') {
           guiaPendiente = datos.pasos;
         } else if (tipo === 'ticket') {
-          aviso('He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.', datos.referencia);
+          aviso(T('sop.he_pasado_tu_consulta_a_una_persona_del_equi', 'He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.'), datos.referencia);
           ui.contacto.hidden = true;
           // No supo resolverlo: lo dice con el cuerpo, no sólo con el texto.
           avatar.emocionar('niega');
@@ -786,21 +806,21 @@
         .then(function (r) {
           if (r.vivo) { terminar(); return null; }
           if (r.status === 404 || r.status === 405) return sinVivo();
-          fallar((r.datos && r.datos.error) || 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.', r.datos);
+          fallar((r.datos && r.datos.error) || T('sop.no_pude_responder_ahora_mismo_intentalo_de_n', 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.'), r.datos);
           return null;
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') { terminar(); return null; }
           // Si el directo falla antes de empezar, se intenta de una vez.
           if (!recibido) return sinVivo();
-          fallar('Se me cortó la conexión. Pregúntamelo otra vez en un momento.');
+          fallar(T('sop.se_me_corto_la_conexion_preguntamelo_otra_ve', 'Se me cortó la conexión. Pregúntamelo otra vez en un momento.'));
           return null;
         });
 
       function sinVivo() {
         return pedir('/chat', { method: 'POST', body: cuerpo }).then(function (r) {
           if (!r.ok) {
-            fallar(r.datos.error || 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.', r.datos);
+            fallar(r.datos.error || T('sop.no_pude_responder_ahora_mismo_intentalo_de_n', 'No pude responder ahora mismo. Inténtalo de nuevo en un momento.'), r.datos);
             return;
           }
           guardarCredenciales(r.datos);
@@ -811,7 +831,7 @@
           // Las mismas reacciones que por el camino en vivo: no puede
           // depender de si el navegador soporta streaming.
           if (r.datos.ticket) {
-            aviso('He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.', r.datos.ticket.reference);
+            aviso(T('sop.he_pasado_tu_consulta_a_una_persona_del_equi', 'He pasado tu consulta a una persona del equipo. Te responderán aquí mismo.'), r.datos.ticket.reference);
             avatar.emocionar('niega');
           } else if (r.datos.offerTicket) {
             mostrarContacto();
@@ -820,7 +840,7 @@
           }
           terminar();
         }).catch(function () {
-          fallar('Se me cayó la conexión. Inténtalo otra vez en un momento.');
+          fallar(T('sop.se_me_cayo_la_conexion_intentalo_otra_vez_en', 'Se me cayó la conexión. Inténtalo otra vez en un momento.'));
         });
       }
     }
@@ -844,7 +864,7 @@
       ui.raiz.classList.toggle('is-open', abierto);
       ui.panel.inert = !abierto;
       ui.lanzador.setAttribute('aria-expanded', String(abierto));
-      ui.lanzador.setAttribute('aria-label', abierto ? 'Cerrar el asistente' : 'Abrir el asistente');
+      ui.lanzador.setAttribute('aria-label', abierto ? T('sop.cerrar_el_asistente', 'Cerrar el asistente') : T('sop.abrir_el_asistente', 'Abrir el asistente'));
       ocultarBocadillo();
 
       avatar.tocar(abierto);
@@ -928,7 +948,7 @@
       var mensajes = [].slice.call(ui.registro.querySelectorAll('.sup-msg.de-visitante'));
       var ultimo = mensajes.length ? mensajes[mensajes.length - 1].textContent : '';
       if (ultimo.length < 10) {
-        burbuja('asistente', 'Cuéntame primero qué necesitas y lo paso al equipo con el detalle.');
+        burbuja('asistente', T('sop.cuentame_primero_que_necesitas_y_lo_paso_al_', 'Cuéntame primero qué necesitas y lo paso al equipo con el detalle.'));
         return;
       }
 
@@ -938,14 +958,14 @@
 
       pedir('/ticket', { method: 'POST', body: cuerpo }).then(function (r) {
         if (!r.ok) {
-          burbuja('asistente', r.datos.error || 'No pude abrir la consulta. Inténtalo de nuevo.');
+          burbuja('asistente', r.datos.error || T('sop.no_pude_abrir_la_consulta_intentalo_de_nuevo', 'No pude abrir la consulta. Inténtalo de nuevo.'));
           return;
         }
         guardarCredenciales(r.datos);
         ui.contacto.hidden = true;
         aviso(r.datos.emailNotice
           ? 'Listo. Te avisamos por correo en cuanto te respondan.'
-          : 'Listo, el equipo ya lo tiene. Vuelve por aquí para ver la respuesta.',
+          : T('sop.listo_el_equipo_ya_lo_tiene_vuelve_por_aqui_', 'Listo, el equipo ya lo tiene. Vuelve por aquí para ver la respuesta.'),
           r.datos.ticket.reference);
       });
     });

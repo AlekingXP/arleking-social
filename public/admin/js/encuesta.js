@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
+  var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
+
   // La encuesta, por el lado de quien la responde.
   //
   // Al entrar al panel se pregunta si hay alguna pendiente. Si la hay,
@@ -79,14 +82,14 @@
     cuerpo.type = 'button';
     cuerpo.appendChild(el('span', 'enc-aviso-punto'));
     var textos = el('span', 'enc-aviso-textos');
-    textos.appendChild(el('strong', null, 'Tienes una encuesta nueva'));
+    textos.appendChild(el('strong', null, T('enc.tienes_una_encuesta_nueva', 'Tienes una encuesta nueva')));
     textos.appendChild(el('span', 'enc-aviso-pregunta', encuesta.pregunta));
     cuerpo.appendChild(textos);
     cuerpo.addEventListener('click', function () { abrir(encuesta); });
 
     var cerrar = el('button', 'enc-aviso-cerrar', '✕');
     cerrar.type = 'button';
-    cerrar.setAttribute('aria-label', 'Ahora no');
+    cerrar.setAttribute('aria-label', T('enc.ahora_no', 'Ahora no'));
     cerrar.addEventListener('click', function () {
       guardarSesion(CLAVE_POSPUESTA, encuesta.id);
       quitarAviso();
@@ -125,13 +128,13 @@
     var tarjeta = el('div', 'enc-tarjeta');
     tarjeta.setAttribute('role', 'dialog');
     tarjeta.setAttribute('aria-modal', 'true');
-    tarjeta.setAttribute('aria-label', 'Encuesta');
+    tarjeta.setAttribute('aria-label', T('enc.encuesta', 'Encuesta'));
 
     var cabecera = el('div', 'enc-cabecera');
-    cabecera.appendChild(el('span', 'enc-etiqueta', 'Encuesta'));
+    cabecera.appendChild(el('span', 'enc-etiqueta', T('enc.encuesta', 'Encuesta')));
     var x = el('button', 'enc-cerrar', '✕');
     x.type = 'button';
-    x.setAttribute('aria-label', 'Cerrar');
+    x.setAttribute('aria-label', T('enc.cerrar', 'Cerrar'));
     x.addEventListener('click', cerrarEncuesta);
     cabecera.appendChild(x);
 
@@ -145,8 +148,8 @@
     var opciones = el('div', 'enc-opciones');
     var botones = {};
     [
-      { valor: 'si', icono: '👍', texto: 'Sí, estoy de acuerdo' },
-      { valor: 'no', icono: '👎', texto: 'No, no estoy de acuerdo' },
+      { valor: 'si', icono: '👍', texto: T('enc.si_estoy_de_acuerdo', 'Sí, estoy de acuerdo') },
+      { valor: 'no', icono: '👎', texto: T('enc.no_no_estoy_de_acuerdo', 'No, no estoy de acuerdo') },
     ].forEach(function (o) {
       var b = el('button', 'enc-opcion');
       b.type = 'button';
@@ -169,11 +172,11 @@
     tarjeta.appendChild(opciones);
 
     var etiqueta = el('label', 'enc-campo');
-    etiqueta.appendChild(el('span', null, '¿Quieres añadir algo? (opcional)'));
+    etiqueta.appendChild(el('span', null, T('enc.quieres_anadir_algo_opcional', '¿Quieres añadir algo? (opcional)')));
     var texto = document.createElement('textarea');
     texto.rows = 3;
     texto.maxLength = 1000;
-    texto.placeholder = 'Lo que se te ocurra: lo leo yo.';
+    texto.placeholder = T('enc.lo_que_se_te_ocurra_lo_leo_yo', 'Lo que se te ocurra: lo leo yo.');
     etiqueta.appendChild(texto);
     tarjeta.appendChild(etiqueta);
 
@@ -181,27 +184,27 @@
     tarjeta.appendChild(error);
 
     var pie = el('div', 'enc-pie');
-    var luego = el('button', 'btn-outline btn-sm', 'Ahora no');
+    var luego = el('button', 'btn-outline btn-sm', T('enc.ahora_no', 'Ahora no'));
     luego.type = 'button';
     luego.addEventListener('click', function () {
       guardarSesion(CLAVE_POSPUESTA, encuesta.id);
       cerrarEncuesta();
     });
-    var enviar = el('button', 'btn-pill btn-gradient', 'Enviar respuesta');
+    var enviar = el('button', 'btn-pill btn-gradient', T('enc.enviar_respuesta', 'Enviar respuesta'));
     enviar.type = 'button';
     enviar.disabled = true;
     enviar.addEventListener('click', function () {
       if (!elegida) return;
       enviar.disabled = true;
-      enviar.textContent = 'Enviando…';
+      enviar.textContent = T('enc.enviando', 'Enviando…');
       pedir('/api/encuestas/' + encodeURIComponent(encuesta.id) + '/responder', {
         method: 'POST',
         body: { respuesta: elegida, comentario: texto.value },
       }).then(function (r) {
         if (!r.ok) {
-          error.textContent = (r.datos && r.datos.error) || 'No se pudo enviar. Inténtalo otra vez.';
+          error.textContent = (r.datos && r.datos.error) || T('enc.no_se_pudo_enviar_intentalo_otra_vez', 'No se pudo enviar. Inténtalo otra vez.');
           enviar.disabled = false;
-          enviar.textContent = 'Enviar respuesta';
+          enviar.textContent = T('enc.enviar_respuesta', 'Enviar respuesta');
           return;
         }
         gracias(tarjeta);
@@ -209,9 +212,9 @@
         var siguiente = r.datos && r.datos.siguiente;
         if (siguiente) setTimeout(function () { mostrarAviso(siguiente); }, 2200);
       }).catch(function () {
-        error.textContent = 'Se cortó la conexión. Inténtalo otra vez.';
+        error.textContent = T('enc.se_corto_la_conexion_intentalo_otra_vez', 'Se cortó la conexión. Inténtalo otra vez.');
         enviar.disabled = false;
-        enviar.textContent = 'Enviar respuesta';
+        enviar.textContent = T('enc.enviar_respuesta', 'Enviar respuesta');
       });
     });
     pie.append(luego, enviar);
@@ -231,8 +234,8 @@
     tarjeta.textContent = '';
     tarjeta.classList.add('enc-gracias');
     tarjeta.appendChild(el('div', 'enc-tic', '✓'));
-    tarjeta.appendChild(el('h2', 'enc-pregunta', '¡Gracias!'));
-    tarjeta.appendChild(el('p', 'enc-detalle', 'Tu respuesta ya me llegó.'));
+    tarjeta.appendChild(el('h2', 'enc-pregunta', T('enc.gracias', '¡Gracias!')));
+    tarjeta.appendChild(el('p', 'enc-detalle', T('enc.tu_respuesta_ya_me_llego', 'Tu respuesta ya me llegó.')));
     setTimeout(cerrarEncuesta, 1800);
   }
 

@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
+  var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
+
   // Las encuestas, por el lado de quien las hace.
   //
   // Vive en la pestaña Soporte, que ya es el sitio donde se atiende a la
@@ -82,7 +85,7 @@
     var titulo = el('p', 'enc-item-pregunta', e.pregunta);
     cab.appendChild(titulo);
     var estado = el('span', 'enc-estado ' + (e.estado === 'abierta' ? 'abierta' : 'cerrada'),
-      e.estado === 'abierta' ? 'Abierta' : 'Cerrada');
+      e.estado === 'abierta' ? T('encadm.abierta', 'Abierta') : T('encadm.cerrada', 'Cerrada'));
     cab.appendChild(estado);
     fila.appendChild(cab);
 
@@ -101,33 +104,33 @@
     var acciones = el('div', 'enc-item-acciones');
 
     if (e.total) {
-      var ver = el('button', 'btn-outline btn-sm', 'Ver respuestas');
+      var ver = el('button', 'btn-outline btn-sm', T('encadm.ver_respuestas', 'Ver respuestas'));
       ver.type = 'button';
       ver.addEventListener('click', function () { alternarDetalle(fila, e, ver); });
       acciones.appendChild(ver);
     }
 
-    var cerrar = el('button', 'btn-outline btn-sm', e.estado === 'abierta' ? 'Cerrar' : 'Reabrir');
+    var cerrar = el('button', 'btn-outline btn-sm', e.estado === 'abierta' ? T('encadm.cerrar', 'Cerrar') : T('encadm.reabrir', 'Reabrir'));
     cerrar.type = 'button';
     cerrar.addEventListener('click', function () {
       var accion = e.estado === 'abierta' ? 'cerrar' : 'reabrir';
       pedir('/api/encuestas/' + encodeURIComponent(e.id) + '/' + accion, { method: 'POST' })
         .then(function (r) {
-          if (!r.ok) return avisar((r.datos && r.datos.error) || 'No se pudo.', 'error');
-          avisar(accion === 'cerrar' ? 'Encuesta cerrada' : 'Encuesta reabierta', 'success');
+          if (!r.ok) return avisar((r.datos && r.datos.error) || T('encadm.no_se_pudo', 'No se pudo.'), 'error');
+          avisar(accion === 'cerrar' ? T('encadm.encuesta_cerrada', 'Encuesta cerrada') : T('encadm.encuesta_reabierta', 'Encuesta reabierta'), 'success');
           cargar();
         });
     });
     acciones.appendChild(cerrar);
 
-    var borrar = el('button', 'btn-outline btn-sm enc-borrar', 'Borrar');
+    var borrar = el('button', 'btn-outline btn-sm enc-borrar', T('encadm.borrar', 'Borrar'));
     borrar.type = 'button';
     borrar.addEventListener('click', function () {
       // Borrar se lleva por delante las respuestas; se pregunta.
-      if (!window.confirm('¿Borrar esta encuesta y todas sus respuestas?')) return;
+      if (!window.confirm(T('encadm.borrar_esta_encuesta_y_todas_sus_respuestas', '¿Borrar esta encuesta y todas sus respuestas?'))) return;
       pedir('/api/encuestas/' + encodeURIComponent(e.id), { method: 'DELETE' }).then(function (r) {
-        if (!r.ok) return avisar((r.datos && r.datos.error) || 'No se pudo borrar.', 'error');
-        avisar('Encuesta borrada', 'success');
+        if (!r.ok) return avisar((r.datos && r.datos.error) || T('encadm.no_se_pudo_borrar', 'No se pudo borrar.'), 'error');
+        avisar(T('encadm.encuesta_borrada', 'Encuesta borrada'), 'success');
         cargar();
       });
     });
@@ -141,18 +144,18 @@
     var abierto = fila.querySelector('.enc-respuestas');
     if (abierto) {
       abierto.remove();
-      boton.textContent = 'Ver respuestas';
+      boton.textContent = T('encadm.ver_respuestas', 'Ver respuestas');
       return;
     }
-    boton.textContent = 'Cargando…';
+    boton.textContent = T('encadm.cargando', 'Cargando…');
     pedir('/api/encuestas/' + encodeURIComponent(e.id)).then(function (r) {
-      boton.textContent = 'Ocultar respuestas';
-      if (!r.ok) return avisar('No se pudieron cargar.', 'error');
+      boton.textContent = T('encadm.ocultar_respuestas', 'Ocultar respuestas');
+      if (!r.ok) return avisar(T('encadm.no_se_pudieron_cargar', 'No se pudieron cargar.'), 'error');
       var lista = el('div', 'enc-respuestas');
       (r.datos.respuestas || []).forEach(function (resp) {
         var n = el('div', 'enc-respuesta');
         var cab = el('div', 'enc-respuesta-cab');
-        cab.appendChild(el('span', 'enc-voto ' + resp.respuesta, resp.respuesta === 'si' ? '👍 A favor' : '👎 En contra'));
+        cab.appendChild(el('span', 'enc-voto ' + resp.respuesta, resp.respuesta === 'si' ? T('encadm.a_favor', '👍 A favor') : T('encadm.en_contra', '👎 En contra')));
         cab.appendChild(el('span', 'enc-quien', resp.usuario));
         n.appendChild(cab);
         if (resp.comentario) n.appendChild(el('p', 'enc-comentario', resp.comentario));
@@ -172,7 +175,7 @@
       caja.textContent = '';
       var lista = (r.datos && r.datos.encuestas) || [];
       if (!lista.length) {
-        caja.appendChild(el('p', 'stat-empty', 'Todavía no has preguntado nada.'));
+        caja.appendChild(el('p', 'stat-empty', T('encadm.todavia_no_has_preguntado_nada', 'Todavía no has preguntado nada.')));
         return;
       }
       lista.forEach(function (e) { caja.appendChild(pintarUna(e)); });
@@ -183,13 +186,13 @@
 
   botonNueva.addEventListener('click', function () {
     var oculto = form.classList.toggle('hidden');
-    botonNueva.textContent = oculto ? 'Nueva encuesta' : 'Cerrar';
+    botonNueva.textContent = oculto ? T('encadm.nueva_encuesta', 'Nueva encuesta') : T('encadm.cerrar', 'Cerrar');
     if (!oculto) campoPregunta.focus();
   });
 
   document.getElementById('enc-cancelar').addEventListener('click', function () {
     form.classList.add('hidden');
-    botonNueva.textContent = 'Nueva encuesta';
+    botonNueva.textContent = T('encadm.nueva_encuesta', 'Nueva encuesta');
     form.reset();
   });
 
@@ -197,8 +200,8 @@
   // captura en la ayuda se queda vieja en cuanto se toca el diseño.
   document.getElementById('enc-previsualizar').addEventListener('click', function () {
     var pregunta = campoPregunta.value.trim();
-    if (!pregunta) return avisar('Escribe la pregunta primero.', 'error');
-    if (!window.AKEncuesta) return avisar('La vista previa no está disponible.', 'error');
+    if (!pregunta) return avisar(T('encadm.escribe_la_pregunta_primero', 'Escribe la pregunta primero.'), 'error');
+    if (!window.AKEncuesta) return avisar(T('encadm.la_vista_previa_no_esta_disponible', 'La vista previa no está disponible.'), 'error');
     window.AKEncuesta.avisar({ id: '(vista previa)', pregunta: pregunta, detalle: campoDetalle.value.trim() || null });
   });
 
@@ -208,11 +211,11 @@
     if (!pregunta) return;
     pedir('/api/encuestas', { method: 'POST', body: { pregunta: pregunta, detalle: campoDetalle.value.trim() } })
       .then(function (r) {
-        if (!r.ok) return avisar((r.datos && r.datos.error) || 'No se pudo crear.', 'error');
-        avisar('Encuesta enviada a todas las cuentas', 'success');
+        if (!r.ok) return avisar((r.datos && r.datos.error) || T('encadm.no_se_pudo_crear', 'No se pudo crear.'), 'error');
+        avisar(T('encadm.encuesta_enviada_a_todas_las_cuentas', 'Encuesta enviada a todas las cuentas'), 'success');
         form.reset();
         form.classList.add('hidden');
-        botonNueva.textContent = 'Nueva encuesta';
+        botonNueva.textContent = T('encadm.nueva_encuesta', 'Nueva encuesta');
         cargar();
       });
   });

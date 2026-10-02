@@ -43,10 +43,10 @@
   <canvas id="particles-canvas" class="particles-canvas" aria-hidden="true"></canvas>
 
   <div class="topbar">
-    <h1 class="brand-name topbar-title">✨ Dashboard</h1>
+    <h1 class="brand-name topbar-title" data-i18n="panel.dashboard">✨ Dashboard</h1>
     <div class="topbar-actions">
-      <a href="/" id="view-public-link" target="_blank" class="btn-outline btn-sm">Ver página pública ↗</a>
-      <button id="logout-btn" class="btn-outline btn-sm">Cerrar sesión</button>
+      <a href="/" id="view-public-link" target="_blank" class="btn-outline btn-sm" data-i18n="panel.ver_pagina_publica">Ver página pública ↗</a>
+      <button id="logout-btn" class="btn-outline btn-sm" data-i18n="panel.cerrar_sesion">Cerrar sesión</button>
     </div>
   </div>
 
@@ -60,13 +60,13 @@
          espera. La pestana activa se recuerda para que guardar o volver de
          Stripe no devuelva a nadie al principio. -->
     <nav class="tabs" id="dash-tabs" role="tablist" aria-label="Secciones del panel">
-      <button type="button" class="tab" role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
-      <button type="button" class="tab" role="tab" data-tab="apariencia" aria-selected="false">Apariencia</button>
-      <button type="button" class="tab" role="tab" data-tab="enlaces" aria-selected="false">Enlaces</button>
-      <button type="button" class="tab" role="tab" data-tab="analiticas" aria-selected="false">Analíticas</button>
-      <button type="button" class="tab" role="tab" data-tab="vip" aria-selected="false">VIP</button>
-      <button type="button" class="tab" role="tab" data-tab="cuenta" aria-selected="false">Cuenta</button>
-      <button type="button" class="tab hidden" role="tab" data-tab="soporte" aria-selected="false" id="tab-soporte">Soporte</button>
+      <button type="button" class="tab" role="tab" data-tab="perfil" aria-selected="true" data-i18n="panel.perfil">Perfil</button>
+      <button type="button" class="tab" role="tab" data-tab="apariencia" aria-selected="false" data-i18n="panel.apariencia">Apariencia</button>
+      <button type="button" class="tab" role="tab" data-tab="enlaces" aria-selected="false" data-i18n="panel.enlaces">Enlaces</button>
+      <button type="button" class="tab" role="tab" data-tab="analiticas" aria-selected="false" data-i18n="panel.analiticas">Analíticas</button>
+      <button type="button" class="tab" role="tab" data-tab="vip" aria-selected="false" data-i18n="panel.vip">VIP</button>
+      <button type="button" class="tab" role="tab" data-tab="cuenta" aria-selected="false" data-i18n="panel.cuenta">Cuenta</button>
+      <button type="button" class="tab hidden" role="tab" data-tab="soporte" aria-selected="false" id="tab-soporte" data-i18n="panel.soporte">Soporte</button>
     </nav>
 
     <!-- Perfil y Apariencia comparten un unico formulario: el guardado manda
@@ -77,91 +77,91 @@
 
       <div class="tab-panel" data-panel="perfil">
         <section class="card">
-          <h2 class="card-title">Identidad</h2>
-          <p class="hint">Cómo te ven en tu página pública.</p>
+          <h2 class="card-title" data-i18n="panel.identidad">Identidad</h2>
+          <p class="hint" data-i18n="panel.como_te_ven_en_tu_pagina_publica">Cómo te ven en tu página pública.</p>
         <div class="avatar-editor">
           <img id="avatar-preview" class="avatar-preview" src="" alt="avatar" />
           <div>
             <label class="btn-outline btn-sm file-btn">
-              Cambiar foto
+              <span data-i18n="panel.cambiar_foto">Cambiar foto</span>
               <input type="file" id="avatar-input" accept="image/*" hidden />
             </label>
-            <p class="hint">PNG, JPG o WEBP. Máx 5MB.</p>
+            <p class="hint" data-i18n="panel.png_jpg_o_webp_max_5mb">PNG, JPG o WEBP. Máx 5MB.</p>
           </div>
         </div>
 
           <label class="field">
-            <span>Nombre</span>
+            <span data-i18n="panel.nombre">Nombre</span>
             <input type="text" id="p-name" required />
           </label>
 
           <label class="field">
-            <span>URL de tu página</span>
+            <span data-i18n="panel.url_de_tu_pagina">URL de tu página</span>
             <div class="slug-input-row">
-              <span class="slug-prefix" id="slug-prefix">arleking-social.onrender.com/</span>
+              <span class="slug-prefix" id="slug-prefix" data-i18n="panel.arleking_social_onrender_com">arleking-social.onrender.com/</span>
               <input type="text" id="p-slug" />
             </div>
           </label>
 
           <label class="field">
-            <span>Tagline</span>
+            <span data-i18n="panel.tagline">Tagline</span>
             <input type="text" id="p-tagline" required />
           </label>
 
           <label class="field">
-            <span>Texto del footer</span>
+            <span data-i18n="panel.texto_del_footer">Texto del footer</span>
             <input type="text" id="p-footer" />
           </label>
         </section>
       <div class="save-bar">
-        <button type="submit" class="btn-pill btn-gradient">Guardar cambios</button>
+        <button type="submit" class="btn-pill btn-gradient" data-i18n="panel.guardar_cambios">Guardar cambios</button>
       </div>
       </div>
 
       <div class="tab-panel hidden" data-panel="apariencia">
         <section class="card">
-          <h2 class="card-title">Fondo</h2>
+          <h2 class="card-title" data-i18n="panel.fondo">Fondo</h2>
         <div class="bg-editor">
           <img id="background-preview" class="background-preview" src="" alt="fondo" />
           <video id="background-preview-video" class="background-preview hidden" muted loop playsinline aria-hidden="true"></video>
           <div>
             <div class="bg-editor-actions">
               <label class="btn-outline btn-sm file-btn">
-                Cambiar fondo
+                <span data-i18n="panel.cambiar_fondo">Cambiar fondo</span>
                 <input type="file" id="background-input" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden />
               </label>
-              <button type="button" id="background-remove-btn" class="btn-outline btn-sm">Quitar fondo</button>
+              <button type="button" id="background-remove-btn" class="btn-outline btn-sm" data-i18n="panel.quitar_fondo">Quitar fondo</button>
             </div>
-            <p class="hint">Fondo de toda la página pública. Imagen (PNG, JPG, WEBP, GIF) hasta 5 MB, o vídeo (MP4, WEBM) hasta 20 MB. El vídeo va solo, en bucle y sin sonido; lo descarga cada visitante, así que cuanto más corto, mejor. Quien tenga el ahorro de datos o menos movimiento activados en su sistema lo verá quieto.</p>
+            <p class="hint" data-i18n="panel.fondo_de_toda_la_pagina_publica_imagen_png_j">Fondo de toda la página pública. Imagen (PNG, JPG, WEBP, GIF) hasta 5 MB, o vídeo (MP4, WEBM) hasta 20 MB. El vídeo va solo, en bucle y sin sonido; lo descarga cada visitante, así que cuanto más corto, mejor. Quien tenga el ahorro de datos o menos movimiento activados en su sistema lo verá quieto.</p>
           </div>
         </div>
         </section>
 
         <section class="card">
-          <h2 class="card-title">Colores</h2>
-          <p class="hint">Degradado que tiñe los acentos de tu página.</p>
+          <h2 class="card-title" data-i18n="panel.colores">Colores</h2>
+          <p class="hint" data-i18n="panel.degradado_que_tine_los_acentos_de_tu_pagina">Degradado que tiñe los acentos de tu página.</p>
           <div class="field-row">
             <label class="field small">
-              <span>Color inicio (degradado)</span>
+              <span data-i18n="panel.color_inicio_degradado">Color inicio (degradado)</span>
               <input type="color" id="p-accent-from" />
             </label>
             <label class="field small">
-              <span>Color final (degradado)</span>
+              <span data-i18n="panel.color_final_degradado">Color final (degradado)</span>
               <input type="color" id="p-accent-to" />
             </label>
           </div>
         </section>
 
         <section class="card">
-          <h2 class="card-title">Nodos de fondo</h2>
+          <h2 class="card-title" data-i18n="panel.nodos_de_fondo">Nodos de fondo</h2>
           <label class="switch-row">
             <input type="checkbox" id="p-particles-enabled" />
-            <span>Mostrar nodos interactivos de fondo</span>
+            <span data-i18n="panel.mostrar_nodos_interactivos_de_fondo">Mostrar nodos interactivos de fondo</span>
           </label>
 
           <div class="field-row">
             <label class="field small">
-              <span>Color de los nodos</span>
+              <span data-i18n="panel.color_de_los_nodos">Color de los nodos</span>
               <input type="color" id="p-particles-color" />
             </label>
             <label class="field small">
@@ -172,30 +172,30 @@
         </section>
 
         <section class="card">
-          <h2 class="card-title">Verificación de edad</h2>
-          <p class="hint">Pantalla previa antes de mostrar tu página.</p>
+          <h2 class="card-title" data-i18n="panel.verificacion_de_edad">Verificación de edad</h2>
+          <p class="hint" data-i18n="panel.pantalla_previa_antes_de_mostrar_tu_pagina">Pantalla previa antes de mostrar tu página.</p>
           <label class="switch-row">
             <input type="checkbox" id="p-gate-enabled" />
-            <span>Mostrar verificación de edad antes de entrar</span>
+            <span data-i18n="panel.mostrar_verificacion_de_edad_antes_de_entrar">Mostrar verificación de edad antes de entrar</span>
           </label>
 
           <label class="field">
-            <span>Título en la verificación</span>
+            <span data-i18n="panel.titulo_en_la_verificacion">Título en la verificación</span>
             <input type="text" id="p-gate-title" />
           </label>
 
           <label class="field">
-            <span>Subtítulo en la verificación</span>
+            <span data-i18n="panel.subtitulo_en_la_verificacion">Subtítulo en la verificación</span>
             <input type="text" id="p-gate-subtitle" />
           </label>
 
           <label class="field">
-            <span>Texto de confirmación</span>
+            <span data-i18n="panel.texto_de_confirmacion">Texto de confirmación</span>
             <input type="text" id="p-gate-confirm" />
           </label>
         </section>
       <div class="save-bar">
-        <button type="submit" class="btn-pill btn-gradient">Guardar cambios</button>
+        <button type="submit" class="btn-pill btn-gradient" data-i18n="panel.guardar_cambios">Guardar cambios</button>
       </div>
       </div>
 
@@ -205,8 +205,8 @@
       <!-- Enlaces -->
       <section class="card">
         <div class="card-title-row">
-          <h2 class="card-title">Enlaces</h2>
-          <button id="add-link-btn" class="btn-pill btn-gradient btn-sm">+ Agregar enlace</button>
+          <h2 class="card-title" data-i18n="panel.enlaces">Enlaces</h2>
+          <button id="add-link-btn" class="btn-pill btn-gradient btn-sm" data-i18n="panel.agregar_enlace">+ Agregar enlace</button>
         </div>
 
         <div id="links-admin-list" class="links-admin-list"></div>
@@ -217,47 +217,47 @@
 
       <section class="card">
         <div class="card-title-row">
-          <h2 class="card-title">Analíticas</h2>
+          <h2 class="card-title" data-i18n="panel.analiticas">Analíticas</h2>
           <div class="range-tabs" id="range-tabs" role="tablist">
-            <button type="button" data-range="today" role="tab" aria-selected="false">Hoy</button>
-            <button type="button" data-range="7d" role="tab" aria-selected="true">7 días</button>
-            <button type="button" data-range="30d" role="tab" aria-selected="false">30 días</button>
-            <button type="button" data-range="90d" role="tab" aria-selected="false">90 días</button>
+            <button type="button" data-range="today" role="tab" aria-selected="false" data-i18n="panel.hoy">Hoy</button>
+            <button type="button" data-range="7d" role="tab" aria-selected="true" data-i18n="panel.7_dias">7 días</button>
+            <button type="button" data-range="30d" role="tab" aria-selected="false" data-i18n="panel.30_dias">30 días</button>
+            <button type="button" data-range="90d" role="tab" aria-selected="false" data-i18n="panel.90_dias">90 días</button>
           </div>
         </div>
 
         <p class="live-line">
           <span class="live-dot" aria-hidden="true"></span>
-          <strong id="live-count">0</strong> <span id="live-word">visitantes</span> en tu página ahora mismo
+          <strong id="live-count">0</strong> <span id="live-word" data-i18n="panel.visitantes">visitantes</span> en tu página ahora mismo
         </p>
 
         <div class="metric-grid">
           <div class="metric" id="m-pageviews">
-            <p class="metric-label">Visitas a la página</p>
+            <p class="metric-label" data-i18n="panel.visitas_a_la_pagina">Visitas a la página</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-visitors">
-            <p class="metric-label">Personas distintas</p>
+            <p class="metric-label" data-i18n="panel.personas_distintas">Personas distintas</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-sessions">
-            <p class="metric-label">Sesiones</p>
+            <p class="metric-label" data-i18n="panel.sesiones">Sesiones</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-clicks">
-            <p class="metric-label">Clics en enlaces</p>
+            <p class="metric-label" data-i18n="panel.clics_en_enlaces">Clics en enlaces</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-ctr">
-            <p class="metric-label">Pulsan algún enlace</p>
+            <p class="metric-label" data-i18n="panel.pulsan_algun_enlace">Pulsan algún enlace</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-bounce">
-            <p class="metric-label">Se van sin pulsar</p>
+            <p class="metric-label" data-i18n="panel.se_van_sin_pulsar">Se van sin pulsar</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
           <div class="metric" id="m-dwell">
-            <p class="metric-label">Tiempo medio</p>
+            <p class="metric-label" data-i18n="panel.tiempo_medio">Tiempo medio</p>
             <p class="metric-value">—</p><p class="metric-change"></p>
           </div>
         </div>
@@ -266,8 +266,8 @@
       </section>
 
       <section class="card">
-        <h2 class="card-title">Rendimiento de tus enlaces</h2>
-        <p class="hint">
+        <h2 class="card-title" data-i18n="panel.rendimiento_de_tus_enlaces">Rendimiento de tus enlaces</h2>
+        <p class="hint" data-i18n="panel.que_enlace_se_lleva_los_clics_el_porcentaje_">
           Qué enlace se lleva los clics. El porcentaje es sobre las visitas totales,
           así que dice si merece estar arriba del todo.
         </p>
@@ -276,32 +276,32 @@
 
       <div class="analytics-columns">
         <section class="card">
-          <h2 class="card-title">De dónde vienen</h2>
+          <h2 class="card-title" data-i18n="panel.de_donde_vienen">De dónde vienen</h2>
           <div id="bd-referrers"></div>
         </section>
         <section class="card">
-          <h2 class="card-title">Países</h2>
+          <h2 class="card-title" data-i18n="panel.paises">Países</h2>
           <div id="bd-countries"></div>
         </section>
         <section class="card">
-          <h2 class="card-title">Navegador</h2>
+          <h2 class="card-title" data-i18n="panel.navegador">Navegador</h2>
           <div id="bd-browsers"></div>
         </section>
         <section class="card">
-          <h2 class="card-title">Sistema</h2>
+          <h2 class="card-title" data-i18n="panel.sistema">Sistema</h2>
           <div id="bd-systems"></div>
         </section>
         <section class="card">
-          <h2 class="card-title">Dispositivo</h2>
+          <h2 class="card-title" data-i18n="panel.dispositivo">Dispositivo</h2>
           <div id="bd-devices"></div>
         </section>
       </div>
 
       <section class="card">
-        <h2 class="card-title">Sobre estos datos</h2>
+        <h2 class="card-title" data-i18n="panel.sobre_estos_datos">Sobre estos datos</h2>
         <p class="hint">
           Sin cookies y sin rastreadores de terceros. La identidad de cada visitante
-          es un hash que <strong>cambia cada día</strong>, así que se puede contar
+          es un hash que <strong data-i18n="panel.cambia_cada_dia">cambia cada día</strong>, así que se puede contar
           cuántas personas distintas entraron hoy, pero no seguir a nadie de un día
           para otro. No se guarda ninguna dirección IP. Por eso tu página no
           necesita banner de consentimiento.
@@ -313,9 +313,9 @@
     <div class="tab-panel hidden" data-panel="vip">
       <!-- VIP -->
       <section class="card">
-        <h2 class="card-title">💵 VIP</h2>
+        <h2 class="card-title" data-i18n="panel.vip">💵 VIP</h2>
         <p class="hint">
-          <strong>Importante:</strong> el badge VIP es un beneficio de tu suscripción de
+          <strong data-i18n="panel.importante">Importante:</strong> el badge VIP es un beneficio de tu suscripción de
           pago, no una verificación de identidad. Al activarlo confirmas que pagaste por
           este sello decorativo, nada más — así lo verán también tus visitantes.
         </p>
@@ -325,23 +325,23 @@
             Tier activo: <strong id="vip-current-label"></strong>
           </p>
           <div id="vip-manage-wrap" class="hidden">
-            <button type="button" id="vip-manage-btn" class="btn-outline btn-sm">
+            <button type="button" id="vip-manage-btn" class="btn-outline btn-sm" data-i18n="panel.gestionar_o_cancelar_suscripcion">
               Gestionar o cancelar suscripción
             </button>
             <p class="hint">
               Cancela cuando quieras. Conservas el badge hasta que termine el mes
               que ya pagaste y no se te vuelve a cobrar.
-              <a href="/reembolsos" target="_blank" rel="noopener">Ver política de reembolsos</a>
+              <a href="/reembolsos" target="_blank" rel="noopener" data-i18n="panel.ver_politica_de_reembolsos">Ver política de reembolsos</a>
             </p>
           </div>
           <hr class="divider" />
         </div>
 
         <div id="vip-plans" class="vip-plans">
-          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="billete">
+          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="billete" data-i18n="panel.suscribirme_dollars_5_mes">
             💵 Suscribirme — Dollars ($5/mes)
           </button>
-          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="king">
+          <button type="button" class="btn-pill btn-gradient vip-plan-btn" data-tier="king" data-i18n="panel.suscribirme_the_king_7_99_mes">
             👑 Suscribirme — THE KING ($7.99/mes)
           </button>
         </div>
@@ -350,22 +350,22 @@
           Suscripción mensual, se renueva sola hasta que la canceles. El pago lo
           procesa Stripe — tus datos de tarjeta nunca pasan por nuestros servidores.
           Al suscribirte aceptas los
-          <a href="/terminos" target="_blank" rel="noopener">Términos</a>,
-          la <a href="/privacidad" target="_blank" rel="noopener">Política de Privacidad</a>
-          y la <a href="/reembolsos" target="_blank" rel="noopener">Política de Reembolsos</a>
+          <a href="/terminos" target="_blank" rel="noopener" data-i18n="panel.terminos">Términos</a>,
+          la <a href="/privacidad" target="_blank" rel="noopener" data-i18n="panel.politica_de_privacidad">Política de Privacidad</a>
+          y la <a href="/reembolsos" target="_blank" rel="noopener" data-i18n="panel.politica_de_reembolsos">Política de Reembolsos</a>
           (sin reembolsos; puedes cancelar cuando quieras).
         </p>
 
         <hr class="divider" />
 
         <div>
-          <h3 class="vip-demo-title">👁️ Demo — cómo se verá</h3>
+          <h3 class="vip-demo-title" data-i18n="panel.demo_como_se_vera">👁️ Demo — cómo se verá</h3>
           <div id="vip-3d-viewer" class="vip-3d-viewer">
-            <span class="vip-3d-hint">Cargando vista 3D…</span>
+            <span class="vip-3d-hint" data-i18n="panel.cargando_vista_3d">Cargando vista 3D…</span>
           </div>
           <div class="vip-plans" style="margin-top:10px;">
-            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="billete">▶ Demo — Dollars</button>
-            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="king">▶ Demo — THE KING</button>
+            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="billete" data-i18n="panel.demo_dollars">▶ Demo — Dollars</button>
+            <button type="button" class="btn-outline btn-sm vip-demo-btn" data-tier="king" data-i18n="panel.demo_the_king">▶ Demo — THE KING</button>
           </div>
           <span id="vip-demo-anchor" class="vip-demo-anchor" aria-hidden="true"></span>
         </div>
@@ -375,21 +375,21 @@
         <!-- Owner-only. Hidden and 403'd for everyone else — see
              /api/profile/vip-owner. -->
         <details id="vip-owner-section" class="hidden">
-          <summary class="hint" style="cursor:pointer;">👑 Control de propietario</summary>
-          <p class="hint">
+          <summary class="hint" style="cursor:pointer;" data-i18n="panel.control_de_propietario">👑 Control de propietario</summary>
+          <p class="hint" data-i18n="panel.tu_cuenta_es_duena_de_la_plataforma_asi_que_">
             Tu cuenta es dueña de la plataforma, así que puedes fijar tu tier sin
             pasar por Stripe ni pagar.
           </p>
           <form id="vip-form" class="form-grid">
             <label class="field">
-              <span>Tier VIP</span>
+              <span data-i18n="panel.tier_vip">Tier VIP</span>
               <select id="vip-tier">
-                <option value="">Ninguno</option>
-                <option value="billete">💵 Dollars — $5/mes</option>
-                <option value="king">👑 THE KING — $7.99/mes</option>
+                <option value="" data-i18n="panel.ninguno">Ninguno</option>
+                <option value="billete" data-i18n="panel.dollars_5_mes">💵 Dollars — $5/mes</option>
+                <option value="king" data-i18n="panel.the_king_7_99_mes">👑 THE KING — $7.99/mes</option>
               </select>
             </label>
-            <button type="submit" class="btn-pill btn-outline">Guardar tier VIP</button>
+            <button type="submit" class="btn-pill btn-outline" data-i18n="panel.guardar_tier_vip">Guardar tier VIP</button>
           </form>
         </details>
       </section>
@@ -398,78 +398,78 @@
     <div class="tab-panel hidden" data-panel="cuenta">
       <!-- Seguridad -->
       <section class="card">
-        <h2 class="card-title">Seguridad</h2>
+        <h2 class="card-title" data-i18n="panel.seguridad">Seguridad</h2>
 
         <!-- One row per configured provider; filled in by admin.js from
              /api/auth/linked. -->
         <div id="linked-accounts-section" class="hidden">
-          <p class="hint" style="margin:0 0 10px;">Cuentas vinculadas</p>
+          <p class="hint" style="margin:0 0 10px;" data-i18n="panel.cuentas_vinculadas">Cuentas vinculadas</p>
           <div id="linked-accounts-list"></div>
           <hr class="divider" />
         </div>
 
         <!-- Verificacion en dos pasos -->
         <div id="mfa-section">
-          <p class="hint" style="margin:0 0 10px;">Verificación en dos pasos</p>
+          <p class="hint" style="margin:0 0 10px;" data-i18n="panel.verificacion_en_dos_pasos">Verificación en dos pasos</p>
 
           <div class="linked-row">
             <div>
-              <p class="hint" style="margin:0 0 4px;">Aplicación de autenticación</p>
-              <p class="linked-status" id="mfa-status">Comprobando…</p>
+              <p class="hint" style="margin:0 0 4px;" data-i18n="panel.aplicacion_de_autenticacion">Aplicación de autenticación</p>
+              <p class="linked-status" id="mfa-status" data-i18n="panel.comprobando">Comprobando…</p>
             </div>
-            <button type="button" class="btn-outline btn-sm" id="mfa-toggle-btn">Activar</button>
+            <button type="button" class="btn-outline btn-sm" id="mfa-toggle-btn" data-i18n="panel.activar">Activar</button>
           </div>
 
           <!-- Alta: se muestra el secreto y se exige un codigo valido antes de
                guardar nada, para que un escaneo fallido no deje al usuario
                fuera de su cuenta. -->
           <div id="mfa-setup" class="hidden">
-            <p class="hint" style="margin:10px 0 6px;">
+            <p class="hint" style="margin:10px 0 6px;" data-i18n="panel.anade_esta_clave_en_google_authenticator_aut">
               Añade esta clave en Google Authenticator, Authy, 1Password o similar:
             </p>
             <code class="mfa-secret" id="mfa-secret"></code>
             <label class="field" style="margin-top:12px;">
-              <span>Escribe el código de 6 dígitos que muestra la app</span>
+              <span data-i18n="panel.escribe_el_codigo_de_6_digitos_que_muestra_l">Escribe el código de 6 dígitos que muestra la app</span>
               <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code"
                      maxlength="6" placeholder="000000" />
             </label>
             <div class="danger-actions">
-              <button type="button" class="btn-outline" id="mfa-cancel-btn">Cancelar</button>
-              <button type="button" class="btn-pill btn-gradient" id="mfa-confirm-btn">Confirmar y activar</button>
+              <button type="button" class="btn-outline" id="mfa-cancel-btn" data-i18n="panel.cancelar">Cancelar</button>
+              <button type="button" class="btn-pill btn-gradient" id="mfa-confirm-btn" data-i18n="panel.confirmar_y_activar">Confirmar y activar</button>
             </div>
           </div>
 
           <hr class="divider" />
 
-          <p class="hint" style="margin:0 0 10px;">Correo de recuperación</p>
+          <p class="hint" style="margin:0 0 10px;" data-i18n="panel.correo_de_recuperacion">Correo de recuperación</p>
           <div class="linked-row">
             <div>
-              <p class="hint" style="margin:0 0 4px;">Dirección</p>
+              <p class="hint" style="margin:0 0 4px;" data-i18n="panel.direccion">Dirección</p>
               <p class="linked-status" id="email-status">—</p>
             </div>
-            <button type="button" class="btn-outline btn-sm" id="email-edit-btn">Cambiar</button>
+            <button type="button" class="btn-outline btn-sm" id="email-edit-btn" data-i18n="panel.cambiar">Cambiar</button>
           </div>
           <div id="email-panel" class="hidden">
             <label class="field">
-              <span>Correo</span>
+              <span data-i18n="panel.correo">Correo</span>
               <input type="email" id="email-input" autocomplete="email" />
             </label>
-            <p class="hint" style="margin:0 0 10px;">
+            <p class="hint" style="margin:0 0 10px;" data-i18n="panel.te_enviamos_un_enlace_para_confirmarla_hasta">
               Te enviamos un enlace para confirmarla. Hasta que la confirmes no sirve
               para recuperar la cuenta.
             </p>
             <div class="danger-actions">
-              <button type="button" class="btn-outline" id="email-cancel">Cancelar</button>
-              <button type="button" class="btn-pill btn-gradient" id="email-save">Guardar y confirmar</button>
+              <button type="button" class="btn-outline" id="email-cancel" data-i18n="panel.cancelar">Cancelar</button>
+              <button type="button" class="btn-pill btn-gradient" id="email-save" data-i18n="panel.guardar_y_confirmar">Guardar y confirmar</button>
             </div>
           </div>
 
           <hr class="divider" />
 
-          <p class="hint" style="margin:0 0 10px;">Llaves de acceso (Face ID, huella, Hello)</p>
+          <p class="hint" style="margin:0 0 10px;" data-i18n="panel.llaves_de_acceso_face_id_huella_hello">Llaves de acceso (Face ID, huella, Hello)</p>
           <div id="passkey-list"></div>
-          <button type="button" class="btn-outline btn-sm hidden" id="passkey-add-btn">+ Añadir este dispositivo</button>
-          <p class="hint hidden" id="passkey-unsupported">
+          <button type="button" class="btn-outline btn-sm hidden" id="passkey-add-btn" data-i18n="panel.anadir_este_dispositivo">+ Añadir este dispositivo</button>
+          <p class="hint hidden" id="passkey-unsupported" data-i18n="panel.este_navegador_no_admite_llaves_de_acceso_pr">
             Este navegador no admite llaves de acceso. Prueba desde Safari en iPhone o Mac,
             Chrome en Android, o Edge en Windows.
           </p>
@@ -480,10 +480,10 @@
                faltaba el boton, y la ayuda del asistente lo daba por hecho. -->
           <div class="linked-row" id="sessions-section">
             <div>
-              <p class="hint" style="margin:0 0 4px;">Sesiones abiertas</p>
-              <p class="linked-status" id="sessions-status">Comprobando…</p>
+              <p class="hint" style="margin:0 0 4px;" data-i18n="panel.sesiones_abiertas">Sesiones abiertas</p>
+              <p class="linked-status" id="sessions-status" data-i18n="panel.comprobando">Comprobando…</p>
             </div>
-            <button type="button" class="btn-outline btn-sm" id="sessions-revoke-btn" disabled>Cerrar las demás</button>
+            <button type="button" class="btn-outline btn-sm" id="sessions-revoke-btn" disabled data-i18n="panel.cerrar_las_demas">Cerrar las demás</button>
           </div>
 
           <hr class="divider" />
@@ -492,17 +492,17 @@
                comodidad no tendria marcha atras desde un equipo prestado. -->
           <div class="linked-row" id="mfa-devices-row">
             <div>
-              <p class="hint" style="margin:0 0 4px;">Dispositivos recordados</p>
+              <p class="hint" style="margin:0 0 4px;" data-i18n="panel.dispositivos_recordados">Dispositivos recordados</p>
               <p class="linked-status" id="mfa-devices-status">-</p>
             </div>
-            <button type="button" class="btn-outline btn-sm" id="mfa-forget-btn">Olvidar todos</button>
+            <button type="button" class="btn-outline btn-sm" id="mfa-forget-btn" data-i18n="panel.olvidar_todos">Olvidar todos</button>
           </div>
 
           <!-- Los codigos de recuperacion solo existen en claro en esta
                respuesta; en la base solo se guarda su hash. -->
           <div id="mfa-recovery" class="hidden">
             <p class="hint" style="margin:12px 0 6px;">
-              <strong>Guarda estos códigos de recuperación ahora.</strong> Son tu única
+              <strong data-i18n="panel.guarda_estos_codigos_de_recuperacion_ahora">Guarda estos códigos de recuperación ahora.</strong> Son tu única
               forma de entrar si pierdes el teléfono, cada uno sirve una sola vez y no
               se pueden volver a mostrar.
             </p>
@@ -513,16 +513,16 @@
                pueda quitar la proteccion que existe justo para eso. -->
           <div id="mfa-disable" class="hidden">
             <label class="field" style="margin-top:10px;">
-              <span>Contraseña</span>
+              <span data-i18n="panel.contrasena">Contraseña</span>
               <input type="password" id="mfa-off-password" autocomplete="current-password" />
             </label>
             <label class="field">
-              <span>Código de la app o de recuperación</span>
+              <span data-i18n="panel.codigo_de_la_app_o_de_recuperacion">Código de la app o de recuperación</span>
               <input type="text" id="mfa-off-code" inputmode="numeric" autocomplete="one-time-code" />
             </label>
             <div class="danger-actions">
-              <button type="button" class="btn-outline" id="mfa-off-cancel">Cancelar</button>
-              <button type="button" class="btn-pill btn-danger-solid" id="mfa-off-confirm">Desactivar</button>
+              <button type="button" class="btn-outline" id="mfa-off-cancel" data-i18n="panel.cancelar">Cancelar</button>
+              <button type="button" class="btn-pill btn-danger-solid" id="mfa-off-confirm" data-i18n="panel.desactivar">Desactivar</button>
             </div>
           </div>
 
@@ -531,27 +531,27 @@
 
         <form id="password-form" class="form-grid">
           <label class="field" id="pw-current-field">
-            <span>Contraseña actual</span>
+            <span data-i18n="panel.contrasena_actual">Contraseña actual</span>
             <input type="password" id="pw-current" />
           </label>
           <label class="field">
-            <span id="pw-new-label">Contraseña nueva</span>
+            <span id="pw-new-label" data-i18n="panel.contrasena_nueva">Contraseña nueva</span>
             <input type="password" id="pw-new" required minlength="6" />
           </label>
-          <button type="submit" class="btn-pill btn-gradient">Actualizar contraseña</button>
+          <button type="submit" class="btn-pill btn-gradient" data-i18n="panel.actualizar_contrasena">Actualizar contraseña</button>
         </form>
       </section>
 
       <!-- Zona de peligro — deliberately last, and collapsed until asked for. -->
       <section class="card danger-card">
-        <h2 class="card-title">Zona de peligro</h2>
+        <h2 class="card-title" data-i18n="panel.zona_de_peligro">Zona de peligro</h2>
         <p class="hint" style="margin:0 0 14px;">
           Al eliminar tu cuenta se borran tu página, tus enlaces, tus imágenes y
           tus cuentas vinculadas. Si tienes una suscripción activa se cancela
-          primero. <strong>No se puede deshacer.</strong>
+          primero. <strong data-i18n="panel.no_se_puede_deshacer">No se puede deshacer.</strong>
         </p>
 
-        <button type="button" class="btn-outline btn-danger" id="delete-account-open">Eliminar mi cuenta</button>
+        <button type="button" class="btn-outline btn-danger" id="delete-account-open" data-i18n="panel.eliminar_mi_cuenta">Eliminar mi cuenta</button>
 
         <div id="delete-account-confirm" class="hidden" style="margin-top:14px;">
           <label class="field">
@@ -560,8 +560,8 @@
           </label>
           <p id="delete-account-error" class="error-text hidden"></p>
           <div class="danger-actions">
-            <button type="button" class="btn-outline" id="delete-account-cancel">Cancelar</button>
-            <button type="button" class="btn-pill btn-danger-solid" id="delete-account-submit" disabled>
+            <button type="button" class="btn-outline" id="delete-account-cancel" data-i18n="panel.cancelar">Cancelar</button>
+            <button type="button" class="btn-pill btn-danger-solid" id="delete-account-submit" disabled data-i18n="panel.eliminar_definitivamente">
               Eliminar definitivamente
             </button>
           </div>
@@ -576,7 +576,7 @@
 
       <section class="card">
         <div class="card-head">
-          <h2 class="card-title">🎧 Buzón de soporte</h2>
+          <h2 class="card-title" data-i18n="panel.buzon_de_soporte">🎧 Buzón de soporte</h2>
           <div class="sop-filtros" id="sop-filtros" role="tablist" aria-label="Filtrar tickets">
             <button type="button" class="sop-filtro" data-estado="abierto" aria-selected="true">
               Abiertos <span class="sop-cuenta" id="sop-n-abierto">0</span>
@@ -584,8 +584,8 @@
             <button type="button" class="sop-filtro" data-estado="respondido" aria-selected="false">
               Respondidos <span class="sop-cuenta" id="sop-n-respondido">0</span>
             </button>
-            <button type="button" class="sop-filtro" data-estado="cerrado" aria-selected="false">Cerrados</button>
-            <button type="button" class="sop-filtro" data-estado="todos" aria-selected="false">Todos</button>
+            <button type="button" class="sop-filtro" data-estado="cerrado" aria-selected="false" data-i18n="panel.cerrados">Cerrados</button>
+            <button type="button" class="sop-filtro" data-estado="todos" aria-selected="false" data-i18n="panel.todos">Todos</button>
           </div>
         </div>
 
@@ -595,7 +595,7 @@
           </div>
 
           <div class="sop-detalle" id="sop-detalle">
-            <p class="stat-empty">Elige una consulta para leerla.</p>
+            <p class="stat-empty" data-i18n="panel.elige_una_consulta_para_leerla">Elige una consulta para leerla.</p>
           </div>
         </div>
       </section>
@@ -604,10 +604,10 @@
            las respuestas vuelven a esta misma tarjeta. -->
       <section class="card">
         <div class="card-head">
-          <h2 class="card-title">📣 Encuestas</h2>
-          <button type="button" id="enc-nueva-btn" class="btn-outline btn-sm">Nueva encuesta</button>
+          <h2 class="card-title" data-i18n="panel.encuestas">📣 Encuestas</h2>
+          <button type="button" id="enc-nueva-btn" class="btn-outline btn-sm" data-i18n="panel.nueva_encuesta">Nueva encuesta</button>
         </div>
-        <p class="hint">
+        <p class="hint" data-i18n="panel.pregunta_algo_a_quien_usa_la_plataforma_le_a">
           Pregunta algo a quien usa la plataforma. Le aparecera al entrar al panel,
           con un aviso que se desliza; puede responder si o no y anadir un comentario.
           A ti no te salta: ya sabes lo que preguntaste.
@@ -615,17 +615,17 @@
 
         <form id="enc-form" class="enc-form hidden">
           <label class="field">
-            <span>La pregunta</span>
-            <input type="text" id="enc-pregunta" maxlength="300" placeholder="Por ejemplo: anado un modo oscuro a tu pagina?" required />
+            <span data-i18n="panel.la_pregunta">La pregunta</span>
+            <input type="text" id="enc-pregunta" maxlength="300" placeholder="Por ejemplo: anado un modo oscuro a tu pagina?" required / data-i18n-ph="panel.ph_por_ejemplo_anado_un_modo_oscuro_a_tu_pagina">
           </label>
           <label class="field">
-            <span>Detalle (opcional)</span>
-            <textarea id="enc-detalle" rows="2" maxlength="600" placeholder="Contexto, si hace falta."></textarea>
+            <span data-i18n="panel.detalle_opcional">Detalle (opcional)</span>
+            <textarea id="enc-detalle" rows="2" maxlength="600" placeholder="Contexto, si hace falta." data-i18n-ph="panel.ph_contexto_si_hace_falta"></textarea>
           </label>
           <div class="enc-form-acciones">
-            <button type="button" id="enc-previsualizar" class="btn-outline btn-sm">Ver como les llega</button>
-            <button type="button" id="enc-cancelar" class="btn-outline btn-sm">Cancelar</button>
-            <button type="submit" class="btn-pill btn-gradient btn-sm">Enviar a todos</button>
+            <button type="button" id="enc-previsualizar" class="btn-outline btn-sm" data-i18n="panel.ver_como_les_llega">Ver como les llega</button>
+            <button type="button" id="enc-cancelar" class="btn-outline btn-sm" data-i18n="panel.cancelar">Cancelar</button>
+            <button type="submit" class="btn-pill btn-gradient btn-sm" data-i18n="panel.enviar_a_todos">Enviar a todos</button>
           </div>
         </form>
 
@@ -635,9 +635,9 @@
       </section>
 
       <section class="card">
-        <h2 class="card-title">🧠 Lo que sabe el asistente</h2>
+        <h2 class="card-title" data-i18n="panel.lo_que_sabe_el_asistente">🧠 Lo que sabe el asistente</h2>
         <p class="hint">
-          El asistente responde <strong>sólo</strong> con lo que hay aquí. Si algo
+          El asistente responde <strong data-i18n="panel.solo">sólo</strong> con lo que hay aquí. Si algo
           no está escrito, no lo inventa: lo pasa a un ticket. Cuando te toque
           responder lo mismo por tercera vez, conviértelo en un artículo y deja
           de responderlo.
@@ -649,35 +649,35 @@
           <p class="stat-empty">Cargando…</p>
         </div>
 
-        <button type="button" class="btn-outline btn-sm" id="sop-kb-nuevo" style="margin-top:14px;">
+        <button type="button" class="btn-outline btn-sm" id="sop-kb-nuevo" style="margin-top:14px;" data-i18n="panel.anadir_articulo">
           + Añadir artículo
         </button>
 
         <div class="sop-editor hidden" id="sop-editor">
           <label class="field">
-            <span>Pregunta</span>
-            <input type="text" id="sop-ed-pregunta" placeholder="¿Cómo cambio mi foto de perfil?" maxlength="200" />
+            <span data-i18n="panel.pregunta">Pregunta</span>
+            <input type="text" id="sop-ed-pregunta" placeholder="¿Cómo cambio mi foto de perfil?" maxlength="200" / data-i18n-ph="panel.ph_como_cambio_mi_foto_de_perfil">
           </label>
           <label class="field">
-            <span>Respuesta</span>
-            <textarea id="sop-ed-respuesta" rows="6" maxlength="4000" placeholder="Escríbelo como se lo dirías a alguien: claro y corto."></textarea>
+            <span data-i18n="panel.respuesta">Respuesta</span>
+            <textarea id="sop-ed-respuesta" rows="6" maxlength="4000" placeholder="Escríbelo como se lo dirías a alguien: claro y corto." data-i18n-ph="panel.ph_escribelo_como_se_lo_dirias_a_alguien_claro_"></textarea>
           </label>
           <label class="field">
-            <span>Otras formas de preguntarlo, separadas por comas</span>
-            <input type="text" id="sop-ed-etiquetas" placeholder="foto, avatar, imagen de perfil" maxlength="300" />
+            <span data-i18n="panel.otras_formas_de_preguntarlo_separadas_por_co">Otras formas de preguntarlo, separadas por comas</span>
+            <input type="text" id="sop-ed-etiquetas" placeholder="foto, avatar, imagen de perfil" maxlength="300" / data-i18n-ph="panel.ph_foto_avatar_imagen_de_perfil">
           </label>
           <div class="sop-editor-acciones">
-            <button type="button" class="btn-outline btn-sm" id="sop-ed-cancelar">Cancelar</button>
-            <button type="button" class="btn-pill btn-sm" id="sop-ed-guardar">Guardar</button>
+            <button type="button" class="btn-outline btn-sm" id="sop-ed-cancelar" data-i18n="panel.cancelar">Cancelar</button>
+            <button type="button" class="btn-pill btn-sm" id="sop-ed-guardar" data-i18n="panel.guardar">Guardar</button>
           </div>
         </div>
       </section>
     </div>
 
     <footer class="legal-footer">
-      <a href="/terminos" target="_blank" rel="noopener">Términos</a>
-      <a href="/privacidad" target="_blank" rel="noopener">Privacidad y Seguridad</a>
-      <a href="/reembolsos" target="_blank" rel="noopener">Reembolsos</a>
+      <a href="/terminos" target="_blank" rel="noopener" data-i18n="panel.terminos">Términos</a>
+      <a href="/privacidad" target="_blank" rel="noopener" data-i18n="panel.privacidad_y_seguridad">Privacidad y Seguridad</a>
+      <a href="/reembolsos" target="_blank" rel="noopener" data-i18n="panel.reembolsos">Reembolsos</a>
     </footer>
 
   </main>
@@ -685,72 +685,72 @@
   <!-- Modal edición de enlace -->
   <div id="link-modal" class="overlay hidden">
     <div class="modal-card">
-      <h2 id="link-modal-title">Nuevo enlace</h2>
+      <h2 id="link-modal-title" data-i18n="panel.nuevo_enlace">Nuevo enlace</h2>
 
       <form id="link-form" class="form-grid">
         <input type="hidden" id="l-id" />
 
         <label class="field">
-          <span>Tipo</span>
+          <span data-i18n="panel.tipo">Tipo</span>
           <select id="l-type">
-            <option value="simple">Fila simple</option>
-            <option value="featured">Tarjeta destacada (con imagen)</option>
+            <option value="simple" data-i18n="panel.fila_simple">Fila simple</option>
+            <option value="featured" data-i18n="panel.tarjeta_destacada_con_imagen">Tarjeta destacada (con imagen)</option>
           </select>
         </label>
 
         <label class="field">
-          <span>Plataforma</span>
+          <span data-i18n="panel.plataforma">Plataforma</span>
           <select id="l-platform">
-            <option value="youtube">YouTube</option>
-            <option value="twitch">Twitch</option>
-            <option value="telegram">Telegram</option>
-            <option value="discord">Discord</option>
-            <option value="twitter">Twitter / X</option>
-            <option value="instagram">Instagram</option>
-            <option value="tiktok">TikTok</option>
-            <option value="wishlist">Wishlist</option>
-            <option value="custom">Personalizado</option>
+            <option value="youtube" data-i18n="panel.youtube">YouTube</option>
+            <option value="twitch" data-i18n="panel.twitch">Twitch</option>
+            <option value="telegram" data-i18n="panel.telegram">Telegram</option>
+            <option value="discord" data-i18n="panel.discord">Discord</option>
+            <option value="twitter" data-i18n="panel.twitter_x">Twitter / X</option>
+            <option value="instagram" data-i18n="panel.instagram">Instagram</option>
+            <option value="tiktok" data-i18n="panel.tiktok">TikTok</option>
+            <option value="wishlist" data-i18n="panel.wishlist">Wishlist</option>
+            <option value="custom" data-i18n="panel.personalizado">Personalizado</option>
           </select>
         </label>
 
         <label class="field hidden" id="l-platform-custom-row">
-          <span>Nombre de la plataforma</span>
-          <input type="text" id="l-platform-custom" maxlength="40" placeholder="Ej. Spotify, Patreon, mi web…" />
+          <span data-i18n="panel.nombre_de_la_plataforma">Nombre de la plataforma</span>
+          <input type="text" id="l-platform-custom" maxlength="40" placeholder="Ej. Spotify, Patreon, mi web…" / data-i18n-ph="panel.ph_ej_spotify_patreon_mi_web">
         </label>
 
         <label class="field">
-          <span>Ícono (emoji, solo fila simple)</span>
+          <span data-i18n="panel.icono_emoji_solo_fila_simple">Ícono (emoji, solo fila simple)</span>
           <input type="text" id="l-icon" maxlength="4" placeholder="🔗" />
         </label>
 
         <label class="field">
-          <span>Etiqueta</span>
+          <span data-i18n="panel.etiqueta">Etiqueta</span>
           <input type="text" id="l-label" required />
         </label>
 
         <label class="field">
-          <span>Subtítulo</span>
+          <span data-i18n="panel.subtitulo">Subtítulo</span>
           <input type="text" id="l-subtitle" />
         </label>
 
         <label class="field">
-          <span>URL de destino</span>
-          <input type="url" id="l-url" placeholder="https://" required />
+          <span data-i18n="panel.url_de_destino">URL de destino</span>
+          <input type="url" id="l-url" placeholder="https://" required / data-i18n-ph="panel.ph_https">
         </label>
 
         <div class="field-row">
           <label class="field small">
-            <span>Badge izquierdo (tarjeta destacada)</span>
-            <input type="text" id="l-badge-left" placeholder="DESTACADO" />
+            <span data-i18n="panel.badge_izquierdo_tarjeta_destacada">Badge izquierdo (tarjeta destacada)</span>
+            <input type="text" id="l-badge-left" placeholder="DESTACADO" / data-i18n-ph="panel.ph_destacado">
           </label>
           <label class="field small">
-            <span>Badge derecho (tarjeta destacada)</span>
-            <input type="text" id="l-badge-right" placeholder="Ale King XP" />
+            <span data-i18n="panel.badge_derecho_tarjeta_destacada">Badge derecho (tarjeta destacada)</span>
+            <input type="text" id="l-badge-right" placeholder="Ale King XP" / data-i18n-ph="panel.ph_ale_king_xp">
           </label>
         </div>
 
         <div id="l-image-row" class="field hidden">
-          <span>Imagen de la tarjeta</span>
+          <span data-i18n="panel.imagen_de_la_tarjeta">Imagen de la tarjeta</span>
           <label class="btn-outline btn-sm file-btn">
             Subir imagen
             <input type="file" id="l-image-input" accept="image/*" hidden />
@@ -759,17 +759,18 @@
 
         <label class="switch-row">
           <input type="checkbox" id="l-enabled" checked />
-          <span>Visible en la página pública</span>
+          <span data-i18n="panel.visible_en_la_pagina_publica">Visible en la página pública</span>
         </label>
 
         <div class="modal-actions">
-          <button type="button" id="link-cancel-btn" class="btn-outline">Cancelar</button>
-          <button type="submit" class="btn-pill btn-gradient">Guardar enlace</button>
+          <button type="button" id="link-cancel-btn" class="btn-outline" data-i18n="panel.cancelar">Cancelar</button>
+          <button type="submit" class="btn-pill btn-gradient" data-i18n="panel.guardar_enlace">Guardar enlace</button>
         </div>
       </form>
     </div>
   </div>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
