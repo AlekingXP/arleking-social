@@ -28,8 +28,9 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 
-const { db, isOwnerUsername } = require('../db');
+const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { requireOwner } = require('../middleware/owner');
 const { createKb } = require('../support/kb');
 const { createStore, correoValido, MAX_MENSAJE, MAX_TURNOS } = require('../support/store');
 const { createAssistant } = require('../support/assistant');
@@ -92,14 +93,6 @@ const lecturaLimiter = rateLimit({
 });
 
 /** Sólo quien lleva la plataforma ve el buzón: no es soporte por perfil. */
-function requireOwner(req, res, next) {
-  const fila = db.prepare('SELECT username FROM users WHERE id = ?').get(req.session.userId);
-  if (!fila || !isOwnerUsername(fila.username)) {
-    return res.status(403).json({ error: 'No tienes acceso al panel de soporte.' });
-  }
-  return next();
-}
-
 function baseUrl(req) {
   return `${req.protocol}://${req.get('host')}`;
 }

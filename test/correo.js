@@ -122,6 +122,28 @@ function cabecerasDe(mensaje) {
       : deQP(texto.replace(/_/g, ' ')));
 }
 
+/** Cierra y deja que el proceso termine solo.
+ *
+ * NO se llama a `process.exit`. Matar el proceso con sockets del SDK todavia
+ * abiertos en keep-alive revienta en Windows con 0xC0000409 una de cada
+ * cuatro veces, DESPUES de imprimir el resumen: las pruebas pasan y el
+ * proceso devuelve basura, que es como una integracion continua se pone roja
+ * sin motivo. Cerrando los servidores y soltando el bucle, Node sale cuando
+ * no le queda nada vivo, que es lo que de verdad significa "termino bien".
+ *
+ * La red de seguridad es un temporizador sin ref: si algo se quedara colgado
+ * no fija la prueba para siempre, y como no retiene el bucle, no retrasa la
+ * salida cuando todo va bien.
+ */
+function terminar(fallos, ...servidores) {
+  servidores.filter(Boolean).forEach((s) => {
+    if (s.closeAllConnections) s.closeAllConnections();
+    s.close();
+  });
+  process.exitCode = fallos ? 1 : 0;
+  setTimeout(() => process.exit(fallos ? 1 : 0), 15000).unref();
+}
+
 (async () => {
   const { servidor, recibidos } = servidorSmtp();
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
@@ -230,7 +252,5 @@ function cabecerasDe(mensaje) {
   ok('sin nombre', parseAddress('  ale@x.com ').email === 'ale@x.com');
 
   console.log(`\n=== ${pasadas} pasadas, ${fallos} fallos ===`);
-  servidor.close();
-  http_.close();
-  process.exit(fallos ? 1 : 0);
+  terminar(fallos, servidor, http_);
 })().catch((err) => { console.error('ERROR EN LA PRUEBA:', err); process.exit(2); });

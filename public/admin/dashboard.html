@@ -600,6 +600,40 @@
         </div>
       </section>
 
+      <!-- Encuestas. Se escribe aqui y le salta a todo el que entre al panel;
+           las respuestas vuelven a esta misma tarjeta. -->
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">📣 Encuestas</h2>
+          <button type="button" id="enc-nueva-btn" class="btn-outline btn-sm">Nueva encuesta</button>
+        </div>
+        <p class="hint">
+          Pregunta algo a quien usa la plataforma. Le aparecera al entrar al panel,
+          con un aviso que se desliza; puede responder si o no y anadir un comentario.
+          A ti no te salta: ya sabes lo que preguntaste.
+        </p>
+
+        <form id="enc-form" class="enc-form hidden">
+          <label class="field">
+            <span>La pregunta</span>
+            <input type="text" id="enc-pregunta" maxlength="300" placeholder="Por ejemplo: anado un modo oscuro a tu pagina?" required />
+          </label>
+          <label class="field">
+            <span>Detalle (opcional)</span>
+            <textarea id="enc-detalle" rows="2" maxlength="600" placeholder="Contexto, si hace falta."></textarea>
+          </label>
+          <div class="enc-form-acciones">
+            <button type="button" id="enc-previsualizar" class="btn-outline btn-sm">Ver como les llega</button>
+            <button type="button" id="enc-cancelar" class="btn-outline btn-sm">Cancelar</button>
+            <button type="submit" class="btn-pill btn-gradient btn-sm">Enviar a todos</button>
+          </div>
+        </form>
+
+        <div id="enc-lista" class="enc-lista">
+          <p class="stat-empty">Cargando…</p>
+        </div>
+      </section>
+
       <section class="card">
         <h2 class="card-title">🧠 Lo que sabe el asistente</h2>
         <p class="hint">
@@ -741,6 +775,12 @@
   <script src="/js/button-fx.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script src="/admin/js/analytics.js"></script>
+  <!-- Encuestas. encuesta.js es para cualquiera con cuenta (el aviso y la
+       encuesta); encuestas-admin.js solo hace algo si support.js confirma
+       que esta cuenta lleva la plataforma. Van antes para que su enganche
+       exista cuando support.js lo busque. -->
+  <script src="/admin/js/encuesta.js"></script>
+  <script src="/admin/js/encuestas-admin.js"></script>
   <script src="/admin/js/support.js"></script>
   <script src="/admin/js/admin.js"></script>
   <script src="/js/asistente/voz.js" defer></script>

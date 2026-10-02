@@ -14,6 +14,7 @@ const oauthRoutes = require('./routes/oauth');
 const { router: stripeRoutes, webhookHandler } = require('./routes/stripe');
 const { router: analyticsRoutes, collector } = require('./routes/analytics');
 const { router: supportRoutes } = require('./routes/support');
+const encuestaRoutes = require('./routes/encuestas');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -126,6 +127,7 @@ app.use('/api', oauthRoutes);
 app.use('/api', stripeRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api', supportRoutes);
+app.use('/api', encuestaRoutes);
 
 // `Cache-Control: no-cache` forces a revalidation round-trip (If-None-Match)
 // on every load instead of the browser silently reusing a stale copy after

@@ -8,6 +8,10 @@
  * cuando no hay ninguno definido.
  */
 
+/* En :root y no en .sup: el aviso de encuestas se coloca justo encima del
+   personaje, y necesita saber cuanto mide sin repetir el numero. */
+:root { --sup-alto: 138px; }
+
 .sup {
   --sup-from: var(--accent-from, #ff5f8f);
   --sup-to: var(--accent-to, #ff9a5a);
@@ -16,7 +20,6 @@
   --sup-dim: rgba(245, 238, 240, 0.58);
   --sup-border: rgba(255, 255, 255, 0.1);
   --sup-ancho: 112px;
-  --sup-alto: 138px;
 
   position: fixed;
   right: 18px;

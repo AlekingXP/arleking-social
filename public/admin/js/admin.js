@@ -2,6 +2,10 @@
   let currentLinks = [];
   document.getElementById('slug-prefix').textContent = window.location.host + '/';
 
+  // Compartido con los demas modulos del panel (encuestas, soporte): un
+  // solo aviso abajo, no uno por archivo.
+  window.showToast = showToast;
+
   function showToast(message, type) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -72,13 +76,24 @@
     const STORAGE_KEY = 'aks.dash.tab';
 
     let show = function (name) {
-      const known = tabs.some((t) => t.dataset.tab === name);
-      const target = known ? name : 'perfil';
+      // Una pestaña oculta NO cuenta como conocida. Soporte nace oculta y
+      // sólo se descubre para quien lleva la plataforma; sin esto, bastaba
+      // con haberla visitado una vez —o escribir la clave a mano en el
+      // almacenamiento— para que el panel de soporte y el de encuestas se
+      // pintaran en una cuenta cualquiera. Los datos nunca llegaban (el
+      // servidor responde 403), pero se veía una sección que no es suya.
+      const conocida = tabs.some((t) => t.dataset.tab === name && !t.classList.contains('hidden'));
+      const target = conocida ? name : 'perfil';
       tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === target)));
       panels.forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== target));
       // Switching sections should start at the top, the way a page load
       // does -- otherwise you land halfway down a panel you have not seen.
       window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+      // Sólo se recuerda lo que se pudo cumplir. Si se pidió una pestaña
+      // todavía oculta y caímos en Perfil, la preferencia se queda como
+      // estaba: Soporte aparece unos cientos de milisegundos despues, y
+      // pisarla aqui dejaria a su dueño siempre en Perfil.
+      if (!conocida) return;
       try {
         localStorage.setItem(STORAGE_KEY, target);
       } catch {
@@ -86,6 +101,11 @@
         // will not be remembered.
       }
     };
+
+    // support.js descubre su pestana mas tarde, cuando el servidor confirma
+    // que esta cuenta lleva la plataforma. Para entonces `show` ya corrio y
+    // la rechazo por estar oculta, asi que necesita poder pedirla otra vez.
+    window.AKPestanas = { mostrar: (nombre) => show(nombre) };
 
     tabs.forEach((tab) => tab.addEventListener('click', () => show(tab.dataset.tab)));
 

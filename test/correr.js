@@ -18,7 +18,16 @@ let fallaron = [];
 for (const suite of suites) {
   console.log(`\n=========== ${suite} ===========`);
   const r = spawnSync(process.execPath, [path.join(AQUI, suite)], { stdio: 'inherit' });
-  if (r.status !== 0) fallaron.push(`${suite} (salida ${r.status})`);
+  if (r.status !== 0) {
+    // El motivo importa: una suite puede imprimir "0 fallos" y devolver
+    // basura si el proceso se cae al cerrar (en Windows, 0xC0000409 al
+    // salir con sockets nativos a medias). Sin este detalle, eso parece un
+    // fallo de la prueba y se va a buscar donde no es.
+    const motivo = r.signal ? `señal ${r.signal}`
+      : r.status === null ? 'no llegó a terminar'
+        : `salida ${r.status}${r.status === -1073740791 ? ' (0xC0000409: se cayó al cerrar, no es un fallo de la prueba)' : ''}`;
+    fallaron.push(`${suite} — ${motivo}`);
+  }
 }
 
 console.log('\n===================================');

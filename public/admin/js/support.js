@@ -461,6 +461,18 @@
       .then(function (d) {
         var pestana = document.getElementById('tab-soporte');
         if (pestana) pestana.classList.remove('hidden');
+        // Las encuestas viven en esta misma pestana. Se les avisa desde aqui
+        // en vez de que pregunten por su cuenta: seria otro 403 en la
+        // consola de todo el que no lleva la plataforma.
+        if (window.AKEncuestasAdmin) window.AKEncuestasAdmin.cargar();
+        // La pestana acaba de aparecer. Si era la ultima que miro, se le
+        // devuelve: admin.js la rechazo al cargar porque entonces seguia
+        // oculta, que es justo lo que protege a quien no es del equipo.
+        try {
+          if (localStorage.getItem('aks.dash.tab') === 'soporte' && window.AKPestanas) {
+            window.AKPestanas.mostrar('soporte');
+          }
+        } catch (e) { /* almacenamiento bloqueado: se queda en Perfil */ }
         pintarContadores(d.counts);
         primeraRespuestaTickets = d;
       })
