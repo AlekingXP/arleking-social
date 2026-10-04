@@ -18,6 +18,7 @@ const { createWebAuthn } = require('../security/auth/webauthn');
 const { createMailer } = require('../security/auth/mailer');
 const { createTokens } = require('../security/auth/tokens');
 const emails = require('../security/auth/emails');
+const { resolverIcono, esImagen, ErrorEmoji } = require('../support/emoji');
 
 const trustedDevices = createTrustedDevices(db);
 const webauthn = createWebAuthn(db);
@@ -982,18 +983,28 @@ function cleanPlatform(platform) {
   return value || 'custom';
 }
 
-router.post('/links', requireAuth, (req, res) => {
+router.post('/links', requireAuth, async (req, res) => {
   const { type, platform, label, subtitle, badge_left, badge_right, url, icon, enabled } = req.body || {};
   if (!label || !url) return res.status(400).json({ error: 'Label y URL son obligatorios' });
 
   const blocked = blockingUrlFinding(url);
   if (blocked) return res.status(400).json({ error: blocked.message });
 
+  // Un emoji de Discord llega como enlace y hay que ir a buscarlo, asi que
+  // esto puede tardar y puede fallar por motivos que no son culpa de nadie.
+  let iconoFinal;
+  try {
+    iconoFinal = await resolverIcono(icon, { uploadsDir });
+  } catch (err) {
+    if (err instanceof ErrorEmoji) return res.status(400).json({ error: err.message });
+    throw err;
+  }
+
   const maxOrder = db.prepare('SELECT COALESCE(MAX(order_index), -1) AS m FROM links WHERE user_id = ?').get(req.session.userId).m;
   const info = db.prepare(`
     INSERT INTO links (user_id, order_index, type, platform, label, subtitle, badge_left, badge_right, url, image_path, icon, enabled)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
-  `).run(req.session.userId, maxOrder + 1, type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0);
+  `).run(req.session.userId, maxOrder + 1, type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, iconoFinal, enabled ? 1 : 0);
 
   res.status(201).json(db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(info.lastInsertRowid, req.session.userId));
 });
@@ -1009,7 +1020,7 @@ router.put('/links/reorder', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM links WHERE user_id = ? ORDER BY order_index ASC').all(req.session.userId));
 });
 
-router.put('/links/:id', requireAuth, (req, res) => {
+router.put('/links/:id', requireAuth, async (req, res) => {
   const existing = db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
   if (!existing) return res.status(404).json({ error: 'Link no encontrado' });
 
@@ -1019,10 +1030,28 @@ router.put('/links/:id', requireAuth, (req, res) => {
   const blocked = blockingUrlFinding(url);
   if (blocked) return res.status(400).json({ error: blocked.message });
 
+  // Se le pasa el icono que ya tenia: si el campo vuelve con la misma imagen
+  // sin tocar, se queda como esta en vez de bajarla otra vez de Discord en
+  // cada guardado.
+  let iconoFinal;
+  try {
+    iconoFinal = await resolverIcono(icon, { uploadsDir, anterior: existing.icon });
+  } catch (err) {
+    if (err instanceof ErrorEmoji) return res.status(400).json({ error: err.message });
+    throw err;
+  }
+
   db.prepare(`
     UPDATE links SET type = ?, platform = ?, label = ?, subtitle = ?, badge_left = ?, badge_right = ?, url = ?, icon = ?, enabled = ?
     WHERE id = ? AND user_id = ?
-  `).run(type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, icon || '🔗', enabled ? 1 : 0, req.params.id, req.session.userId);
+  `).run(type || 'simple', cleanPlatform(platform), label, subtitle || '', badge_left || null, badge_right || null, url, iconoFinal, enabled ? 1 : 0, req.params.id, req.session.userId);
+
+  // La imagen que deja de usarse se borra del disco. Si no, cada cambio de
+  // emoji dejaba un archivo que nadie mira y que el analisis de seguridad
+  // acabaria cantando como huerfano.
+  if (esImagen(existing.icon) && existing.icon !== iconoFinal) {
+    fs.unlink(path.join(uploadsDir, path.basename(existing.icon)), () => {});
+  }
 
   res.json(db.prepare('SELECT * FROM links WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId));
 });
@@ -1033,6 +1062,11 @@ router.delete('/links/:id', requireAuth, (req, res) => {
 
   if (existing.image_path) {
     fs.unlink(path.join(uploadsDir, path.basename(existing.image_path)), () => {});
+  }
+  // El icono puede ser un emoji de Discord que descargamos: tambien es un
+  // archivo en disco y se va con su enlace.
+  if (esImagen(existing.icon)) {
+    fs.unlink(path.join(uploadsDir, path.basename(existing.icon)), () => {});
   }
   db.prepare('DELETE FROM links WHERE id = ? AND user_id = ?').run(req.params.id, req.session.userId);
   res.json({ ok: true });

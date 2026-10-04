@@ -91,6 +91,13 @@ function scanUploads(db, uploadsDir) {
   for (const row of db.prepare('SELECT image_path FROM links WHERE image_path IS NOT NULL').all()) {
     if (row.image_path) referenced.add(path.basename(row.image_path));
   }
+  // El icono de un enlace casi siempre es un emoji de texto, pero cuando es
+  // uno de Discord es una imagen que descargamos. Sin esta consulta se
+  // contaría como huérfano y el análisis pediría borrar un archivo que sí se
+  // está usando.
+  for (const row of db.prepare("SELECT icon FROM links WHERE icon LIKE '/uploads/%'").all()) {
+    if (row.icon) referenced.add(path.basename(row.icon));
+  }
 
   for (const name of onDisk) {
     const ext = path.extname(name).toLowerCase();

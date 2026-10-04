@@ -40,6 +40,43 @@
     return node;
   }
 
+  // Lo mismo, pero como texto. Para TODO lo que escribe una persona: el
+  // nombre del enlace, el subtítulo, los badges y el icono.
+  //
+  // el() escribe con innerHTML, que está bien para las cadenas fijas de
+  // aquí dentro y fatal para lo que venga de un formulario: lo que alguien
+  // guardó como "<b>" se sirve como etiqueta. El panel ya escapaba el
+  // nombre al pintar su lista; esta página, que es la que ven los
+  // visitantes, no lo hacía. Y pasa a importar más ahora que el campo del
+  // icono admite trescientos caracteres en vez de cuatro.
+  function texto(tag, className, contenido) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (contenido !== undefined && contenido !== null) node.textContent = contenido;
+    return node;
+  }
+
+  // Un emoji de Discord no es un emoji: es una imagen, que se descargó a
+  // /uploads cuando lo pegaron. Los demás iconos son texto.
+  function esIconoImagen(icono) {
+    return typeof icono === 'string' && icono.startsWith('/uploads/');
+  }
+
+  function circuloDeIcono(link) {
+    const circulo = el('div', 'icon-circle');
+    if (esIconoImagen(link.icon)) {
+      const img = document.createElement('img');
+      img.src = link.icon;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.className = 'icono-imagen';
+      circulo.appendChild(img);
+      return circulo;
+    }
+    circulo.textContent = link.icon || platformIcon(link.platform);
+    return circulo;
+  }
+
   function renderFeatured(link) {
     const a = el('a', 'link-card featured');
     a.href = link.url;
@@ -51,18 +88,18 @@
     if (link.image_path) media.style.backgroundImage = `url('${link.image_path}')`;
 
     const badgeRow = el('div', 'badge-row');
-    if (link.badge_left) badgeRow.appendChild(el('span', 'badge accent', link.badge_left));
+    if (link.badge_left) badgeRow.appendChild(texto('span', 'badge accent', link.badge_left));
     else badgeRow.appendChild(el('span'));
-    if (link.badge_right) badgeRow.appendChild(el('span', 'badge', link.badge_right));
+    if (link.badge_right) badgeRow.appendChild(texto('span', 'badge', link.badge_right));
     media.appendChild(badgeRow);
     a.appendChild(media);
 
     const body = el('div', 'body');
     const info = el('div', 'info');
     const labelRow = el('div', 'label-row');
-    labelRow.appendChild(el('span', null, link.label));
+    labelRow.appendChild(texto('span', null, link.label));
     info.appendChild(labelRow);
-    info.appendChild(el('div', 'subtitle', link.subtitle || ''));
+    info.appendChild(texto('div', 'subtitle', link.subtitle || ''));
     body.appendChild(info);
     body.appendChild(el('span', 'btn-pill btn-gradient open-btn', 'Abrir'));
     a.appendChild(body);
@@ -77,11 +114,11 @@
     // Lo lee track.js para atribuir el clic a este enlace concreto.
     a.dataset.linkId = link.id;
 
-    a.appendChild(el('div', 'icon-circle', link.icon || platformIcon(link.platform)));
+    a.appendChild(circuloDeIcono(link));
 
     const info = el('div', 'info');
-    info.appendChild(el('div', 'label', link.label));
-    if (link.subtitle) info.appendChild(el('div', 'subtitle', link.subtitle));
+    info.appendChild(texto('div', 'label', link.label));
+    if (link.subtitle) info.appendChild(texto('div', 'subtitle', link.subtitle));
     a.appendChild(info);
 
     a.appendChild(el('span', 'arrow', '→'));

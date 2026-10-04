@@ -753,8 +753,21 @@
 
         <label class="field">
           <span data-i18n="panel.icono_emoji_solo_fila_simple">Ícono (emoji, solo fila simple)</span>
-          <input type="text" id="l-icon" maxlength="4" placeholder="🔗" />
+          <!-- maxlength 300 y no 4.
+               Se cuenta en unidades UTF-16, no en caracteres: 🔗 ocupa dos,
+               👍🏽 cuatro y 👨‍👩‍👧‍👦 once, así que con cuatro media tabla de emojis
+               no cabía y el navegador la recortaba por la mitad en silencio.
+               Ahora cabe también un enlace de emoji de Discord, que es lo
+               que se pega aquí; el límite de verdad lo pone el servidor, que
+               cuenta grafemas. -->
+          <span class="icono-fila">
+            <span class="icono-vista" id="l-icon-preview" aria-hidden="true">🔗</span>
+            <input type="text" id="l-icon" maxlength="300" placeholder="🔗" />
+          </span>
         </label>
+        <p class="hint icono-pista" id="l-icon-hint" data-i18n="panel.cualquier_emoji_uno_de_discord_clic_derecho_">
+          Cualquier emoji. ¿Uno de Discord? Clic derecho sobre él → Copiar enlace, y pega aquí ese enlace.
+        </p>
 
         <label class="field">
           <span data-i18n="panel.etiqueta">Etiqueta</span>

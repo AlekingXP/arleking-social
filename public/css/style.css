@@ -404,6 +404,17 @@ main {
   justify-content: center;
   font-size: 1.2rem;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Cuando el icono es un emoji de Discord, que es una imagen y no texto.
+   `contain` y no `cover`: un emoji trae su propio margen transparente y
+   recortarlo le come las puntas. */
+.icon-circle .icono-imagen {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  display: block;
 }
 
 .simple .info {

@@ -1066,6 +1066,14 @@
         const img = document.createElement('img');
         img.src = link.image_path;
         thumb.appendChild(img);
+      } else if (esIconoImagen(link.icon)) {
+        // Un emoji de Discord: no es texto, es la imagen que se descargó al
+        // pegarlo.
+        const img = document.createElement('img');
+        img.src = link.icon;
+        img.alt = '';
+        img.className = 'icono-imagen';
+        thumb.appendChild(img);
       } else {
         thumb.textContent = link.icon || platformIcon(link.platform);
       }
@@ -1169,7 +1177,70 @@
     updatePlatformCustomVisibility();
     const iconField = document.getElementById('l-icon');
     if (!iconField.value) iconField.value = platformIcon(e.target.value);
+    pintarVistaIcono();
   });
+
+  // ---- El icono: un emoji cualquiera, o uno de Discord ----
+
+  function esIconoImagen(icono) {
+    return typeof icono === 'string' && icono.startsWith('/uploads/');
+  }
+
+  // Las mismas dos formas que reconoce el servidor en support/emoji.js. Aquí
+  // sólo deciden qué se enseña mientras se escribe; quien manda es el
+  // servidor, que es el que va a buscar la imagen. Si algún día una deja de
+  // cuadrar, lo peor que pasa es que la pista de abajo se quede corta.
+  function pareceDiscord(valor) {
+    if (/^<a?:[A-Za-z0-9_~]{1,64}:\d{15,25}>$/.test(valor)) return true;
+    return /^https:\/\/(cdn\.discordapp\.com|media\.discordapp\.net)\/emojis\/\d{15,25}/.test(valor);
+  }
+
+  // Lo que se va a ver en el círculo, antes de guardar. Un emoji de Discord
+  // todavía no se puede enseñar —vive en su servidor y esta página sólo
+  // carga imágenes del propio sitio— así que se dice que llegará al guardar
+  // en vez de enseñar un hueco roto.
+  function pintarVistaIcono() {
+    const valor = document.getElementById('l-icon').value.trim();
+    const vista = document.getElementById('l-icon-preview');
+    const pista = document.getElementById('l-icon-hint');
+    if (!vista || !pista) return;
+
+    vista.textContent = '';
+    vista.classList.remove('esperando');
+
+    if (esIconoImagen(valor)) {
+      const img = document.createElement('img');
+      img.src = valor;
+      img.alt = '';
+      img.className = 'icono-imagen';
+      vista.appendChild(img);
+      pista.textContent = T('adm.icono_discord_guardado',
+        'Emoji de Discord guardado. Borra el campo y pega otro enlace para cambiarlo.');
+      return;
+    }
+
+    if (pareceDiscord(valor)) {
+      vista.textContent = '⬇';
+      vista.classList.add('esperando');
+      pista.textContent = T('adm.icono_discord_al_guardar',
+        'Emoji de Discord reconocido. Se traerá a tu página al guardar.');
+      return;
+    }
+
+    // El error fácil: copiar el nombre que Discord enseña debajo del emoji.
+    if (/^:[A-Za-z0-9_~]{1,64}:$/.test(valor)) {
+      vista.textContent = '?';
+      pista.textContent = T('adm.icono_discord_solo_nombre',
+        'Eso es el nombre del emoji, no el emoji. Clic derecho sobre él en Discord → Copiar enlace.');
+      return;
+    }
+
+    vista.textContent = valor || '🔗';
+    pista.textContent = T('adm.icono_pista',
+      'Cualquier emoji. ¿Uno de Discord? Clic derecho sobre él → Copiar enlace, y pega aquí ese enlace.');
+  }
+
+  document.getElementById('l-icon').addEventListener('input', pintarVistaIcono);
 
   function openLinkModal(link) {
     document.getElementById('link-modal-title').textContent = link ? 'Editar enlace' : 'Nuevo enlace';
@@ -1187,6 +1258,7 @@
       !isPreset && savedPlatform && savedPlatform !== 'custom' ? savedPlatform : '';
 
     document.getElementById('l-icon').value = link ? (link.icon || '') : '';
+    pintarVistaIcono();
     document.getElementById('l-label').value = link ? link.label : '';
     document.getElementById('l-subtitle').value = link ? (link.subtitle || '') : '';
     document.getElementById('l-url').value = link ? link.url : '';

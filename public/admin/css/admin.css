@@ -952,6 +952,50 @@ body {
 
 .link-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
+/* El icono de un enlace: la vista previa pegada al campo donde se escribe,
+   para que lo que se elige aqui se vea igual que saldra en la pagina. */
+.icono-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icono-fila input { flex: 1; min-width: 0; }
+
+.icono-vista {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-surface);
+}
+
+/* Mientras el emoji de Discord esta solo reconocido y todavia no traido. */
+.icono-vista.esperando { font-size: 1rem; color: var(--text-dim); }
+
+/* Pegada a su campo por arriba y separada del siguiente por abajo, como lo
+   estan entre si los demas. Sin el margen de abajo quedaba a cero y la
+   siguiente etiqueta parecia parte de la pista. */
+.icono-pista { margin: 6px 0 14px; }
+
+/* Un emoji es un dibujo con su propio margen transparente: `contain`, no
+   `cover` —que recortaria lo que sobresale— y algo mas pequeno que el
+   circulo, para que no toque el borde. Mas especifico que la regla de
+   arriba, que es para la foto de una tarjeta destacada y esa si se recorta. */
+.link-thumb .icono-imagen,
+.icono-vista .icono-imagen {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  display: block;
+}
+
 .link-admin-info { flex: 1; min-width: 0; }
 .link-admin-info .label { font-weight: 600; font-size: 0.92rem; display: flex; align-items: center; gap: 8px; }
 .link-admin-info .subtitle { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
