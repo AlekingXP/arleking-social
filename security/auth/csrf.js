@@ -68,8 +68,23 @@ function csrfProtection(options = {}) {
   const exempt = new Set([...EXEMPT, ...(options.exempt || [])]);
 
   return function csrf(req, res, next) {
-    // Always make a token available to the page.
-    if (req.session) issueToken(req, res);
+    // Token para quien tiene sesion de verdad, no para cada visita.
+    //
+    // Escribir en req.session es lo que la marca como usada, y con
+    // saveUninitialized: false eso es exactamente lo que decide si se guarda
+    // una fila y se manda una cookie. Hacerlo en cada peticion significaba
+    // que cada visita anonima —y cada peticion de un rastreador que no
+    // guarda cookies, que son casi todas— dejaba su propia fila en la base
+    // durante ocho horas. Mientras la portada era un formulario de entrar
+    // apenas se notaba; desde que es el panel y lo recorre cualquiera, es
+    // una tabla que crece sola.
+    //
+    // No se pierde nada por el camino: a quien no tiene sesion la
+    // comprobacion de mas abajo ya le deja pasar sin token, porque no hay
+    // nada suyo que proteger; entrar y registrarse estan exentos; y el
+    // token de la sesion recien creada lo acuna completeLogin() en esa misma
+    // respuesta, que es de donde lo coge la pagina.
+    if (req.session && req.session.userId) issueToken(req, res);
 
     if (SAFE_METHODS.has(req.method)) return next();
     if (exempt.has(req.path)) return next();

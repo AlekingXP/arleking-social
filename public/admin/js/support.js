@@ -481,9 +481,17 @@
 
   window.initSoporte = init;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', comprobarAcceso);
-  } else {
+  // Sin cuenta no se pregunta siquiera: un invitado no puede llevar la
+  // plataforma, y el 403 que volveria se veria en su consola como si algo
+  // se hubiera roto.
+  function comprobarSiHayCuenta() {
+    if (window.AKSesion) return window.AKSesion.conCuenta(comprobarAcceso);
     comprobarAcceso();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', comprobarSiHayCuenta);
+  } else {
+    comprobarSiHayCuenta();
   }
 })();

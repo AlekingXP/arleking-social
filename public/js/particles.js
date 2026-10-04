@@ -143,7 +143,15 @@
   async function resolveSettings() {
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
-    if (path === '/' || path === '/admin/login') return DEFAULTS;
+    // Solo la pantalla de entrar, que no tiene perfil que cargar y arranca
+    // con los valores de fabrica.
+    //
+    // La portada ya NO esta en esta lista: desde que es el panel, admin.js
+    // nos pasa el perfil de verdad. Dejandola, en / se encendian las
+    // particulas de fabrica antes de que ese perfil llegase, y a quien las
+    // tiene apagadas no se le volvian a apagar nunca —`aplicar` sale por
+    // arriba cuando vienen desactivadas y no detiene lo que ya corre.
+    if (path === '/admin/login') return DEFAULTS;
 
     // Aqui no se pide el perfil en ningun caso, porque siempre lo esta
     // pidiendo ya otro: admin.js en el panel y main.js en la pagina publica.
@@ -165,8 +173,8 @@
   window.aplicarParticulas = aplicar;
 
   resolveSettings().then((profile) => {
-    // null = alguien nos lo va a pasar; solo el login y la portada, que no
-    // tienen perfil que cargar, arrancan con los valores de fabrica.
+    // null = alguien nos lo va a pasar; solo la pantalla de entrar, que no
+    // tiene perfil que cargar, arranca con los valores de fabrica.
     if (profile) aplicar(profile);
   });
 })();

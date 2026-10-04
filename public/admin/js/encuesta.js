@@ -261,10 +261,18 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', arrancar, { once: true });
-  } else {
+  // Solo con cuenta. Una encuesta se le hace a las personas registradas: a
+  // quien esta mirando el panel sin cuenta no hay a quien atribuirle la
+  // respuesta, y preguntarselo seria un 401 y un aviso que no lleva a nada.
+  function arrancarConCuenta() {
+    if (window.AKSesion) return window.AKSesion.conCuenta(arrancar);
     arrancar();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arrancarConCuenta, { once: true });
+  } else {
+    arrancarConCuenta();
   }
 
   // Para que el panel de quien la crea pueda enseñar una vista previa real

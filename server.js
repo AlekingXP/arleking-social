@@ -153,22 +153,33 @@ Object.entries(LEGAL_PAGES).forEach(([route, file]) => {
   app.get(`/${route}`, (req, res) => res.sendFile(file, { root: legalViewsDir }));
 });
 
-// La portada del sitio es la pantalla de inicio de sesion. Se sirve el
-// mismo archivo en las dos rutas en vez de redirigir: un 302 de / a
-// /admin/login ensena una URL de administracion como direccion principal
-// del sitio, y ademas anade un salto a cada visita.
+// La portada del sitio es el panel, no la pantalla de inicio de sesion.
 //
-// Sus rutas de assets son absolutas (/admin/css/..., /js/...), asi que el
-// archivo funciona igual servido desde la raiz.
-function pantallaDeEntrada(req, res) {
-  res.sendFile('login.html', { root: adminViewsDir });
+// Quien llega no necesita cuenta para mirar: entra, recorre las pestanas y
+// ve de que va esto. La cuenta se pide cuando quiere HACER algo —guardar su
+// pagina, anadir un enlace, suscribirse— y es entonces cuando sale la
+// pantalla de entrar. Pedirla en la puerta echaba a todo el que venia a
+// ver, que es casi todo el mundo la primera vez.
+//
+// Esto no abre ningun dato. El HTML del panel ya era publico —se servia a
+// cualquiera que pidiera /admin/dashboard, con sesion o sin ella— y lo que
+// guarda la plataforma es cada endpoint, que sigue contestando 401 sin
+// sesion. Lo unico que cambia es cual es la primera pantalla.
+//
+// Se sirve el mismo archivo en las dos rutas en vez de redirigir: un 302 de
+// / a /admin/dashboard ensena una URL de administracion como direccion
+// principal del sitio, y ademas anade un salto a cada visita. Sus rutas de
+// assets son absolutas (/admin/css/..., /js/...), asi que el archivo
+// funciona igual servido desde la raiz.
+function elPanel(req, res) {
+  res.sendFile('dashboard.html', { root: adminViewsDir });
 }
 
-app.get('/', pantallaDeEntrada);
-app.get('/admin/login', pantallaDeEntrada);
+app.get('/', elPanel);
+app.get('/admin/dashboard', elPanel);
 
-app.get('/admin/dashboard', (req, res) => {
-  res.sendFile('dashboard.html', { root: adminViewsDir });
+app.get('/admin/login', (req, res) => {
+  res.sendFile('login.html', { root: adminViewsDir });
 });
 
 app.get('/:slug', (req, res, next) => {
@@ -205,7 +216,7 @@ function runInactivityCleanup() {
 
 app.listen(PORT, () => {
   console.log(`\nServidor corriendo en http://localhost:${PORT}`);
-  console.log(`Dashboard admin en http://localhost:${PORT}/admin/login`);
+  console.log(`Entrar con cuenta en http://localhost:${PORT}/admin/login`);
 
   try {
     const { granted, revoked } = reconcileVipGrants();

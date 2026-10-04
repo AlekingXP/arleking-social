@@ -460,6 +460,25 @@ body {
 
 .login-sub { font-size: 0.85rem; color: var(--text-dim); margin: 0 0 22px; }
 
+/* El motivo: por que te mandaron a esta pantalla. Una nota de cristal con el
+   filo encendido en la marca, como el aviso del panel del que viene, para
+   que se lea como continuacion y no como un error. */
+.motivo-entrada {
+  margin: -8px 0 20px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(180deg, var(--glass-shine), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(120deg, rgba(255, 95, 143, 0.16), rgba(255, 154, 90, 0.1)),
+    var(--glass-surface);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
 /* Inputs with a leading icon */
 .field-icon .field-input {
   position: relative;
@@ -997,6 +1016,95 @@ body {
 
 .modal-actions .btn-outline,
 .modal-actions .btn-pill { flex: 1; }
+
+/* Entrada libre (quien mira el panel sin cuenta) */
+
+/* Los dos juegos de botones de la barra de arriba. Son `span` metidos en un
+   flex, asi que tienen que serlo tambien o sus botones se apilan. */
+.topbar-group { display: flex; gap: 10px; }
+
+/* El aviso de arriba del panel.
+   Cristal como todo lo demas, pero con el filo encendido en el degradado de
+   la marca: es lo primero que se lee al entrar y tiene que distinguirse de
+   una tarjeta mas, sin gritar. */
+.aviso-invitado {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(180deg, var(--glass-shine), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(120deg, rgba(255, 95, 143, 0.14), rgba(255, 154, 90, 0.1)),
+    var(--glass-surface);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  box-shadow: var(--glass-shadow);
+}
+
+.aviso-invitado-texto {
+  margin: 0;
+  /* Crece, pero no baja de 260px: por debajo de eso el texto parte en
+     tajadas de tres palabras. Cuando no cabe, el flex-wrap del padre baja
+     el boton a su propia linea. */
+  flex: 1 1 260px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.aviso-invitado-texto strong { color: var(--text); }
+
+/* Que el boton no se encoja hasta quedar ilegible. */
+.aviso-invitado > .btn-pill { flex: 0 0 auto; }
+
+/* La nota suelta dentro de una pestana: explica lo que se ve, sin el peso
+   de una tarjeta ni el boton del aviso de arriba. */
+.aviso-invitado-nota {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(180deg, var(--glass-shine), rgba(255, 255, 255, 0) 45%),
+    var(--glass-surface);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* La puerta: la ventana que sale al tocar algo que necesita cuenta. */
+.puerta-card { text-align: center; }
+.puerta-card h2 { margin-bottom: 10px; }
+
+.puerta-motivo {
+  margin: 0 0 20px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.puerta-salir { margin: 14px 0 0; }
+
+/* Un boton con aspecto de enlace. Es <button> y no <a href="#"> porque no
+   lleva a ninguna parte —cierra la ventana—, y un ancla vacia ensena la
+   almohadilla en la barra de estado y deja un salto suelto en el historial. */
+.enlace-plano {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.enlace-plano:hover { color: var(--text); }
 
 /* Toast */
 

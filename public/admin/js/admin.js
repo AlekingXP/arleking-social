@@ -24,9 +24,42 @@
     return match ? decodeURIComponent(match[1]) : '';
   }
 
+  // Lo que el invitado estaba intentando hacer, deducido de la ruta que iba
+  // a llamar. La ventana lo usa para decir "para ANADIR UN ENLACE hace falta
+  // cuenta" en vez de un "inicia sesion" a secas, que no explica nada.
+  const MOTIVOS = [
+    [/^\/api\/links/, 'enlaces'],
+    [/^\/api\/profile\/(avatar|background)/, 'fondo'],
+    [/^\/api\/profile/, 'perfil'],
+    [/^\/api\/(checkout|billing-portal)/, 'vip'],
+    [/^\/api\/(auth|account)/, 'cuenta'],
+  ];
+
+  function motivoDe(url) {
+    for (const [patron, clave] of MOTIVOS) if (patron.test(url)) return clave;
+    return null;
+  }
+
   async function api(url, options) {
     const opts = options || {};
     const headers = {};
+
+    // Quien no tiene cuenta no llama a nada: todo esto cambia una pagina que
+    // todavia no existe. Se corta aqui, que es por donde pasan TODAS las
+    // peticiones del panel — asi no hay que acordarse de comprobarlo en los
+    // cuarenta botones de abajo, y el que se anada manana queda cubierto sin
+    // tocar nada.
+    if (window.AKSesion && window.AKSesion.invitado()) {
+      // Solo lo que cambia algo abre la puerta. Una lectura que se cuele
+      // —un modulo que no se callase bien— se queda en silencio: abrir la
+      // ventana de "crea tu cuenta" sin que nadie haya pulsado nada es
+      // echarle al visitante la culpa de algo que hizo la pagina.
+      if ((opts.method || 'GET').toUpperCase() !== 'GET') {
+        window.AKSesion.pedirCuenta(motivoDe(url));
+      }
+      throw new Error(T('adm.necesitas_una_cuenta_para_esto', 'Necesitas una cuenta para esto'));
+    }
+
     if (opts.body && !(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
     // Sent on every request rather than only on writes: harmless on a GET,
     // and it means a new endpoint cannot be added without it by accident.
@@ -35,7 +68,10 @@
     const res = await fetch(url, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
 
     if (res.status === 401) {
-      window.location.href = '/admin/login';
+      // Tenia sesion y se le acabo a mitad de faena. Se le manda a entrar
+      // con el camino de vuelta puesto, no al principio: perder donde
+      // estabas porque pasaron ocho horas es un castigo gratuito.
+      window.AKSesion.irAEntrar('sesion');
       throw new Error('No autenticado');
     }
     const data = await res.json();
@@ -149,9 +185,12 @@
     const showOriginal = show;
     show = function (name) {
       showOriginal(name);
+      // Sin cuenta no hay analiticas que pedir: las tarjetas se quedan en
+      // cero —que es la verdad— en vez de gastar cuatro 401. Se espera a la
+      // respuesta que ya esta en vuelo, no se pregunta de nuevo.
       if (name === 'analiticas' && !analiticasCargadas && window.initAnalytics) {
         analiticasCargadas = true;
-        window.initAnalytics();
+        window.AKSesion.conCuenta(window.initAnalytics);
       }
       if (name === 'soporte' && !soporteCargado && window.initSoporte) {
         soporteCargado = true;
@@ -166,21 +205,12 @@
 
   // ---- Auth ----
 
-  // Devuelve los datos de la sesion, no solo un si/no: loadAccountStatus los
-  // necesita enteros y antes los volvia a pedir, asi que /api/auth/me salia
-  // dos veces en cada carga.
-  async function checkAuth() {
-    const data = await fetch('/api/auth/me').then((r) => r.json());
-    if (!data.authenticated) {
-      window.location.href = '/admin/login';
-      return null;
-    }
-    return data;
-  }
-
+  // Cerrar sesion devuelve a la portada, que es este mismo panel en modo
+  // libre. Antes iba a la pantalla de entrar, que era la portada; ahora
+  // mandar ahi seria pedirle volver a entrar justo a quien acaba de salir.
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await api('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/admin/login';
+    window.location.href = '/';
   });
 
   // ---- Profile ----
@@ -872,7 +902,8 @@
           method: 'POST',
           body: JSON.stringify({ confirm: input.value }),
         });
-        window.location.href = '/admin/login';
+        // A la portada, no a la pantalla de entrar: la cuenta ya no existe.
+        window.location.href = '/';
       } catch (err) {
         error.textContent = err.message;
         error.classList.remove('hidden');
@@ -1174,7 +1205,13 @@
     editingImageLinkId = null;
   }
 
-  document.getElementById('add-link-btn').addEventListener('click', () => openLinkModal(null));
+  document.getElementById('add-link-btn').addEventListener('click', () => {
+    // Un invitado no llega ni a abrir la ventana del enlace. Dejarle
+    // rellenarla entera y pedirle cuenta al guardar es hacerle perder el
+    // trabajo, y es justo el momento en que se va.
+    if (window.AKSesion.invitado()) return window.AKSesion.pedirCuenta('enlaces');
+    openLinkModal(null);
+  });
   document.getElementById('link-cancel-btn').addEventListener('click', closeLinkModal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeLinkModal(); });
 
@@ -1236,11 +1273,161 @@
     }
   });
 
+  // ---- La puerta ----
+  //
+  // La ventana que sale cuando alguien sin cuenta toca algo que de verdad
+  // cambiaria su pagina. No es un muro: cierra con Escape, con un clic
+  // fuera y con un enlace que dice "seguir mirando", porque quien venia a
+  // ver tiene que poder seguir viendo.
+
+  // Funcion y no constante: una constante se evalua al cargar el archivo,
+  // que es ANTES de que llegue el diccionario de idiomas, y congelaria el
+  // castellano. Ya paso con los chips del chat.
+  function textoDeMotivo(clave) {
+    var textos = {
+      enlaces: T('adm.puerta_enlaces', 'Tus enlaces viven en tu cuenta. Créala y empieza a añadirlos: se tarda menos que en leer esto.'),
+      perfil: T('adm.puerta_perfil', 'El nombre, la dirección y los colores de tu página hay que guardarlos en algún sitio, y ese sitio es tu cuenta.'),
+      fondo: T('adm.puerta_fondo', 'Para subir tu foto o tu vídeo de fondo necesitas una cuenta donde dejarlos.'),
+      vip: T('adm.puerta_vip', 'Primero la cuenta, luego el VIP: el badge se cuelga de una página, y la página es tu cuenta.'),
+      cuenta: T('adm.puerta_cuenta', 'Esto son los ajustes de una cuenta. Crea la tuya y serán los tuyos.'),
+    };
+    return Object.prototype.hasOwnProperty.call(textos, clave)
+      ? textos[clave]
+      : T('adm.puerta_general', 'Lo que cambies hay que guardarlo en algún sitio, y ese sitio es tu cuenta.');
+  }
+
+  (function montarPuerta() {
+    const modal = document.getElementById('puerta-modal');
+    if (!modal) return;
+    const motivoEl = document.getElementById('puerta-motivo');
+
+    let motivoActual = null;
+    let focoAnterior = null;
+
+    function abrir(motivo) {
+      motivoActual = motivo || null;
+      motivoEl.textContent = textoDeMotivo(motivoActual);
+      // A donde devolver el foco al cerrar: si no, cerrar la ventana deja a
+      // quien va con teclado al principio de la pagina.
+      focoAnterior = document.activeElement;
+      modal.classList.remove('hidden');
+      document.getElementById('puerta-crear').focus();
+    }
+
+    function cerrar() {
+      modal.classList.add('hidden');
+      if (focoAnterior && focoAnterior.focus) focoAnterior.focus();
+    }
+
+    document.getElementById('puerta-cerrar').addEventListener('click', cerrar);
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrar(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) cerrar();
+    });
+
+    // El motivo viaja con ellos: la pantalla de entrar lo repite, para que
+    // el salto no parezca que vino de ninguna parte.
+    document.getElementById('puerta-crear')
+      .addEventListener('click', () => window.AKSesion.irAEntrar(motivoActual, 'register'));
+    document.getElementById('puerta-entrar')
+      .addEventListener('click', () => window.AKSesion.irAEntrar(motivoActual));
+
+    window.AKSesion.instalarPuerta(abrir);
+  })();
+
+  // ---- El panel para quien no tiene cuenta ----
+
+  // El ejemplo con el que se rellena. Es un ejemplo y se le llama asi: no
+  // sale del servidor ni de la pagina de nadie, porque no hay a quien
+  // pedirsela. Un panel con todos los campos vacios no parece libre,
+  // parece roto.
+  const EJEMPLO = {
+    name: 'Tu nombre',
+    slug: 'tu-nombre',
+    tagline: 'Una línea que diga quién eres.',
+    footer_text: '© Tu nombre',
+    avatar_path: null,
+    background_path: null,
+    accent_from: '#ff5f8f',
+    accent_to: '#ff9a5a',
+    age_gate_enabled: 0,
+    age_gate_title: '',
+    age_gate_subtitle: '',
+    age_gate_confirm: '',
+    particles_enabled: 1,
+    particles_color: '#ffffff',
+    particles_density: 60,
+    vip_tier: '',
+  };
+
+  const EJEMPLO_ENLACES = [
+    { id: 'ejemplo-1', platform: 'instagram', label: 'Instagram', url: 'https://instagram.com/tu-usuario', type: 'simple', enabled: 1 },
+    { id: 'ejemplo-2', platform: 'youtube', label: 'YouTube', url: 'https://youtube.com/@tu-canal', type: 'simple', enabled: 1 },
+    { id: 'ejemplo-3', platform: 'tiktok', label: 'TikTok', url: 'https://tiktok.com/@tu-usuario', type: 'simple', enabled: 0 },
+  ];
+
+  function arrancarComoInvitado() {
+    document.getElementById('acciones-invitado').classList.remove('hidden');
+    document.getElementById('aviso-invitado').classList.remove('hidden');
+
+    // Ni una peticion. Todo lo que pintaria el panel de alguien con cuenta
+    // volveria 401, asi que se pinta el ejemplo y se deja mirar.
+    fillProfileForm(EJEMPLO);
+    if (window.aplicarParticulas) window.aplicarParticulas(EJEMPLO);
+    currentLinks = EJEMPLO_ENLACES.slice();
+    renderLinksAdmin();
+
+    // La pestana Cuenta nace diciendo "Comprobando..." y lo rellena quien
+    // pide el estado al servidor. Sin cuenta nadie lo pide, asi que se
+    // quedaba comprobando para siempre: parece que algo se ha colgado,
+    // justo en la pestana donde hay que inspirar confianza.
+    const conCuenta = T('adm.disponible_con_cuenta', 'Disponible con cuenta');
+    ['mfa-status', 'email-status', 'sessions-status'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = conCuenta;
+    });
+
+    // Y sus botones se quedaban muertos, que es peor todavia.
+    //
+    // Casi todo el panel engancha sus oyentes al cargar el archivo, asi que
+    // pulsar cualquier cosa acaba en api() y api() abre la puerta. Estas dos
+    // pestanas no: los de Cuenta (activar el doble factor, cambiar el
+    // correo, cerrar sesiones, anadir una llave) se enganchan DENTRO de las
+    // funciones que piden su estado al servidor, y los de Analiticas dentro
+    // de initAnalytics. Ninguna de las dos corre sin cuenta, asi que esos
+    // botones no hacian absolutamente nada: ni puerta, ni aviso, ni error.
+    //
+    // Un solo oyente por pestana, delegado, en vez de uno por boton: asi el
+    // que se anada manana queda cubierto sin que nadie se acuerde de esto.
+    ['cuenta', 'analiticas'].forEach((nombre) => {
+      const panel = document.querySelector('[data-panel="' + nombre + '"]');
+      if (!panel) return;
+      panel.addEventListener('click', (e) => {
+        if (e.target.closest('button')) window.AKSesion.pedirCuenta('cuenta');
+      });
+    });
+
+    // Y que las cifras en cero se entiendan: son de una pagina que todavia
+    // no existe, no de una que no tiene visitas.
+    const notaAnaliticas = document.getElementById('analiticas-invitado');
+    if (notaAnaliticas) notaAnaliticas.classList.remove('hidden');
+
+    // Estos tres van directos a la pantalla de entrar, sin explicar nada
+    // por el camino: quien los pulsa ya ha decidido.
+    const irARegistro = () => window.AKSesion.irAEntrar(null, 'register');
+    document.getElementById('crear-cuenta-btn').addEventListener('click', irARegistro);
+    document.getElementById('aviso-invitado-btn').addEventListener('click', irARegistro);
+    document.getElementById('entrar-btn')
+      .addEventListener('click', () => window.AKSesion.irAEntrar(null));
+  }
+
   // ---- Init ----
 
   (async function init() {
-    const sesion = await checkAuth();
-    if (!sesion) return;
+    const sesion = await window.AKSesion.datos();
+    if (!sesion.authenticated) return arrancarComoInvitado();
+
+    document.getElementById('acciones-con-cuenta').classList.remove('hidden');
 
     // En paralelo, no en cadena. Las tres son independientes entre si, y
     // encadenadas con await el panel pagaba cuatro viajes de ida y vuelta

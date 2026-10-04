@@ -1026,9 +1026,21 @@
     mejorarA3D();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciar);
-  } else {
+  // El asistente es para quien tiene cuenta, y no por tacaneria: cada
+  // mensaje es una llamada de pago al modelo, y un chat abierto sin sesion
+  // es una factura que cualquiera puede escribir. Tampoco podria hacer su
+  // trabajo —abrir un ticket, mirar una suscripcion— sin saber de quien.
+  //
+  // El globo no se pinta en absoluto. Ensenarlo y pedir cuenta al pulsarlo
+  // seria ofrecer algo para quitarlo medio segundo despues.
+  function iniciarConCuenta() {
+    if (window.AKSesion) return window.AKSesion.conCuenta(iniciar);
     iniciar();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarConCuenta);
+  } else {
+    iniciarConCuenta();
   }
 })();

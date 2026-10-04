@@ -45,14 +45,36 @@
   <div class="topbar">
     <h1 class="brand-name topbar-title" data-i18n="panel.dashboard">✨ Dashboard</h1>
     <div class="topbar-actions">
-      <a href="/" id="view-public-link" target="_blank" class="btn-outline btn-sm" data-i18n="panel.ver_pagina_publica">Ver página pública ↗</a>
-      <button id="logout-btn" class="btn-outline btn-sm" data-i18n="panel.cerrar_sesion">Cerrar sesión</button>
+      <!-- Dos juegos de botones: el de quien tiene cuenta y el de quien
+           solo esta mirando. admin.js ensena uno en cuanto sabe quien es.
+           Los dos nacen ocultos a proposito: ensenar "Cerrar sesion" de
+           entrada y quitarlo medio segundo despues es peor que un hueco,
+           ahora que la mayoria de quien abre esta pagina no tiene cuenta. -->
+      <span class="topbar-group hidden" id="acciones-con-cuenta">
+        <a href="/" id="view-public-link" target="_blank" class="btn-outline btn-sm" data-i18n="panel.ver_pagina_publica">Ver página pública ↗</a>
+        <button id="logout-btn" class="btn-outline btn-sm" data-i18n="panel.cerrar_sesion">Cerrar sesión</button>
+      </span>
+      <span class="topbar-group hidden" id="acciones-invitado">
+        <button type="button" id="entrar-btn" class="btn-outline btn-sm" data-i18n="panel.iniciar_sesion">Iniciar sesión</button>
+        <button type="button" id="crear-cuenta-btn" class="btn-pill btn-gradient btn-sm" data-i18n="panel.crear_mi_pagina">Crear mi página</button>
+      </span>
     </div>
   </div>
 
   <main class="dash-main">
 
     <div id="toast" class="toast hidden"></div>
+
+    <!-- Solo para quien entra sin cuenta. Dice en una linea donde esta y
+         que puede hacer, en vez de dejarle descubrir a base de topar con
+         botones que le piden iniciar sesion. -->
+    <div class="aviso-invitado hidden" id="aviso-invitado">
+      <p class="aviso-invitado-texto">
+        <strong data-i18n="panel.estas_viendo_el_panel_por_dentro">Estás viendo el panel por dentro.</strong>
+        <span data-i18n="panel.mira_y_prueba_lo_que_quieras_para_guardar_tu">Mira y prueba lo que quieras. Para guardar tu página, añadir enlaces o publicarla hace falta una cuenta.</span>
+      </p>
+      <button type="button" class="btn-pill btn-gradient btn-sm" id="aviso-invitado-btn" data-i18n="panel.crear_mi_pagina">Crear mi página</button>
+    </div>
 
     <!-- Navegacion por pestanas. El dashboard crecio hasta ser un solo
          scroll de tarjetas que mezclaba identidad, apariencia, cobros y
@@ -215,6 +237,13 @@
 
     <div class="tab-panel hidden" data-panel="analiticas">
 
+      <!-- Sólo para quien entra sin cuenta: explica los ceros de abajo, que
+           si no parecen un panel roto en vez de una página que aún no
+           existe. -->
+      <p class="aviso-invitado-nota hidden" id="analiticas-invitado" data-i18n="panel.estas_cifras_son_de_tu_pagina_aparecen_en_cu">
+        Estas cifras son de tu página. Aparecen en cuanto tengas una y alguien la visite.
+      </p>
+
       <section class="card">
         <div class="card-title-row">
           <h2 class="card-title" data-i18n="panel.analiticas">Analíticas</h2>
@@ -228,7 +257,11 @@
 
         <p class="live-line">
           <span class="live-dot" aria-hidden="true"></span>
-          <strong id="live-count">0</strong> <span id="live-word" data-i18n="panel.visitantes">visitantes</span> en tu página ahora mismo
+          <!-- La cola iba suelta como texto del párrafo, así que el pase de
+               idiomas no la alcanzó: en inglés salía "0 visitors en tu
+               página ahora mismo". Marcada aparte porque la palabra de en
+               medio la cambia el contador según sea una o varias. -->
+          <strong id="live-count">0</strong> <span id="live-word" data-i18n="panel.visitantes">visitantes</span> <span data-i18n="panel.en_tu_pagina_ahora_mismo">en tu página ahora mismo</span>
         </p>
 
         <div class="metric-grid">
@@ -770,7 +803,28 @@
     </div>
   </div>
 
+  <!-- La puerta. Sale cuando alguien sin cuenta toca algo que cambiaria su
+       pagina de verdad. El texto dice QUE estaba intentando hacer: un
+       "inicia sesion" a secas no explica por que le hemos parado, y la
+       diferencia entre las dos cosas es si se queda o se va. -->
+  <div class="overlay hidden" id="puerta-modal" role="dialog" aria-modal="true" aria-labelledby="puerta-titulo">
+    <div class="modal-card puerta-card">
+      <h2 id="puerta-titulo" data-i18n="panel.para_esto_necesitas_una_cuenta">✨ Para esto necesitas una cuenta</h2>
+      <p class="puerta-motivo" id="puerta-motivo" data-i18n="panel.lo_que_cambies_hay_que_guardarlo_en_algun_si">Lo que cambies hay que guardarlo en algún sitio, y ese sitio es tu cuenta.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="puerta-entrar" data-i18n="panel.ya_tengo_cuenta">Ya tengo cuenta</button>
+        <button type="button" class="btn-pill btn-gradient" id="puerta-crear" data-i18n="panel.crear_cuenta">Crear cuenta</button>
+      </div>
+      <p class="puerta-salir">
+        <button type="button" class="enlace-plano" id="puerta-cerrar" data-i18n="panel.seguir_mirando">Seguir mirando</button>
+      </p>
+    </div>
+  </div>
+
   <script src="/js/i18n.js"></script>
+  <!-- Antes que todo lo demas del panel: los otros modulos le preguntan si
+       hay sesion y se callan cuando no la hay. -->
+  <script src="/js/sesion.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>

@@ -15,6 +15,31 @@
 
   let mode = 'login';
 
+  // A donde volver despues de entrar.
+  //
+  // Se valida en vez de usarse tal cual: un `volver` con http://otro-sitio,
+  // con //otro-sitio —que el navegador lee como protocolo relativo, o sea
+  // otro dominio— o con javascript: convertiria esta pantalla en un
+  // trampolin para mandar a alguien a una copia de ella con el enlace
+  // llegando de nuestro propio dominio. Se exige una ruta de aqui: empieza
+  // por una sola barra y no lleva dos puntos.
+  const PANEL = '/admin/dashboard';
+
+  function destino() {
+    const v = params.get('volver');
+    if (v === '/') return v;
+    if (!v || v.charAt(0) !== '/') return PANEL;
+    // 47 es la barra y 92 la barra invertida. Un segundo caracter que sea
+    // cualquiera de las dos es otro dominio disfrazado: el navegador lee
+    // //otro-sitio y /\otro-sitio como protocolo relativo. Por codigo y no
+    // por caracter para que la barra invertida no dependa de como la escape
+    // cada herramienta por la que pase este archivo.
+    const segundo = v.charCodeAt(1);
+    if (segundo === 47 || segundo === 92) return PANEL;
+    if (v.indexOf(':') !== -1) return PANEL;
+    return v;
+  }
+
   // Declarado arriba del todo: varios bloques de abajo leen la query string
   // (?reset=, ?verify=, ?mode=, ?error=) y `const` no se iza, asi que
   // tenerlo mas abajo los rompia con un error de zona muerta temporal.
@@ -156,7 +181,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'No se pudo verificar la llave.');
 
-        window.location.href = '/admin/dashboard';
+        window.location.href = destino();
       } catch (err) {
         errorEl.textContent = window.passkeys.describeError(err);
         errorEl.classList.remove('hidden');
@@ -225,6 +250,31 @@
       setMode(mode === 'register' ? 'login' : 'register');
     });
   }
+
+  // Repite por que acabaste aqui. Llegar de golpe a un formulario sin
+  // saber quien te mando es la mitad de la gente que se vuelve atras.
+  //
+  // Funciones y no constantes, como en el panel: una constante se evalua al
+  // cargar el archivo, antes de que llegue el diccionario de idiomas.
+  (function decirPorQue() {
+    const motivo = params.get('motivo');
+    if (!motivo) return;
+    const textos = {
+      enlaces: T('login.motivo_enlaces', 'Venías a añadir un enlace. Crea tu cuenta y vuelves justo ahí.'),
+      perfil: T('login.motivo_perfil', 'Venías a guardar tu página. Crea tu cuenta y vuelves justo ahí.'),
+      fondo: T('login.motivo_fondo', 'Venías a poner tu fondo. Crea tu cuenta y vuelves justo ahí.'),
+      vip: T('login.motivo_vip', 'Venías al VIP. Primero la cuenta, y vuelves justo ahí.'),
+      cuenta: T('login.motivo_cuenta', 'Eso son los ajustes de una cuenta. Crea la tuya y vuelves justo ahí.'),
+      // Este no viene de un invitado, sino de alguien a quien se le acabó la
+      // sesión con el panel abierto.
+      sesion: T('login.motivo_sesion', 'Tu sesión caducó. Vuelve a entrar y sigues donde estabas.'),
+    };
+    if (!Object.prototype.hasOwnProperty.call(textos, motivo)) return;
+    const el = document.getElementById('motivo-entrada');
+    if (!el) return;
+    el.textContent = textos[motivo];
+    el.classList.remove('hidden');
+  })();
 
   // Quita ?mode= y ?verify= de la barra de direcciones una vez leidos, sin
   // tocar la ruta. Antes fijaba /admin/login siempre, y desde que esta
@@ -323,7 +373,7 @@
         return;
       }
 
-      window.location.href = '/admin/dashboard';
+      window.location.href = destino();
     } catch (err) {
       errorEl.textContent = T('login.error_de_conexion_con_el_servidor', 'Error de conexión con el servidor');
       errorEl.classList.remove('hidden');

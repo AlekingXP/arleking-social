@@ -45,6 +45,13 @@
       <h1 class="lamp-title">✨ <span id="orb-label" data-i18n="login.iniciar_sesion">Iniciar sesión</span></h1>
       <p class="login-sub" id="login-subtitle" data-i18n="login.inicia_sesion_para_administrar_tu_pagina">Inicia sesión para administrar tu página</p>
 
+      <!-- Por que te mandaron aqui, cuando vienes de tocar algo del panel
+           que necesita cuenta. Va en su propio elemento y no en el
+           subtitulo de arriba porque ese lo reescribe setMode() cada vez
+           que se cambia entre entrar y crear cuenta, y el motivo tiene que
+           seguir ahi en los dos. -->
+      <p class="motivo-entrada hidden" id="motivo-entrada"></p>
+
       <p class="signed-in-notice hidden" id="signed-in-notice">
         Ya tienes sesión abierta como <strong id="signed-in-user"></strong>.
         <a href="/admin/dashboard" data-i18n="login.ir_al_panel">Ir al panel</a> &middot;

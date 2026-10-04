@@ -18,6 +18,18 @@ const SIGNATURES = [
   { type: 'tiff',  ext: ['.tif', '.tiff'],  bytes: [0x49, 0x49, 0x2a, 0x00] },
   { type: 'pdf',   ext: ['.pdf'],           bytes: [0x25, 0x50, 0x44, 0x46] },
 
+  // El fondo de una pagina puede ser un video, no solo una foto. Sin estas
+  // dos firmas el escaner no reconocia un .webm legitimo —el que sube el
+  // propio panel— y lo cantaba como "no corresponde a ningun formato
+  // conocido" en nivel alto: una alarma falsa en cada analisis, que es la
+  // forma mas rapida de que se dejen de mirar las verdaderas.
+  //
+  // Reconocerlos no abre nada: un video subido bajo extension de foto sigue
+  // saltando por discrepancia, y no entran en IMAGE_TYPES, asi que no se
+  // les busca contenido activo incrustado —eso es cosa de lo que el
+  // navegador renderiza como documento, y un video no lo es.
+  { type: 'webm',  ext: ['.webm'],          bytes: [0x1a, 0x45, 0xdf, 0xa3] },
+
   // Executables and archives: never a legitimate profile image.
   { type: 'pe-executable',    ext: [], bytes: [0x4d, 0x5a], danger: 'critical' },
   { type: 'elf-executable',   ext: [], bytes: [0x7f, 0x45, 0x4c, 0x46], danger: 'critical' },
@@ -99,10 +111,21 @@ function detectType(buffer) {
       buffer.slice(8, 12).toString('latin1') === 'WEBP') {
     return { type: 'webp', ext: ['.webp'], bytes: [] };
   }
+  // MP4, igual que el WEBP: la marca no esta al principio sino en el byte 4,
+  // detras del tamano de la primera caja.
+  if (buffer.length >= 12 && buffer.slice(4, 8).toString('latin1') === 'ftyp') {
+    return { type: 'mp4', ext: ['.mp4'], bytes: [] };
+  }
   return null;
 }
 
 const IMAGE_TYPES = new Set(['png', 'jpeg', 'gif', 'webp', 'bmp', 'tiff']);
+
+// Lo que vale como fondo de pagina ademas de una foto. Aparte de
+// IMAGE_TYPES a proposito: un video no se renderiza como documento, asi que
+// no se le busca contenido activo incrustado, y tampoco debe colarse donde
+// se espera una imagen.
+const VIDEO_TYPES = new Set(['webm', 'mp4']);
 
 /**
  * Reads a file from disk and reports what is actually inside it.
@@ -128,7 +151,7 @@ function analyzeFile(absolutePath, declaredExt) {
 
   if (!detected) {
     findings.push(finding('high', 'file_unknown_type',
-      'El contenido no corresponde a ningún formato de imagen conocido, pese a tener extensión de imagen.',
+      'El contenido no corresponde a ningún formato conocido de imagen ni de vídeo, pese a tener extensión de archivo subido.',
       `primeros bytes: ${buffer.slice(0, 8).toString('hex')}`));
   } else if (detected.danger) {
     findings.push(finding(detected.danger, 'file_dangerous_type',
@@ -165,4 +188,4 @@ function analyzeFile(absolutePath, declaredExt) {
   return findings;
 }
 
-module.exports = { analyzeFile, detectType, IMAGE_TYPES };
+module.exports = { analyzeFile, detectType, IMAGE_TYPES, VIDEO_TYPES };
