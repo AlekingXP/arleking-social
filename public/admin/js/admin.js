@@ -2,6 +2,7 @@
   // Traduce si el modulo de idiomas esta; si no, devuelve el castellano.
   var T = function (clave, es, vals) { return window.AKI18n ? window.AKI18n.t(clave, es, vals) : es; };
   let currentLinks = [];
+  let selectorFondo = null;
   document.getElementById('slug-prefix').textContent = window.location.host + '/';
 
   // Compartido con los demas modulos del panel (encuestas, soporte): un
@@ -260,6 +261,16 @@
     document.getElementById('p-particles-density').value = profile.particles_density ?? 60;
     document.getElementById('p-particles-density-value').textContent = profile.particles_density ?? 60;
     document.getElementById('vip-tier').value = profile.vip_tier || '';
+
+    // El selector de fondo se arranca una sola vez, con lo que el perfil ya
+    // tenia elegido. Despues ya lleva el estado el, porque es quien recibe
+    // los clics.
+    if (!selectorFondo && window.AKSelectorFondo) {
+      selectorFondo = window.AKSelectorFondo.iniciar({ elegido: profile.wallpaper || null });
+    } else if (selectorFondo) {
+      selectorFondo.poner(profile.wallpaper || null);
+    }
+
     renderVipStatus(profile);
   }
 
@@ -316,6 +327,7 @@
           particles_enabled: document.getElementById('p-particles-enabled').checked ? 1 : 0,
           particles_color: document.getElementById('p-particles-color').value,
           particles_density: parseInt(document.getElementById('p-particles-density').value, 10),
+          wallpaper: selectorFondo ? selectorFondo.elegido() : null,
         }),
       });
       showToast(T('adm.perfil_actualizado', 'Perfil actualizado'), 'success');
@@ -326,6 +338,17 @@
 
   document.getElementById('p-particles-density').addEventListener('input', (e) => {
     document.getElementById('p-particles-density-value').textContent = e.target.value;
+  });
+
+  // Los fondos llevan dentro los dos colores de acento, asi que al cambiarlos
+  // hay que rehacerlos. Se escucha `change` y no `input`: arrastrando por el
+  // selector de color saldrian decenas de eventos por segundo, y reconstruir
+  // ocho lienzos animados en cada uno pone el ventilador a girar.
+  ['p-accent-from', 'p-accent-to'].forEach((id) => {
+    const campo = document.getElementById(id);
+    if (campo) campo.addEventListener('change', () => {
+      if (selectorFondo) selectorFondo.recolorear();
+    });
   });
 
   // ---- VIP: real subscriptions via Stripe ----

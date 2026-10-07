@@ -141,6 +141,19 @@
       </div>
 
       <div class="tab-panel hidden" data-panel="apariencia">
+
+        <!-- El catálogo de fondos generativos.
+             Cada baldosa dibuja el fondo de verdad, en pequeño y en vivo: una
+             captura mentiría sobre lo único que importa aquí, que es cómo se
+             mueve. Lo rellena wallpaper-picker.js. -->
+        <section class="card">
+          <h2 class="card-title" data-i18n="panel.fondo_animado">Fondo animado</h2>
+          <p class="hint" style="margin-top:0;" data-i18n="panel.ocho_fondos_que_no_son_imagenes_sino_algorit">
+            Nueve fondos que no son imágenes sino algoritmos: pesan unos kilobytes, se ven nítidos en cualquier pantalla y se mueven. Toman tus dos colores de acento, así que el mismo fondo se ve distinto en cada página. Manda sobre la foto de abajo.
+          </p>
+          <div class="monitores" id="wallpaper-grid" role="radiogroup" aria-label="Fondo animado"></div>
+        </section>
+
         <section class="card">
           <h2 class="card-title" data-i18n="panel.fondo">Fondo</h2>
         <div class="bg-editor">
@@ -839,6 +852,11 @@
        hay sesion y se callan cuando no la hay. -->
   <script src="/js/sesion.js"></script>
   <script src="/js/particles.js"></script>
+  <!-- El catalogo de fondos y su selector. El catalogo va antes porque el
+       selector lo lee al pintarse, y los dos antes que admin.js, que es
+       quien arranca el selector con el fondo que ya tenia el perfil. -->
+  <script src="/js/wallpapers.js"></script>
+  <script src="/admin/js/wallpaper-picker.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/button-fx.js"></script>
   <script src="/js/vip-badge.js"></script>

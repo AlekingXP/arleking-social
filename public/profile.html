@@ -13,6 +13,9 @@
 <body>
 
   <div class="bg-hero" aria-hidden="true"></div>
+  <!-- El fondo generativo, cuando hay uno elegido. Nace oculto: si no hay
+       ninguno, no debe tapar la foto con un rectángulo transparente. -->
+  <canvas id="wallpaper-canvas" class="wallpaper-canvas hidden" aria-hidden="true"></canvas>
   <canvas id="particles-canvas" class="particles-canvas" aria-hidden="true"></canvas>
 
   <!-- Age gate -->
@@ -63,6 +66,8 @@
        main.js quien se lo pasa cuando tiene el perfil, para no pedirlo dos
        veces en la pagina que cargan los visitantes. -->
   <script src="/js/i18n.js"></script>
+  <!-- Antes que main.js, que es quien lo monta en cuanto tiene el perfil. -->
+  <script src="/js/wallpapers.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script src="/js/main.js"></script>

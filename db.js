@@ -206,6 +206,16 @@ if (!profileColumnsForVip.includes('vip_activated_at')) db.exec('ALTER TABLE pro
 if (!profileColumnsForVip.includes('stripe_customer_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_customer_id TEXT');
 if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TABLE profile ADD COLUMN stripe_subscription_id TEXT');
 
+// El fondo generativo elegido del catálogo, por su clave ('malla', 'deriva'…).
+//
+// Nulo para todas las páginas que ya existen, que es lo correcto: nadie se
+// encuentra el fondo de su página cambiado de un día para otro porque hayamos
+// añadido una función. Quien lo quiera, lo elige.
+//
+// Convive con background_path, que es la foto o el vídeo que alguien sube:
+// son dos cosas distintas y la página pública decide cuál manda.
+if (!profileColumnsForVip.includes('wallpaper')) db.exec('ALTER TABLE profile ADD COLUMN wallpaper TEXT');
+
 // MFA. Nullable and off by default, so every existing account keeps working
 // exactly as before until its owner chooses to enrol.
 if (!userColumnsNow.includes('mfa_secret')) db.exec('ALTER TABLE users ADD COLUMN mfa_secret TEXT');

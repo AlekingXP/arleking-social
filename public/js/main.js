@@ -199,6 +199,28 @@
     document.documentElement.style.setProperty('--accent-from', profile.accent_from);
     document.documentElement.style.setProperty('--accent-to', profile.accent_to);
 
+    // El fondo generativo manda sobre la foto, cuando hay uno elegido.
+    //
+    // Son dos funciones distintas y conviven: la foto es tuya, el fondo del
+    // catálogo es un algoritmo que se dibuja solo. Si alguien tiene las dos
+    // cosas puestas gana la elegida a mano en el catálogo, que es la que
+    // tocó más tarde, y la foto le sigue esperando debajo por si cambia de
+    // opinión.
+    if (profile.wallpaper && window.AKFondos && window.AKFondos.existe(profile.wallpaper)) {
+      const lienzo = document.getElementById('wallpaper-canvas');
+      if (lienzo) {
+        lienzo.classList.remove('hidden');
+        // Sin foto debajo: dos fondos superpuestos se pelean y ninguno se ve.
+        document.documentElement.style.setProperty('--hero-bg', 'none');
+        window.AKFondos.montar(lienzo, {
+          clave: profile.wallpaper,
+          desde: profile.accent_from,
+          hasta: profile.accent_to,
+        });
+        return;
+      }
+    }
+
     const fondo = profile.background_path || '/images/hero-bg.jpg';
     if (FONDO_ES_VIDEO.test(fondo)) {
       montarVideoDeFondo(fondo);

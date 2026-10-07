@@ -1061,6 +1061,154 @@ body {
 .modal-actions .btn-outline,
 .modal-actions .btn-pill { flex: 1; }
 
+/* El selector de fondo: una pared de monitores de circuito cerrado.
+ *
+ * El problema que resuelve la metafora: ocho rectangulos oscuros parecidos
+ * son indistinguibles en una rejilla. Ponerles chapa, canal y punto de
+ * grabacion los convierte en ocho canales con identidad, y de paso explica
+ * sin decirlo que lo que se ve ahi dentro esta pasando ahora. */
+
+.monitores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.monitor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  /* transform y opacity, que van en el compositor; nada de animar el borde
+     ni la sombra, que obligan a repintar. */
+  transition: transform var(--dur-2) var(--ease-salida),
+              border-color var(--dur-2) var(--ease-salida);
+}
+
+.monitor:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.28); }
+.monitor:focus-visible { outline: 2px solid var(--accent-from); outline-offset: 2px; }
+
+/* El unico elemento encendido de la rejilla. Uno, no ocho: si brillan todos
+   no destaca ninguno y la pared se lee como un arbol de navidad. */
+.monitor.elegido {
+  border-color: var(--accent-from);
+  box-shadow: 0 0 0 1px var(--accent-from), 0 0 26px -6px var(--accent-from);
+}
+
+.monitor-pantalla {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  background: #0b0710;
+  overflow: hidden;
+}
+
+.monitor-pantalla canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.monitor-vacio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 1.4rem;
+}
+
+/* Las lineas de barrido del monitor, y un brillo que lo recorre muy
+   despacio. Las lineas van fijas y el brillo es lo unico que se mueve: dos
+   movimientos a la vez en una miniatura de ciento cincuenta pixeles tapan
+   justo lo que se ha venido a mirar. */
+.monitor-barrido {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, rgba(0, 0, 0, 0) 1px 3px);
+}
+
+.monitor-barrido::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 36%;
+  top: -36%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  animation: barrido 7s linear infinite;
+}
+
+/* Lineal a proposito: un barrido que acelera y frena no parece un monitor,
+   parece una animacion. */
+@keyframes barrido {
+  to { transform: translateY(380%); }
+}
+
+.monitor-chapa {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--glass-border);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.monitor-rec {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.monitor.elegido .monitor-rec {
+  background: var(--accent-from);
+  animation: grabando 1.8s var(--ease-suave) infinite;
+}
+
+@keyframes grabando {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.monitor-nombre {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.monitor-canal { color: var(--text-dim); font-size: 0.56rem; }
+
+/* Quien pide menos movimiento se queda con la pared quieta. Los fondos ya se
+   paran solos (lo hace su motor); esto apaga lo que es puro CSS. */
+@media (prefers-reduced-motion: reduce) {
+  .monitor-barrido::after { animation: none; display: none; }
+  .monitor.elegido .monitor-rec { animation: none; }
+  .monitor { transition: none; }
+}
+
 /* Entrada libre (quien mira el panel sin cuenta) */
 
 /* Los dos juegos de botones de la barra de arriba. Son `span` metidos en un

@@ -32,8 +32,41 @@
 
   /* Tres grosores de desenfoque. Cuanto mayor es la superficie, más
      desenfoca: un botón con el mismo desenfoque que una tarjeta grande
-     parece sucio, no de cristal. */
+     parece sucio, no de cristal.
+
+     Ninguno pasa de 20px a propósito: el desenfoque de fondo lo recalcula la
+     tarjeta gráfica en cada fotograma, y por encima de ahí se nota en un
+     móvil de gama media. */
   --glass-blur-sm: blur(6px) saturate(150%);
   --glass-blur-md: blur(12px) saturate(160%);
   --glass-blur-lg: blur(20px) saturate(170%);
+
+  /* ---- Movimiento ----
+   *
+   * Duraciones y curvas con nombre, en vez de un número distinto en cada
+   * regla. Lo que hace que una interfaz se sienta cara no es la animación
+   * suelta: es que TODAS duren lo mismo y se curven igual. Eso no sale de
+   * elegir bien cuarenta veces, sale de elegir una vez.
+   *
+   * Reglas que van con esto:
+   *   - Nada de `linear` salvo lo que de verdad avanza a ritmo constante:
+   *     una barra de progreso, una marquesina. Lo demás, curvado.
+   *   - Lo que entra, con ease-out; lo que se mueve estando ya ahí, con
+   *     ease-in-out; ease-in casi nunca.
+   *   - Salir más rápido que entrar: esperar a que algo desaparezca molesta
+   *     mucho más que esperar a que aparezca.
+   *   - Animar `transform` y `opacity`, que van en el compositor. Animar
+   *     `width`, `top` o `height` obliga al navegador a recalcular la página
+   *     en cada fotograma. */
+  --dur-1: 120ms;   /* respuesta de un botón, un parpadeo */
+  --dur-2: 180ms;   /* desplegables, cosas pequeñas */
+  --dur-3: 240ms;   /* ventanas, paneles */
+  --dur-4: 300ms;   /* el techo normal */
+  --dur-5: 500ms;   /* superficies grandes */
+  --dur-escena: 900ms; /* lo narrativo: una entrada, un titular */
+
+  --ease-salida: cubic-bezier(.165, .84, .44, 1);      /* quart: lo que entra */
+  --ease-salida-fuerte: cubic-bezier(.19, 1, .22, 1);  /* expo: entradas con presencia */
+  --ease-suave: cubic-bezier(.645, .045, .355, 1);     /* in-out cubic: lo que se recoloca */
+  --ease-entrada: cubic-bezier(.55, .055, .675, .19);  /* lo que se va para no volver */
 }

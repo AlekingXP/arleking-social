@@ -45,6 +45,7 @@ const JS_TRADUCIDO = [
   'public/admin/js/admin.js',
   'public/admin/js/encuesta.js',
   'public/admin/js/encuestas-admin.js',
+  'public/admin/js/wallpaper-picker.js',
   'public/js/support-widget.js',
 ];
 for (const f of JS_TRADUCIDO) {

@@ -19,6 +19,7 @@ const { createMailer } = require('../security/auth/mailer');
 const { createTokens } = require('../security/auth/tokens');
 const emails = require('../security/auth/emails');
 const { resolverIcono, esImagen, ErrorEmoji } = require('../support/emoji');
+const { limpiarFondo } = require('../support/fondos');
 
 const trustedDevices = createTrustedDevices(db);
 const webauthn = createWebAuthn(db);
@@ -869,6 +870,7 @@ router.put('/profile', requireAuth, (req, res) => {
     name, tagline, age_gate_enabled, age_gate_title, age_gate_subtitle,
     age_gate_confirm, footer_text, accent_from, accent_to,
     particles_enabled, particles_color, particles_density, slug: rawSlug,
+    wallpaper,
   } = req.body || {};
 
   if (!name || !tagline) return res.status(400).json({ error: 'Nombre y tagline son obligatorios' });
@@ -889,13 +891,19 @@ router.put('/profile', requireAuth, (req, res) => {
       slug = ?, name = ?, tagline = ?, age_gate_enabled = ?, age_gate_title = ?,
       age_gate_subtitle = ?, age_gate_confirm = ?, footer_text = ?,
       accent_from = ?, accent_to = ?,
-      particles_enabled = ?, particles_color = ?, particles_density = ?
+      particles_enabled = ?, particles_color = ?, particles_density = ?,
+      wallpaper = ?
     WHERE user_id = ?
   `).run(
     slug, name, tagline, age_gate_enabled ? 1 : 0, age_gate_title || name,
     age_gate_subtitle || tagline, age_gate_confirm || 'Al continuar confirmas que eres mayor de edad',
     footer_text || name, accent_from || '#ff5f8f', accent_to || '#ff9a5a',
     particles_enabled ? 1 : 0, particles_color || '#ffffff', density,
+    // Lista cerrada: lo que no esté en el catálogo se guarda como "ninguno"
+    // en vez de rechazar la petición entera, porque el resto del formulario
+    // —el nombre, la URL, los colores— sí es válido y perderlo por un campo
+    // que ni siquiera se ve en pantalla sería absurdo.
+    limpiarFondo(wallpaper),
     req.session.userId
   );
 
