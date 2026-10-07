@@ -98,8 +98,13 @@ function contarGrafemas(texto) {
  *   https://cdn.discordapp.com/emojis/1234567890123456789.webp?size=96
  */
 function referenciaDiscord(texto) {
+  // En la marca de un mensaje, la "a" distingue un emoji animado de uno
+  // fijo. Ahí no hay nada que averiguar.
   const marca = /^<(a?):[A-Za-z0-9_~]{1,64}:(\d{15,25})>$/.exec(texto);
-  if (marca) return { id: marca[2], extension: marca[1] === 'a' ? '.gif' : '.png' };
+  if (marca) {
+    const animado = marca[1] === 'a';
+    return { id: marca[2], extension: animado ? '.gif' : '.png', quizaAnimado: false };
+  }
 
   let url;
   try {
@@ -114,13 +119,38 @@ function referenciaDiscord(texto) {
   if (!enRuta) return null;
 
   const extension = (enRuta[2] || '.png').toLowerCase();
-  return { id: enRuta[1], extension: EXTENSIONES.has(extension) ? extension : '.png' };
+  const limpia = EXTENSIONES.has(extension) ? extension : '.png';
+
+  // El enlace, en cambio, NO dice si el emoji se mueve. "Copiar enlace"
+  // suele dar un .webp, y un .webp de un emoji animado es una foto fija:
+  // pidiéndolo tal cual, el check que gira en Discord llegaba aquí quieto.
+  // Cuando la extensión no es ya .gif, hay que preguntar.
+  return { id: enRuta[1], extension: limpia, quizaAnimado: limpia !== '.gif' };
+}
+
+/**
+ * ¿Este GIF se mueve, o es una sola imagen con extensión de GIF?
+ *
+ * Cada fotograma de un GIF animado va precedido de su bloque de control
+ * (21 F9 04). Uno solo —o ninguno— es una imagen quieta. Se cuenta eso y no
+ * los separadores de imagen (2C), que es un byte suelto y aparece por
+ * casualidad dentro de los datos comprimidos continuamente.
+ */
+function gifSeMueve(bytes) {
+  let fotogramas = 0;
+  for (let i = 0; i + 2 < bytes.length; i++) {
+    if (bytes[i] === 0x21 && bytes[i + 1] === 0xf9 && bytes[i + 2] === 0x04) {
+      fotogramas++;
+      if (fotogramas > 1) return true;
+    }
+  }
+  return false;
 }
 
 /**
  * Trae la imagen del emoji y la deja en uploads. Devuelve la ruta pública.
  */
-async function traerDeDiscord({ id, extension }, uploadsDir) {
+async function descargar(id, extension) {
   const origen = `https://cdn.discordapp.com/emojis/${id}${extension}`;
 
   let respuesta;
@@ -181,9 +211,42 @@ async function traerDeDiscord({ id, extension }, uploadsDir) {
     throw new ErrorEmoji('Lo que devolvió Discord no es una imagen que podamos usar.');
   }
 
+  return bytes;
+}
+
+function guardar(bytes, extension, uploadsDir) {
   const nombre = crypto.randomUUID() + extension;
   fs.writeFileSync(path.join(uploadsDir, nombre), bytes);
   return '/uploads/' + nombre;
+}
+
+/**
+ * Trae la imagen del emoji y la deja en uploads. Devuelve la ruta pública.
+ *
+ * Cuando no se sabe si el emoji se mueve —que es lo que pasa al pegar un
+ * enlace, porque Discord da .webp para los dos casos— se pide primero el
+ * .gif, que es la única forma en la que sirve la animación. Si lo que llega
+ * no se mueve, o no llega nada, se pide la extensión original.
+ *
+ * Es una petición de más, pero sólo al pegar el emoji, no al verlo: un
+ * visitante de la página no paga nada por esto. Y lo contrario —quedarse el
+ * .webp— es servir quieto para siempre algo que en Discord gira.
+ */
+async function traerDeDiscord({ id, extension, quizaAnimado }, uploadsDir) {
+  if (quizaAnimado) {
+    try {
+      const comoGif = await descargar(id, '.gif');
+      if (gifSeMueve(comoGif)) return guardar(comoGif, '.gif', uploadsDir);
+    } catch (err) {
+      // Que el .gif no exista es la respuesta normal para un emoji fijo, no
+      // un fallo: se sigue con la extensión que venía en el enlace. Si el
+      // problema es de verdad —no hay red, el emoji no existe— volverá a
+      // salir en la petición de abajo, y entonces sí con su mensaje.
+      if (!(err instanceof ErrorEmoji)) throw err;
+    }
+  }
+
+  return guardar(await descargar(id, extension), extension, uploadsDir);
 }
 
 /** ¿El icono guardado es un archivo nuestro y no un emoji de texto? */
@@ -238,6 +301,7 @@ module.exports = {
   resolverIcono,
   referenciaDiscord,
   contarGrafemas,
+  gifSeMueve,
   esImagen,
   ErrorEmoji,
   MAX_GRAFEMAS,

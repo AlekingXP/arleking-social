@@ -44,6 +44,15 @@ const PNG = Buffer.from(
 // gif es justo lo que tiene que fallar.
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
+// Y uno que se mueve, hecho duplicando el único fotograma del de arriba: lo
+// que distingue a un GIF animado es que trae más de un bloque de control
+// (21 F9 04), uno por fotograma. No hace falta que se vea bonito.
+const GIF_ANIMADO = (() => {
+  const inicio = GIF.indexOf(0x21);            // el bloque de control del primero
+  const fotograma = GIF.subarray(inicio, GIF.length - 1); // sin el 3B del final
+  return Buffer.concat([GIF.subarray(0, inicio), fotograma, fotograma, Buffer.from([0x3b])]);
+})();
+
 // ---- El Discord de mentira ----
 //
 // Se interpone sólo en las peticiones a su CDN; todo lo demás —incluidas las
@@ -51,6 +60,11 @@ const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA
 const fetchReal = globalThis.fetch;
 let peticionesADiscord = [];
 let siguienteRespuesta = null;
+// Qué clase de emoji finge ser el de este servidor para las peticiones .gif:
+// uno animado, uno fijo que de todos modos da un gif de un fotograma, o uno
+// fijo que ni siquiera tiene versión .gif. Las tres cosas pasan de verdad
+// según el emoji, y el código tiene que acabar bien en las tres.
+let elGifDeDiscord = 'animado'; // 'animado' | 'fijo' | 'no-existe'
 
 globalThis.fetch = async function (recurso, opciones) {
   const direccion = String(recurso && recurso.url ? recurso.url : recurso);
@@ -58,13 +72,22 @@ globalThis.fetch = async function (recurso, opciones) {
     return fetchReal(recurso, opciones);
   }
   peticionesADiscord.push(direccion);
-  const esGif = direccion.endsWith('.gif');
-  const r = siguienteRespuesta
-    || { estado: 200, cuerpo: esGif ? GIF : PNG, tipo: esGif ? 'image/gif' : 'image/png' };
-  return new Response(r.estado === 204 ? null : r.cuerpo, {
-    status: r.estado,
-    headers: { 'Content-Type': r.tipo || 'image/png' },
-  });
+
+  if (siguienteRespuesta) {
+    return new Response(siguienteRespuesta.cuerpo, {
+      status: siguienteRespuesta.estado,
+      headers: { 'Content-Type': siguienteRespuesta.tipo || 'image/png' },
+    });
+  }
+
+  if (direccion.endsWith('.gif')) {
+    if (elGifDeDiscord === 'no-existe') {
+      return new Response('nope', { status: 415, headers: { 'Content-Type': 'text/plain' } });
+    }
+    return new Response(elGifDeDiscord === 'animado' ? GIF_ANIMADO : GIF,
+      { status: 200, headers: { 'Content-Type': 'image/gif' } });
+  }
+  return new Response(PNG, { status: 200, headers: { 'Content-Type': 'image/png' } });
 };
 
 function tarro(res, t = {}) {
@@ -96,7 +119,7 @@ async function registrar(SRV, usuario) {
   delete process.env.OPENAI_API_KEY;
   delete process.env.ANTHROPIC_API_KEY;
 
-  const { resolverIcono, referenciaDiscord, contarGrafemas, esImagen, ErrorEmoji } = require('../support/emoji');
+  const { resolverIcono, referenciaDiscord, contarGrafemas, gifSeMueve, esImagen, ErrorEmoji } = require('../support/emoji');
   const { uploadsDir } = require('../paths');
 
   // Pide y recoge el mensaje, que es la mitad de lo que se prueba aquí: un
@@ -213,17 +236,22 @@ async function registrar(SRV, usuario) {
   ok('se crea un enlace con un emoji que antes no cabía', conFamilia.status === 201, conFamilia);
   ok('y llega entero, sin recortar', conFamilia.datos.icon === '👨‍👩‍👧‍👦', conFamilia.datos.icon);
 
+  // Un emoji fijo: su versión .gif no existe, así que se cae a la extensión
+  // que venía en el enlace.
+  elGifDeDiscord = 'no-existe';
   peticionesADiscord = [];
   const conDiscord = await pedir('/api/links', {
     method: 'POST',
     body: { label: 'Deuses', url: 'https://ejemplo.test/d', icon: `https://cdn.discordapp.com/emojis/${ID}.png?size=96` },
   });
   ok('se crea uno con un emoji de Discord', conDiscord.status === 201, conDiscord);
-  ok('se pidió a Discord una sola vez', peticionesADiscord.length === 1, peticionesADiscord);
-  // La dirección que sale es la que armamos nosotros, sin los parámetros con
-  // los que llegó.
-  ok('con la dirección que armamos nosotros',
-    peticionesADiscord[0] === `https://cdn.discordapp.com/emojis/${ID}.png`, peticionesADiscord[0]);
+  // Las direcciones que salen son las que armamos nosotros, sin los
+  // parámetros con los que llegó el enlace.
+  ok('se preguntó primero si se movía',
+    peticionesADiscord[0] === `https://cdn.discordapp.com/emojis/${ID}.gif`, peticionesADiscord);
+  ok('y al no moverse, se pidió como venía',
+    peticionesADiscord[1] === `https://cdn.discordapp.com/emojis/${ID}.png`, peticionesADiscord);
+  ok('dos peticiones y no más', peticionesADiscord.length === 2, peticionesADiscord);
 
   const guardado = conDiscord.datos.icon;
   ok('y lo que se guarda es una imagen nuestra, no el enlace de Discord',
@@ -236,6 +264,51 @@ async function registrar(SRV, usuario) {
   // que no hace falta abrir la CSP a un dominio de fuera.
   const servida = await fetch(SRV + guardado);
   ok('se sirve desde nuestro propio dominio', servida.status === 200, servida.status);
+
+  console.log('\n== 4b. Y si el emoji se mueve, sigue moviéndose ==');
+
+  // Lo que fallaba: "Copiar enlace" en Discord da un .webp tanto si el
+  // emoji gira como si no, y un .webp de uno animado es una foto fija. El
+  // check que gira en Discord llegaba aquí quieto. Ahora, cuando el enlace
+  // no dice ya .gif, se pregunta por el .gif antes de conformarse.
+  ok('un gif de un fotograma no se mueve', gifSeMueve(GIF) === false);
+  ok('y uno de dos, sí', gifSeMueve(GIF_ANIMADO) === true);
+  ok('un PNG no es un gif que se mueva', gifSeMueve(PNG) === false);
+
+  elGifDeDiscord = 'animado';
+  peticionesADiscord = [];
+  const animado = await pedir('/api/links', {
+    method: 'POST',
+    body: { label: 'Deuses oficial', url: 'https://ejemplo.test/a', icon: `https://cdn.discordapp.com/emojis/${ID}.webp?size=96&quality=lossless` },
+  });
+  ok('el enlace .webp de un emoji animado se acepta', animado.status === 201, animado);
+  ok('se pidió el gif', peticionesADiscord[0] === `https://cdn.discordapp.com/emojis/${ID}.gif`, peticionesADiscord);
+  ok('y con eso bastó: no se pidió el webp', peticionesADiscord.length === 1, peticionesADiscord);
+  ok('se guarda como gif', animado.datos.icon.endsWith('.gif'), animado.datos.icon);
+  const bytesAnimado = fs.readFileSync(path.join(uploadsDir, path.basename(animado.datos.icon)));
+  ok('y lo guardado se mueve de verdad', gifSeMueve(bytesAnimado), bytesAnimado.length);
+
+  // El caso raro: Discord da un .gif pero de un solo fotograma. Entonces no
+  // aporta nada sobre el .webp original, así que se queda el original.
+  elGifDeDiscord = 'fijo';
+  peticionesADiscord = [];
+  const gifQuieto = await pedir('/api/links', {
+    method: 'POST',
+    body: { label: 'Fijo', url: 'https://ejemplo.test/f', icon: `https://cdn.discordapp.com/emojis/${ID}.png` },
+  });
+  ok('un gif de un solo fotograma no se queda', gifQuieto.datos.icon.endsWith('.png'), gifQuieto.datos.icon);
+  ok('y se pidió la versión original después', peticionesADiscord.length === 2, peticionesADiscord);
+
+  // Y cuando Discord ya nos dice si se mueve, no se pregunta de más: la
+  // marca de un mensaje trae esa información en la "a".
+  elGifDeDiscord = 'animado';
+  peticionesADiscord = [];
+  const marcaFija = await pedir('/api/links', {
+    method: 'POST',
+    body: { label: 'Marca fija', url: 'https://ejemplo.test/m', icon: `<:quieto:${ID}>` },
+  });
+  ok('<:...> no pregunta por el gif', peticionesADiscord.length === 1, peticionesADiscord);
+  ok('y se queda en png', marcaFija.datos.icon.endsWith('.png'), marcaFija.datos.icon);
 
   console.log('\n== 5. No se vuelve a descargar, y se limpia al cambiar ==');
 
@@ -270,6 +343,7 @@ async function registrar(SRV, usuario) {
 
   console.log('\n== 6. Borrar el enlace se lleva su imagen ==');
 
+  elGifDeDiscord = 'animado';
   peticionesADiscord = [];
   const paraBorrar = await pedir('/api/links', {
     method: 'POST',
@@ -282,7 +356,10 @@ async function registrar(SRV, usuario) {
 
   const suArchivo = path.join(uploadsDir, path.basename(paraBorrar.datos.icon));
   ok('su archivo existe', fs.existsSync(suArchivo));
-  ok('y es el gif animado, no otra cosa', fs.readFileSync(suArchivo).equals(GIF));
+  ok('y es el gif animado, no otra cosa', fs.readFileSync(suArchivo).equals(GIF_ANIMADO));
+  ok('que además se mueve', gifSeMueve(fs.readFileSync(suArchivo)));
+  // La "a" de la marca ya decía que se movía, así que no hubo que preguntar.
+  ok('y no hizo falta preguntar dos veces', peticionesADiscord.length === 1, peticionesADiscord);
 
   // Un PNG servido donde se pidió un gif es exactamente lo que tiene que
   // fallar: la extensión la elegimos nosotros y los bytes tienen que
