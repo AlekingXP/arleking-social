@@ -23,6 +23,7 @@ const PUBLIC_PROFILE_FIELDS = [
   'particles_color',
   'particles_density',
   'wallpaper',
+  'recorrido',
   'vip_tier',
 ];
 

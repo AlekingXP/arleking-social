@@ -216,6 +216,11 @@ if (!profileColumnsForVip.includes('stripe_subscription_id')) db.exec('ALTER TAB
 // son dos cosas distintas y la página pública decide cuál manda.
 if (!profileColumnsForVip.includes('wallpaper')) db.exec('ALTER TABLE profile ADD COLUMN wallpaper TEXT');
 
+// El recorrido que hay debajo de los enlaces. Apagado para todo lo que ya
+// existe, y por la misma razón: nadie se encuentra su página pública tres
+// pantallas más larga porque hayamos añadido algo.
+if (!profileColumnsForVip.includes('recorrido')) db.exec('ALTER TABLE profile ADD COLUMN recorrido INTEGER NOT NULL DEFAULT 0');
+
 // MFA. Nullable and off by default, so every existing account keeps working
 // exactly as before until its owner chooses to enrol.
 if (!userColumnsNow.includes('mfa_secret')) db.exec('ALTER TABLE users ADD COLUMN mfa_secret TEXT');

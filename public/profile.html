@@ -46,6 +46,37 @@
 
     <nav id="links-list" class="links-list"></nav>
 
+    <!-- El recorrido. Va DEBAJO de los enlaces a propósito: quien entra
+         aquí viene a pulsar uno y lo tiene delante al abrir. Nace oculto y
+         lo enseña main.js sólo si el perfil lo tiene activado, para que
+         ninguna página existente crezca tres pantallas sin avisar. -->
+    <div id="recorrido" class="recorrido hidden">
+
+      <div class="tira" aria-hidden="true"><span class="tira-cinta" data-tira></span></div>
+
+      <section class="escena escena-nombre" data-revelar>
+        <p class="escena-etiqueta" id="recorrido-slug" data-paso></p>
+        <h2 class="escena-titulo" id="recorrido-nombre" data-paso></h2>
+        <p class="escena-linea" id="recorrido-tagline" data-paso></p>
+      </section>
+
+      <div class="tira" aria-hidden="true"><span class="tira-cinta" data-tira></span></div>
+
+      <section class="escena escena-cristal" data-cristal data-revelar>
+        <div class="cristal-caja" data-paso>
+          <canvas class="cristal" aria-hidden="true"></canvas>
+          <!-- Lo que se ve si no hay WebGL, si el aparato no da la talla o
+               si el módulo no llega: una pieza dibujada, no un hueco. -->
+          <div class="cristal-respaldo hidden" data-respaldo aria-hidden="true"></div>
+        </div>
+        <p class="escena-pie" id="recorrido-pie" data-paso></p>
+      </section>
+
+      <section class="escena escena-cierre" data-revelar>
+        <button type="button" class="btn-pill btn-gradient" data-volver data-paso data-i18n="perfil.volver_a_los_enlaces">Volver a los enlaces</button>
+      </section>
+    </div>
+
     <footer class="site-footer">
       <span id="footer-text"></span>
     </footer>
@@ -68,6 +99,7 @@
   <script src="/js/i18n.js"></script>
   <!-- Antes que main.js, que es quien lo monta en cuanto tiene el perfil. -->
   <script src="/js/wallpapers.js"></script>
+  <script src="/js/recorrido.js"></script>
   <script src="/js/particles.js"></script>
   <script src="/js/vip-badge.js"></script>
   <script src="/js/main.js"></script>

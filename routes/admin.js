@@ -870,7 +870,7 @@ router.put('/profile', requireAuth, (req, res) => {
     name, tagline, age_gate_enabled, age_gate_title, age_gate_subtitle,
     age_gate_confirm, footer_text, accent_from, accent_to,
     particles_enabled, particles_color, particles_density, slug: rawSlug,
-    wallpaper,
+    wallpaper, recorrido,
   } = req.body || {};
 
   if (!name || !tagline) return res.status(400).json({ error: 'Nombre y tagline son obligatorios' });
@@ -892,7 +892,7 @@ router.put('/profile', requireAuth, (req, res) => {
       age_gate_subtitle = ?, age_gate_confirm = ?, footer_text = ?,
       accent_from = ?, accent_to = ?,
       particles_enabled = ?, particles_color = ?, particles_density = ?,
-      wallpaper = ?
+      wallpaper = ?, recorrido = ?
     WHERE user_id = ?
   `).run(
     slug, name, tagline, age_gate_enabled ? 1 : 0, age_gate_title || name,
@@ -903,7 +903,7 @@ router.put('/profile', requireAuth, (req, res) => {
     // en vez de rechazar la petición entera, porque el resto del formulario
     // —el nombre, la URL, los colores— sí es válido y perderlo por un campo
     // que ni siquiera se ve en pantalla sería absurdo.
-    limpiarFondo(wallpaper),
+    limpiarFondo(wallpaper), recorrido ? 1 : 0,
     req.session.userId
   );
 

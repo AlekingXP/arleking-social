@@ -241,6 +241,20 @@
     document.getElementById('main-name').textContent = profile.name;
     document.getElementById('main-tagline').textContent = profile.tagline;
 
+    // El recorrido se alimenta de lo que el perfil ya tiene. Nada inventado:
+    // su nombre, su dirección, su frase y su pie, en grande.
+    if (profile.recorrido && window.AKRecorrido) {
+      const slug = document.getElementById('recorrido-slug');
+      if (slug) slug.textContent = '/' + (profile.slug || '');
+      const nombre = document.getElementById('recorrido-nombre');
+      if (nombre) nombre.textContent = profile.name || '';
+      const frase = document.getElementById('recorrido-tagline');
+      if (frase) frase.textContent = profile.tagline || '';
+      const pie = document.getElementById('recorrido-pie');
+      if (pie) pie.textContent = profile.footer_text || '';
+      window.AKRecorrido.iniciar(profile);
+    }
+
     document.getElementById('footer-text').textContent = profile.footer_text || profile.name;
     document.title = profile.name;
   }

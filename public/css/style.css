@@ -13,6 +13,12 @@
 html, body {
   margin: 0;
   padding: 0;
+  /* El recorrido se sale a 100vw, que incluye el ancho de la barra de
+     scroll vertical y por tanto desborda por la derecha justo lo que mide
+     la barra. `clip` y no `hidden`: `hidden` convierte al elemento en
+     contenedor de scroll y eso rompe cualquier `position: sticky` de
+     dentro. */
+  overflow-x: clip;
 }
 
 body {
@@ -576,4 +582,175 @@ main {
 @media (max-width: 600px) {
   .vip-badge-3d { width: 44px; height: 44px; }
   .vip-badge.has-3d { vertical-align: -11px; }
+}
+
+/* ===== El recorrido =====
+ *
+ * Lo que hay debajo de los enlaces, para quien se queda. Las reglas de
+ * montaje estan explicadas en recorrido.js; aqui solo estan aplicadas.
+ */
+
+.recorrido {
+  margin-top: 64px;
+  /* Se sale del ancho del contenido: el recorrido es de borde a borde
+     aunque los enlaces vivan en una columna estrecha. Es lo que hace que se
+     lea como otra cosa y no como mas tarjetas.
+
+     100vw incluye el ancho de la barra de scroll vertical, asi que esto
+     desborda por la derecha exactamente lo que mide la barra y aparece una
+     barra horizontal. Lo recorta el `overflow-x: clip` del body: `clip` y
+     no `hidden` porque `hidden` convierte al body en contenedor de scroll y
+     eso rompe cualquier `position: sticky` de dentro. */
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ---- La tira de datos ---- */
+
+.tira {
+  overflow: hidden;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.17);
+  user-select: none;
+}
+
+.tira-cinta {
+  display: inline-block;
+  white-space: nowrap;
+  /* El unico `linear` de la pagina, y aqui es lo correcto: una cinta que
+     acelera y frena no es una cinta. Desplaza la mitad exacta porque el
+     texto va duplicado, asi que el salto cae donde la segunda copia empieza
+     igual que la primera y no se ve. */
+  animation: cinta 90s linear infinite;
+}
+
+@keyframes cinta { to { transform: translateX(-50%); } }
+
+/* ---- Las escenas ---- */
+
+.escena {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 108px 24px;
+  text-align: center;
+}
+
+/* La quietud entre escenas es parte del diseno: el movimiento continuo se
+   lee como barato y el contraste entre moverse y pararse se lee como caro.
+   De ahi el relleno generoso. */
+
+.escena-etiqueta {
+  margin: 0 0 18px;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.escena-titulo {
+  margin: 0;
+  /* Entre 2.4rem y 5.5rem segun el ancho, sin saltos: un titular grande en
+     un movil estrecho parte en cuatro lineas y deja de ser un titular. */
+  font-size: clamp(2.4rem, 11vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  /* El unico elemento encendido de la escena. Uno, no tres. */
+  background: linear-gradient(100deg, var(--accent-from), var(--accent-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.escena-linea {
+  margin: 20px auto 0;
+  max-width: 44ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.escena-pie {
+  margin: 28px 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+/* ---- El cristal ---- */
+
+.cristal-caja {
+  position: relative;
+  width: min(520px, 82vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.cristal,
+.cristal-respaldo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* El respaldo: dos anillos del degradado girando. No intenta parecerse al
+   cristal, intenta no dejar un agujero. */
+.cristal-respaldo {
+  border-radius: 50%;
+  border: 1px solid var(--accent-from);
+  opacity: 0.25;
+  animation: respaldoGira 24s linear infinite;
+}
+
+.cristal-respaldo::after {
+  content: '';
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  border: 1px solid var(--accent-to);
+}
+
+@keyframes respaldoGira { to { transform: rotate(360deg); } }
+
+/* ---- Los revelados ---- */
+
+/* Tres propiedades, nunca una: una opacidad sola es un parpadeo; opacidad
+   mas desplazamiento mas escala es algo que llega. Y escalonadas entre
+   hermanas, que es lo que convierte un corte en una entrada.
+
+   Solo transform y opacity, que viven en el compositor: animar `top` o
+   `height` obliga al navegador a recalcular la pagina en cada fotograma. */
+[data-revelar] [data-paso] {
+  opacity: 0;
+  transform: translateY(28px) scale(0.975);
+  transition:
+    opacity var(--dur-escena) var(--ease-salida-fuerte) calc(var(--paso, 0) * 60ms),
+    transform var(--dur-escena) var(--ease-salida-fuerte) calc(var(--paso, 0) * 60ms);
+}
+
+[data-revelar].visible [data-paso] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Quien pide menos movimiento ve lo mismo, quieto. Lo que no puede pasar
+   nunca es que se quede invisible: por eso el contenido se enseña aqui y no
+   se deja a que lo haga el JavaScript. */
+@media (prefers-reduced-motion: reduce) {
+  [data-revelar] [data-paso] { opacity: 1; transform: none; transition: none; }
+  .tira-cinta,
+  .cristal-respaldo { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .escena { padding: 72px 20px; }
+  .recorrido { margin-top: 48px; }
 }

@@ -257,6 +257,7 @@
     document.getElementById('p-gate-subtitle').value = profile.age_gate_subtitle || '';
     document.getElementById('p-gate-confirm').value = profile.age_gate_confirm || '';
     document.getElementById('p-particles-enabled').checked = !!profile.particles_enabled;
+    document.getElementById('p-recorrido').checked = !!profile.recorrido;
     document.getElementById('p-particles-color').value = profile.particles_color || '#ffffff';
     document.getElementById('p-particles-density').value = profile.particles_density ?? 60;
     document.getElementById('p-particles-density-value').textContent = profile.particles_density ?? 60;
@@ -328,6 +329,7 @@
           particles_color: document.getElementById('p-particles-color').value,
           particles_density: parseInt(document.getElementById('p-particles-density').value, 10),
           wallpaper: selectorFondo ? selectorFondo.elegido() : null,
+          recorrido: document.getElementById('p-recorrido').checked ? 1 : 0,
         }),
       });
       showToast(T('adm.perfil_actualizado', 'Perfil actualizado'), 'success');
