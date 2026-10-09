@@ -215,7 +215,7 @@
   "panel.nombre_de_la_plataforma": "Platform name",
   "panel.nueva_encuesta": "New survey",
   "panel.nuevo_enlace": "New link",
-  "panel.ocho_fondos_que_no_son_imagenes_sino_algorit": "Nine backgrounds that are not images but algorithms: a few kilobytes each, sharp on any screen, and they move. They take your two accent colours, so the same one looks different on every page. It overrides the photo below.",
+  "panel.ocho_fondos_que_no_son_imagenes_sino_algorit": "Ten backgrounds, and each one also changes the typeface and the way things arrive as you scroll: not ten textures behind the same page, but ten pages. Nine are algorithms - a few kilobytes, sharp on any screen - and the tenth, \"Viva\", brings your own image below to life with light that follows the cursor. All of them take your two accent colours.",
   "panel.olvidar_todos": "Forget all",
   "panel.otras_formas_de_preguntarlo_separadas_por_co": "Other ways of asking it, separated by commas",
   "panel.paises": "Countries",

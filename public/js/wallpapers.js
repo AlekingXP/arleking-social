@@ -560,6 +560,141 @@
     },
   });
 
+
+  /* VIVA - tu propia imagen, con vida encima.
+   *
+   * El unico del catalogo que no se inventa el dibujo. Parte de la imagen
+   * que subio quien tiene la pagina y le pone lo que una imagen quieta no
+   * puede tener. No la retoca, no la recorta distinto, no le cambia el
+   * color: la deja como esta y la mueve.
+   *
+   * Cuatro movimientos, y ninguno la deforma:
+   *
+   *   acercamiento  un 2% arriba y abajo en un ciclo de ochenta segundos.
+   *                 Tan lento que no se ve pasar, y aun asi el cuadro no
+   *                 esta nunca quieto.
+   *   paralaje      se desplaza al contrario del puntero. Es lo que la
+   *                 convierte en una ventana en vez de un papel pegado:
+   *                 para que haya profundidad, el fondo tiene que ir al
+   *                 reves que tu.
+   *   luz           un foco calido donde esta el cursor y su sombra justo
+   *                 enfrente. Mover el raton es pasear una lampara.
+   *   polvo         delante del todo, en los dos colores de acento.
+   *
+   * El margen del 6% no es decoracion: sin aire de sobra, al desplazarla
+   * apareceria una franja vacia en el borde.
+   */
+  definir({
+    clave: 'viva',
+    nombre: 'Viva',
+    resumen: 'Tu propia imagen de fondo, con luz que sigue al cursor y profundidad.',
+    necesitaImagen: true,
+    quierePuntero: true,
+    crear(ctx, p) {
+      const desliz = { x: 0, y: 0 };
+      let ultimo = 0;
+
+      return function (t, w, h) {
+        const dt = Math.min(0.1, Math.max(0, t - ultimo));
+        ultimo = t;
+
+        const pt = p.puntero();
+        // Sin raton, el foco deriva solo. Una pieza que se para del todo
+        // cuando nadie la toca esta apagada, no quieta.
+        const fx = (pt ? pt.x : 0.5 + Math.sin(t * 0.085) * 0.24) * w;
+        const fy = (pt ? pt.y : 0.38 + Math.cos(t * 0.061) * 0.16) * h;
+        const ox = pt ? pt.x : 0.5;
+        const oy = pt ? pt.y : 0.45;
+        desliz.x += ((ox - 0.5) * 2 - desliz.x) * Math.min(1, dt * 2.4);
+        desliz.y += ((oy - 0.5) * 2 - desliz.y) * Math.min(1, dt * 2.4);
+
+        const img = p.imagen();
+        if (!img) {
+          // Sin imagen no hay nada que animar. Se dice, no se finge: un
+          // rectangulo vacio parece una pagina rota.
+          ctx.fillStyle = p.fondoSolido;
+          ctx.fillRect(0, 0, w, h);
+          ctx.strokeStyle = rgba(p.frio, 0.3);
+          ctx.lineWidth = Math.max(1, p.escala);
+          ctx.setLineDash([6 * p.escala, 6 * p.escala]);
+          ctx.strokeRect(w * 0.1, h * 0.1, w * 0.8, h * 0.8);
+          ctx.setLineDash([]);
+          return;
+        }
+
+        // Encuadre: cubre el lienzo como lo haria un background-size:cover,
+        // mas el margen que necesita el paralaje para no dejar franjas.
+        const margen = 1.06;
+        const acerca = 1 + Math.sin(t * 0.0785) * 0.020;
+        const k = Math.max(w / img.naturalWidth, h / img.naturalHeight) * margen * acerca;
+        const dw = img.naturalWidth * k;
+        const dh = img.naturalHeight * k;
+        ctx.drawImage(img,
+          (w - dw) / 2 - desliz.x * w * 0.022,
+          (h - dh) / 2 - desliz.y * h * 0.018,
+          dw, dh);
+
+        // La luz, en 'screen' porque es luz que se suma y no pintura que
+        // tapa: con el modo normal la imagen se lava y pierde los negros.
+        const foco = ctx.createRadialGradient(fx, fy, 0, fx, fy, Math.max(w, h) * 0.58);
+        foco.addColorStop(0, rgba(p.calido, 0.17));
+        foco.addColorStop(0.4, rgba(p.frio, 0.055));
+        foco.addColorStop(1, rgba(p.frio, 0));
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = foco;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Y su sombra, justo enfrente. Sin ella la luz no se nota: lo que
+        // hace que algo parezca iluminado es que lo de al lado no lo este.
+        const sx = w - fx;
+        const sy = h - fy;
+        const som = ctx.createRadialGradient(sx, sy, 0, sx, sy, Math.max(w, h) * 0.75);
+        som.addColorStop(0, p.velo);
+        som.addColorStop(1, rgba(aRgb(p.fondoHex), 0));
+        ctx.fillStyle = som;
+        ctx.fillRect(0, 0, w, h);
+
+        // Polvo. Poco y lento: esta para que el aire no este quieto, no
+        // para que se vea.
+        for (let i = 0; i < 18; i++) {
+          const f = i / 18;
+          const mx = (0.5 + Math.sin(t * 0.11 + i * 2.4) * 0.42 + (f - 0.5) * 0.3) * w;
+          const my = h - ((t * (9 + (i % 5) * 4) + i * 131) % (h * 1.25));
+          const ma = 0.05 + 0.08 * (0.5 + 0.5 * Math.sin(t * 0.8 + i));
+          ctx.beginPath();
+          ctx.arc(mx, my, (0.7 + (i % 3) * 0.5) * p.escala, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(i % 3 ? p.calido : p.frio, ma);
+          ctx.fill();
+        }
+
+        // Velo de lectura. Los otros nueve fondos lo tiran de izquierda a
+        // derecha porque saben donde han dibujado: aqui la imagen la pone
+        // otro y el motivo puede estar en cualquier parte, asi que el velo
+        // solo puede apoyarse en lo unico que si es fijo: donde cae el
+        // texto. Y el texto cae arriba -avatar, nombre, frase y enlaces-,
+        // asi que el velo pesa arriba y suelta abajo.
+        const fondoRgb = aRgb(p.fondoHex);
+        const velo = ctx.createLinearGradient(0, 0, 0, h);
+        velo.addColorStop(0, rgba(fondoRgb, 0.56));
+        velo.addColorStop(0.42, rgba(fondoRgb, 0.44));
+        velo.addColorStop(0.78, rgba(fondoRgb, 0.20));
+        velo.addColorStop(1, rgba(fondoRgb, 0.30));
+        ctx.fillStyle = velo;
+        ctx.fillRect(0, 0, w, h);
+
+        // Vineta. Un 16% en las esquinas y ni uno mas: por encima de ahi
+        // deja de ser una foto y pasa a ser un ojo de buey.
+        const vin = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34,
+                                             w / 2, h / 2, Math.max(w, h) * 0.76);
+        vin.addColorStop(0, rgba(fondoRgb, 0));
+        vin.addColorStop(1, rgba(fondoRgb, 0.16));
+        ctx.fillStyle = vin;
+        ctx.fillRect(0, 0, w, h);
+      };
+    },
+  });
+
   // ---- El motor ----
 
   /* Arranca un fondo sobre un lienzo y lo mantiene vivo.
@@ -574,6 +709,37 @@
    *   - Va a 30 por segundo, no a 60: es un fondo desenfocado y lento, y
    *     nadie distingue la diferencia mirando a otra cosa.
    */
+  /* El puntero, uno para todos.
+   *
+   * Un escuchador en la ventana y no uno por lienzo: en el panel hay diez
+   * miniaturas a la vez, y diez escuchadores de pointermove serian diez
+   * funciones corriendo por cada pixel que se mueve el raton.
+   *
+   * La caja de cada lienzo se cachea en medir() y al hacer scroll. Pedirla
+   * en cada fotograma seria un getBoundingClientRect por lienzo y por
+   * cuadro, que obliga al navegador a recalcular la pagina treinta veces
+   * por segundo. Eso es justo lo que el resto de este archivo evita.
+   */
+  const raton = { x: 0, y: 0, visto: false, clientes: 0 };
+
+  function alMoverPuntero(e) {
+    raton.x = e.clientX;
+    raton.y = e.clientY;
+    raton.visto = true;
+  }
+
+  function quererPuntero() {
+    // passive: no vamos a cancelar nada, y decirlo evita que el navegador
+    // espere a ver si lo hacemos.
+    if (raton.clientes === 0) window.addEventListener('pointermove', alMoverPuntero, { passive: true });
+    raton.clientes++;
+  }
+
+  function soltarPuntero() {
+    raton.clientes = Math.max(0, raton.clientes - 1);
+    if (raton.clientes === 0) window.removeEventListener('pointermove', alMoverPuntero);
+  }
+
   function montar(lienzo, opciones) {
     const op = opciones || {};
     const def = CATALOGO.find((d) => d.clave === op.clave);
@@ -581,6 +747,19 @@
 
     const ctx = lienzo.getContext('2d');
     if (!ctx) return null;
+
+    // La imagen de quien tiene la pagina, para el fondo que la usa. Se pide
+    // una vez y se pinta en cuanto llega; mientras tanto el fondo dibuja su
+    // hueco, que dice que falta en vez de fingir que no.
+    let foto = null;
+    if (def.necesitaImagen && op.imagen) {
+      const cargando = new Image();
+      cargando.onload = function () {
+        if (cargando.naturalWidth) foto = cargando;
+        if (!vivo) unFotograma(performance.now());
+      };
+      cargando.src = op.imagen;
+    }
 
     const quieto = window.matchMedia
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -609,12 +788,23 @@
       // altas que la pantalla, celdas con la opacidad por encima de uno y
       // partículas cruzando la miniatura en medio segundo.
       escala: op.escala || 1,
+      /* Donde esta el raton dentro de ESTE lienzo, de 0 a 1, o null si
+         todavia no se ha movido nunca. Cada fondo saca de aqui lo suyo. */
+      puntero() {
+        if (!raton.visto || !caja) return null;
+        return {
+          x: (raton.x - caja.left) / (caja.width || 1),
+          y: (raton.y - caja.top) / (caja.height || 1),
+        };
+      },
+      imagen() { return foto; },
     };
 
     const dibujar = def.crear(ctx, paleta);
 
     let w = 0;
     let h = 0;
+    let caja = null;
     let rafId = null;
     let vivo = false;
     let visible = true;
@@ -626,7 +816,7 @@
       // lienzo a pantalla completa serían nueve veces los píxeles para un
       // fondo borroso.
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const caja = lienzo.getBoundingClientRect();
+      caja = lienzo.getBoundingClientRect();
       w = Math.max(1, Math.round(caja.width));
       h = Math.max(1, Math.round(caja.height));
       if (lienzo.width !== Math.round(w * dpr) || lienzo.height !== Math.round(h * dpr)) {
@@ -676,6 +866,15 @@
     const alCambiarPestana = () => replantear();
     document.addEventListener('visibilitychange', alCambiarPestana);
 
+    // El scroll mueve la caja del lienzo -en el panel, las miniaturas suben
+    // y bajan- y con ella la cuenta de donde cae el raton dentro de el.
+    let alScroll = null;
+    if (def.quierePuntero) {
+      quererPuntero();
+      alScroll = () => { caja = lienzo.getBoundingClientRect(); };
+      window.addEventListener('scroll', alScroll, { passive: true });
+    }
+
     let observador = null;
     if (window.IntersectionObserver) {
       observador = new IntersectionObserver((entradas) => {
@@ -698,6 +897,11 @@
       parar() {
         parar();
         document.removeEventListener('visibilitychange', alCambiarPestana);
+        if (alScroll) {
+          window.removeEventListener('scroll', alScroll);
+          soltarPuntero();
+          alScroll = null;
+        }
         if (observador) observador.disconnect();
         if (observadorTam) observadorTam.disconnect();
         else window.removeEventListener('resize', alRedimensionar);
@@ -707,7 +911,9 @@
   }
 
   window.AKFondos = {
-    catalogo: () => CATALOGO.map((d) => ({ clave: d.clave, nombre: d.nombre, resumen: d.resumen })),
+    catalogo: () => CATALOGO.map((d) => ({
+      clave: d.clave, nombre: d.nombre, resumen: d.resumen, necesitaImagen: !!d.necesitaImagen,
+    })),
     existe: (clave) => CATALOGO.some((d) => d.clave === clave),
     montar,
   };

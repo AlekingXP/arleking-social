@@ -23,6 +23,7 @@
   var montados = [];      // lo devuelto por AKFondos.montar, para poder parar
   var elegido = null;
   var alCambiar = null;
+  var imagen = null;      // la foto de fondo de esta cuenta, para «Viva»
 
   function colores() {
     var desde = document.getElementById('p-accent-from');
@@ -61,7 +62,14 @@
     var pantalla = document.createElement('span');
     pantalla.className = 'monitor-pantalla';
 
-    if (def) {
+    if (def && def.necesitaImagen && !imagen) {
+      // «Viva» sin imagen no tiene nada que animar. Mejor decirlo en la
+      // propia baldosa que enseñar un recuadro vacio y que parezca roto.
+      var falta = document.createElement('span');
+      falta.className = 'monitor-vacio monitor-falta';
+      falta.textContent = T('adm.sube_una_imagen', 'Sube una imagen abajo');
+      pantalla.appendChild(falta);
+    } else if (def) {
       var lienzo = document.createElement('canvas');
       pantalla.appendChild(lienzo);
       b.dataset.lienzo = '1';
@@ -85,6 +93,20 @@
     var nombre = document.createElement('span');
     nombre.className = 'monitor-nombre';
     nombre.textContent = def ? def.nombre : T('adm.sin_fondo_animado', 'Sin fondo animado');
+    // El nombre de cada fondo, escrito con la letra que ese fondo pone en
+    // la pagina. Es la forma mas corta de enseñar que elegir fondo tambien
+    // elige tipografia: se ve, no hay que leerlo en ningun sitio.
+    //
+    // Cuesta una descarga de fuente por baldosa, y se paga a proposito:
+    // esto es el panel, donde se esta eligiendo justamente eso, y es una
+    // sola vez porque despues queda en cache.
+    if (def && window.AKEstilos) {
+      var cara = window.AKEstilos.cara(def.clave);
+      if (cara) {
+        window.AKEstilos.precargar(def.clave);
+        nombre.style.fontFamily = cara;
+      }
+    }
     var canal = document.createElement('span');
     canal.className = 'monitor-canal';
     canal.setAttribute('aria-hidden', 'true');
@@ -116,6 +138,7 @@
         clave: def.clave,
         desde: c.desde,
         hasta: c.hasta,
+        imagen: imagen,
         // Las miniaturas miden la décima parte: sin subir el grosor de las
         // líneas y el tamaño de las motas, todas se verían igual de grises.
         escala: 2.2,
@@ -158,6 +181,7 @@
     if (!rejilla || !window.AKFondos) return null;
     alCambiar = opciones && opciones.alCambiar;
     elegido = (opciones && opciones.elegido) || null;
+    imagen = (opciones && opciones.imagen) || null;
 
     rejilla.addEventListener('click', alPulsar);
     rejilla.addEventListener('keydown', alTeclear);
@@ -172,6 +196,14 @@
       // decenas de eventos por segundo y reconstruir ocho lienzos en cada
       // uno es lo que convierte un panel en un horno.
       recolorear: pintar,
+      // Al subir o quitar la foto de fondo, «Viva» pasa de tener algo que
+      // animar a no tenerlo. Es la unica baldosa que depende de datos de
+      // fuera del selector, asi que hay que avisarla.
+      imagen: function (ruta) {
+        var antes = imagen;
+        imagen = ruta || null;
+        if (!!antes !== !!imagen || antes !== imagen) pintar();
+      },
     };
   }
 

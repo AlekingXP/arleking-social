@@ -25,7 +25,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--font-cuerpo);
   -webkit-font-smoothing: antialiased;
   position: relative;
 }
@@ -91,7 +91,7 @@ body {
 .hidden { display: none !important; }
 
 .brand-name {
-  font-family: var(--font-ui);
+  font-family: var(--font-titulo);
   font-weight: 700;
   letter-spacing: -0.03em;
   font-size: 2rem;
@@ -654,6 +654,7 @@ main {
 }
 
 .escena-titulo {
+  font-family: var(--font-titulo);
   margin: 0;
   /* Entre 2.4rem y 5.5rem segun el ancho, sin saltos: un titular grande en
      un movil estrecho parte en cuatro lineas y deja de ser un titular. */
@@ -730,10 +731,16 @@ main {
    `height` obliga al navegador a recalcular la pagina en cada fotograma. */
 [data-revelar] [data-paso] {
   opacity: 0;
-  transform: translateY(28px) scale(0.975);
+  /* Los cuatro parametros de una entrada salen de variables: que
+     transformacion, cuanto dura, con que curva y cuanto se escalona entre
+     hermanas. Cada estilo cambia las que necesita en una linea, en vez de
+     reescribir este bloque diez veces. */
+  transform: var(--entrada, translateY(28px) scale(0.975));
   transition:
-    opacity var(--dur-escena) var(--ease-salida-fuerte) calc(var(--paso, 0) * 60ms),
-    transform var(--dur-escena) var(--ease-salida-fuerte) calc(var(--paso, 0) * 60ms);
+    opacity var(--dur-entrada, var(--dur-escena)) var(--curva-entrada, var(--ease-salida-fuerte)) calc(var(--paso, 0) * var(--salto, 60ms)),
+    transform var(--dur-entrada, var(--dur-escena)) var(--curva-entrada, var(--ease-salida-fuerte)) calc(var(--paso, 0) * var(--salto, 60ms)),
+    clip-path var(--dur-entrada, var(--dur-escena)) var(--curva-entrada, var(--ease-salida-fuerte)) calc(var(--paso, 0) * var(--salto, 60ms)),
+    filter var(--dur-entrada, var(--dur-escena)) var(--curva-entrada, var(--ease-salida-fuerte)) calc(var(--paso, 0) * var(--salto, 60ms));
 }
 
 [data-revelar].visible [data-paso] {
@@ -753,4 +760,157 @@ main {
 @media (max-width: 640px) {
   .escena { padding: 72px 20px; }
   .recorrido { margin-top: 48px; }
+}
+
+
+/* ===== Los diez estilos =====
+ *
+ * Elegir fondo no cambia solo el fondo: cambia la letra y cambia como
+ * aparecen las cosas al bajar. Diez fondos no son diez texturas detras de
+ * la misma pagina, son diez paginas.
+ *
+ * Las familias tipograficas NO estan aqui. Llegan en --font-titulo y
+ * --font-cuerpo, que las escribe public/js/estilos.js, que es el unico
+ * sitio donde se nombra una fuente. Aqui solo se ajusta como se usan:
+ * peso, espaciado, caja.
+ *
+ * Y las cuatro reglas de montaje siguen valiendo para los diez: nada entra
+ * con una sola propiedad, las hermanas entran escalonadas, nada lineal
+ * salvo la cinta, y hay quietud entre escenas. Lo que cambia es el acento,
+ * no la gramatica.
+ */
+
+/* -- malla: plano tecnico. Es el de casa, y por eso no cambia nada. -- */
+
+/* -- deriva: serif de libro. Todo mas largo y de lado, como una pagina que
+      pasa. -- */
+[data-estilo="deriva"] .brand-name { font-weight: 500; letter-spacing: 0; }
+[data-estilo="deriva"] .escena-titulo { font-weight: 600; letter-spacing: -0.012em; }
+[data-estilo="deriva"] .escena-linea { font-size: 1.16rem; line-height: 1.7; }
+[data-estilo="deriva"] [data-revelar] [data-paso] {
+  --entrada: translateX(-44px) scale(0.99);
+  --dur-entrada: 1500ms;
+  --curva-entrada: var(--ease-salida);
+  --salto: 110ms;
+}
+[data-estilo="deriva"] .tira-cinta { animation-duration: 140s; }
+
+/* -- lluvia: condensada en caja alta. Entra desde arriba, rapido y
+      apretado, porque la lluvia cae. -- */
+[data-estilo="lluvia"] .brand-name { font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+[data-estilo="lluvia"] .escena-titulo { font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase; }
+[data-estilo="lluvia"] [data-revelar] [data-paso] {
+  --entrada: translateY(-26px) scale(0.985);
+  --dur-entrada: 420ms;
+  --salto: 34ms;
+}
+[data-estilo="lluvia"] .escena { padding: 74px 24px; }
+[data-estilo="lluvia"] .tira-cinta { animation-duration: 36s; }
+
+/* -- aurora: geometrica fina. Entra desenfocada y grande, y se posa. -- */
+[data-estilo="aurora"] .brand-name { font-weight: 400; letter-spacing: 0.04em; }
+[data-estilo="aurora"] .escena-titulo { font-weight: 300; letter-spacing: -0.01em; }
+[data-estilo="aurora"] [data-revelar] [data-paso] {
+  --entrada: scale(1.07) translateY(10px);
+  --dur-entrada: 1200ms;
+  --salto: 90ms;
+  filter: blur(10px);
+}
+[data-estilo="aurora"] [data-revelar].visible [data-paso] { filter: blur(0); }
+
+/* -- orbitas: neogrotesca tecnica. Entra girando desde su propio pie, como
+      algo que cae en su sitio. -- */
+[data-estilo="orbitas"] .brand-name { font-weight: 700; letter-spacing: -0.02em; }
+[data-estilo="orbitas"] .escena-titulo { font-weight: 700; letter-spacing: -0.03em; }
+[data-estilo="orbitas"] [data-revelar] [data-paso] {
+  --entrada: rotate(-3.2deg) translateY(22px) scale(0.97);
+  --dur-entrada: 820ms;
+  --salto: 70ms;
+  transform-origin: 20% 100%;
+}
+
+/* -- interferencia: display rara. Entra por una cortina que sube, con el
+      cuerpo torcido. -- */
+[data-estilo="interferencia"] .brand-name { font-weight: 800; letter-spacing: -0.03em; }
+[data-estilo="interferencia"] .escena-titulo { font-weight: 800; letter-spacing: -0.045em; }
+[data-estilo="interferencia"] [data-revelar] [data-paso] {
+  --entrada: skewY(2.4deg) translateY(16px);
+  --dur-entrada: 760ms;
+  --salto: 58ms;
+  /* Insets negativos: la cortina se abre un poco mas ancha que la caja,
+     para no cortar las colas de las letras ni las sombras. */
+  clip-path: inset(-18% -18% 100% -18%);
+}
+[data-estilo="interferencia"] [data-revelar].visible [data-paso] {
+  clip-path: inset(-18% -18% -18% -18%);
+}
+
+/* -- celdas: geometrica moderna. Brota desde el centro. -- */
+[data-estilo="celdas"] .brand-name { font-weight: 700; letter-spacing: -0.02em; }
+[data-estilo="celdas"] .escena-titulo { font-weight: 700; letter-spacing: -0.04em; }
+[data-estilo="celdas"] [data-revelar] [data-paso] {
+  --entrada: scale(0.82) translateY(14px);
+  --dur-entrada: 900ms;
+  --curva-entrada: cubic-bezier(.22, 1.2, .36, 1);
+  --salto: 76ms;
+}
+
+/* -- rejilla: suiza, brutal, en caja alta. Entra de golpe por un lado, sin
+      escalonar, y el scroll se enclava en cada escena. Es el unico estilo
+      donde todo pasa a la vez: eso tambien es una decision. -- */
+[data-estilo="rejilla"] .brand-name { letter-spacing: -0.02em; text-transform: uppercase; }
+[data-estilo="rejilla"] .escena-titulo { font-weight: 400; letter-spacing: -0.045em; text-transform: uppercase; }
+[data-estilo="rejilla"] .escena-etiqueta { letter-spacing: 0.34em; }
+[data-estilo="rejilla"] [data-revelar] [data-paso] {
+  --entrada: translateX(-20px) scale(0.995);
+  --dur-entrada: 260ms;
+  --curva-entrada: cubic-bezier(.2, .9, .2, 1);
+  --salto: 0ms;
+}
+/* `proximity` y no `mandatory`: con mandatory, quien va de paso ya no
+   puede parar donde quiera, y una pagina de enlaces no es un carrusel. */
+html[data-estilo="rejilla"] { scroll-snap-type: y proximity; }
+[data-estilo="rejilla"] .escena { scroll-snap-align: center; }
+
+/* -- polvo: serif blanda. Lo mas lento de todo, con mucha quietud entre
+      escena y escena. -- */
+[data-estilo="polvo"] .brand-name { font-weight: 600; letter-spacing: -0.01em; }
+[data-estilo="polvo"] .escena-titulo { font-weight: 600; letter-spacing: -0.025em; }
+[data-estilo="polvo"] [data-revelar] [data-paso] {
+  --entrada: translateY(58px) scale(0.96);
+  --dur-entrada: 1600ms;
+  --curva-entrada: var(--ease-salida);
+  --salto: 130ms;
+}
+[data-estilo="polvo"] .escena { padding: 156px 24px; }
+[data-estilo="polvo"] .tira-cinta { animation-duration: 170s; }
+
+/* -- viva: capitales romanas sobre tu propia imagen. Entra como tinta que
+      sube, de abajo arriba. -- */
+[data-estilo="viva"] .brand-name { font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; }
+[data-estilo="viva"] .escena-titulo { font-weight: 700; letter-spacing: 0.055em; text-transform: uppercase; font-size: clamp(2rem, 8.5vw, 4.4rem); }
+[data-estilo="viva"] .escena-etiqueta { letter-spacing: 0.3em; }
+[data-estilo="viva"] [data-revelar] [data-paso] {
+  --entrada: translateY(30px) scale(0.99);
+  --dur-entrada: 1150ms;
+  --curva-entrada: var(--ease-salida);
+  --salto: 95ms;
+  clip-path: inset(-18% -18% 100% -18%);
+}
+[data-estilo="viva"] [data-revelar].visible [data-paso] {
+  clip-path: inset(-18% -18% -18% -18%);
+}
+
+/* Quien pide menos movimiento ve lo mismo quieto, tambien con estilo
+   puesto: ninguna de las diez entradas puede dejar nada invisible. */
+@media (prefers-reduced-motion: reduce) {
+  [data-estilo] [data-revelar] [data-paso],
+  [data-estilo] [data-revelar].visible [data-paso] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    clip-path: none;
+    transition: none;
+  }
+  html[data-estilo="rejilla"] { scroll-snap-type: none; }
 }

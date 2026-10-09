@@ -266,10 +266,15 @@
     // El selector de fondo se arranca una sola vez, con lo que el perfil ya
     // tenia elegido. Despues ya lleva el estado el, porque es quien recibe
     // los clics.
+    const suya = FONDO_ES_VIDEO.test(profile.background_path || '') ? null : profile.background_path;
     if (!selectorFondo && window.AKSelectorFondo) {
-      selectorFondo = window.AKSelectorFondo.iniciar({ elegido: profile.wallpaper || null });
+      selectorFondo = window.AKSelectorFondo.iniciar({
+        elegido: profile.wallpaper || null,
+        imagen: suya || null,
+      });
     } else if (selectorFondo) {
       selectorFondo.poner(profile.wallpaper || null);
+      selectorFondo.imagen(suya || null);
     }
 
     renderVipStatus(profile);
@@ -533,6 +538,10 @@
     try {
       const profile = await api('/api/profile/background', { method: 'POST', body: formData });
       pintarFondo(profile.background_path);
+      // «Viva» anima justo esta imagen: su baldosa tiene que enterarse.
+      if (selectorFondo) {
+        selectorFondo.imagen(FONDO_ES_VIDEO.test(profile.background_path || '') ? null : profile.background_path);
+      }
       showToast(T('adm.fondo_actualizado', 'Fondo actualizado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');
@@ -544,6 +553,7 @@
     try {
       await api('/api/profile/background', { method: 'DELETE' });
       pintarFondo(null);
+      if (selectorFondo) selectorFondo.imagen(null);
       showToast(T('adm.fondo_restablecido_al_predeterminado', 'Fondo restablecido al predeterminado'), 'success');
     } catch (err) {
       showToast(err.message, 'error');

@@ -206,7 +206,16 @@
     // cosas puestas gana la elegida a mano en el catálogo, que es la que
     // tocó más tarde, y la foto le sigue esperando debajo por si cambia de
     // opinión.
-    if (profile.wallpaper && window.AKFondos && window.AKFondos.existe(profile.wallpaper)) {
+    // «Viva» es el unico fondo que no se dibuja solo: anima la imagen que
+    // subio quien tiene la pagina. Sin esa imagen —o si lo que hay es un
+    // video, que tiene su propio camino— no hay nada que animar, y entonces
+    // se sigue de largo hasta el fondo de siempre en vez de enseñar el
+    // hueco que el fondo dibuja en el panel.
+    const suya = profile.background_path;
+    const esFoto = !!suya && !FONDO_ES_VIDEO.test(suya);
+    const puede = profile.wallpaper !== 'viva' || esFoto;
+
+    if (profile.wallpaper && puede && window.AKFondos && window.AKFondos.existe(profile.wallpaper)) {
       const lienzo = document.getElementById('wallpaper-canvas');
       if (lienzo) {
         lienzo.classList.remove('hidden');
@@ -216,10 +225,16 @@
           clave: profile.wallpaper,
           desde: profile.accent_from,
           hasta: profile.accent_to,
+          imagen: esFoto ? suya : null,
         });
+        // La letra y el scroll van con el fondo, no aparte: elegir fondo es
+        // elegir las tres cosas. Si el fondo no llega a montarse, tampoco
+        // cambia la tipografia, que seria el peor de los dos mundos.
+        if (window.AKEstilos) window.AKEstilos.aplicar(profile.wallpaper);
         return;
       }
     }
+    if (window.AKEstilos) window.AKEstilos.aplicar(null);
 
     const fondo = profile.background_path || '/images/hero-bg.jpg';
     if (FONDO_ES_VIDEO.test(fondo)) {

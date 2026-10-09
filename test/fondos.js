@@ -19,6 +19,15 @@
 //   3. Que lo que llegue del formulario no entre crudo en la base, porque
 //      de ahí sale a un atributo de la página pública.
 //
+//   4. Que la tercera lista no se separe de las otras dos. Desde que cada
+//      fondo trae además su tipografía y su forma de entrar, hay un tercer
+//      sitio donde están los nombres: la tabla de estilos. Un fondo sin
+//      estilo se vería con la letra de otro y nadie lo notaría leyendo.
+//
+//   5. Que las familias tipográficas estén nombradas en UN solo sitio. Si
+//      una hoja de estilos vuelve a escribir 'Cinzel' a mano, ya hay dos
+//      listas de fuentes y se separan el día que cambie una.
+//
 // Se ejecuta con `npm test`. Base de datos en el directorio temporal.
 const path = require('path');
 const os = require('os');
@@ -122,7 +131,88 @@ async function registrar(SRV, usuario) {
   ok('una etiqueta, ninguno', limpiarFondo('"><script>alert(1)</script>') === null);
   ok('una ruta, ninguno', limpiarFondo('../../etc/passwd') === null);
 
-  console.log('\n== 5. De punta a punta ==');
+  console.log('\n== 5. Cada fondo trae su estilo ==');
+
+  const estilos = leer('public/js/estilos.js');
+  const css = leer('public/css/style.css');
+
+  // Las claves de la tabla de estilos, sacadas del propio archivo.
+  const tabla = estilos.slice(estilos.indexOf('var ESTILOS = {'), estilos.indexOf('var pedidas'));
+  const conEstilo = [...tabla.matchAll(/^    ([a-z]+): \{/gm)].map((m) => m[1]);
+
+  ok('la tabla de estilos tiene una entrada por fondo',
+    JSON.stringify(conEstilo) === JSON.stringify(CLAVES),
+    { estilos: conEstilo, fondos: CLAVES });
+
+  // 'malla' es el de casa y no cambia nada, así que no necesita bloque.
+  const sinBloque = CLAVES.filter((c) => c !== 'malla' && !css.includes('[data-estilo="' + c + '"]'));
+  ok('y cada uno tiene sus reglas en el CSS', sinBloque.length === 0, sinBloque);
+
+  const sobran = [...css.matchAll(/\[data-estilo="([a-z]+)"\]/g)]
+    .map((m) => m[1]).filter((c, i, a) => a.indexOf(c) === i && CLAVES.indexOf(c) === -1);
+  ok('y el CSS no estiliza fondos que no existen', sobran.length === 0, sobran);
+
+  // El punto de todo esto: que elegir fondo cambie de verdad la letra y la
+  // entrada. Un bloque que solo repite lo de por defecto no cambia nada.
+  const cambian = CLAVES.filter((c) => c !== 'malla').filter((c) => {
+    const i = css.indexOf('[data-estilo="' + c + '"]');
+    const fin = css.indexOf('/* --', i + 10);
+    const bloque = css.slice(i, fin === -1 ? css.length : fin);
+    return /--entrada:/.test(bloque) && /(font-weight|letter-spacing|text-transform)/.test(bloque);
+  });
+  ok('cada estilo cambia la letra Y la entrada, no solo una',
+    cambian.length === CLAVES.length - 1,
+    { cambian: cambian.length, esperados: CLAVES.length - 1 });
+
+  // Una sola lista de fuentes. Si una hoja de estilos nombra una familia,
+  // ya son dos listas.
+  const familias = [...estilos.matchAll(/familias: \['([^']+)'\]/g)]
+    .map((m) => m[1].split(':')[0].split('+').join(' '));
+  ok('se encontraron las familias', familias.length >= 8, familias);
+  const hojas = ['public/css/style.css', 'public/css/glass.css', 'public/admin/css/admin.css'];
+  const filtradas = [];
+  hojas.forEach((hoja) => {
+    const texto = leer(hoja);
+    familias.forEach((fam) => { if (texto.includes(fam)) filtradas.push(hoja + ': ' + fam); });
+  });
+  ok('ninguna hoja de estilos nombra una fuente de la tabla', filtradas.length === 0, filtradas);
+  ok('el CSS las recibe por variable', /--font-titulo/.test(css) && /--font-cuerpo/.test(css));
+
+  // Quien pide menos movimiento tiene diez formas nuevas de quedarse con
+  // una página en blanco: diez entradas, y algunas recortan o desenfocan.
+  const quieto = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+  ok('con movimiento reducido no queda nada invisible',
+    /\[data-estilo\]/.test(quieto) && /opacity: 1/.test(quieto)
+    && /clip-path: none/.test(quieto) && /filter: none/.test(quieto), quieto.slice(0, 300));
+
+  console.log('\n== 6. «Viva»: la imagen de cada cual ==');
+
+  ok('se declara que necesita una imagen', /necesitaImagen: true/.test(fuente));
+  ok('y que quiere el puntero', /quierePuntero: true/.test(fuente));
+  // Un escuchador en la ventana, no uno por lienzo: en el panel hay diez
+  // miniaturas y serían diez funciones por cada píxel que se mueve el ratón.
+  ok('un solo escuchador de puntero para todos', (fuente.match(/addEventListener\('pointermove'/g) || []).length === 1);
+  ok('y en pasivo', /addEventListener\('pointermove', alMoverPuntero, \{ passive: true \}\)/.test(fuente));
+  ok('se suelta al parar', /removeEventListener\('pointermove'/.test(fuente) && /soltarPuntero\(\)/.test(fuente));
+
+  // El fallo que este motor evita en todas partes: forzar al navegador a
+  // recalcular la página en cada fotograma. La caja se cachea al medir y
+  // al hacer scroll, nunca dentro del bucle de dibujo.
+  const motor = fuente.slice(fuente.indexOf('function montar(lienzo'));
+  const enElBucle = motor.slice(motor.indexOf('function unFotograma'), motor.indexOf('function arrancar'));
+  ok('la caja no se pide en cada fotograma', !/getBoundingClientRect/.test(enElBucle), enElBucle);
+  ok('se refresca al hacer scroll, y en pasivo',
+    /addEventListener\('scroll', alScroll, \{ passive: true \}\)/.test(motor));
+
+  // Sin imagen no hay nada que animar, y un rectángulo vacío miente.
+  const viva = fuente.slice(fuente.indexOf("clave: 'viva'"), fuente.indexOf('// ---- El motor ----'));
+  ok('sin imagen, «Viva» dibuja un hueco y lo dice', /if \(!img\) \{/.test(viva));
+  ok('y la página pública no lo monta siquiera',
+    /profile\.wallpaper !== 'viva' \|\| esFoto/.test(leer('public/js/main.js')));
+  ok('la baldosa del panel también lo avisa',
+    /necesitaImagen && !imagen/.test(leer('public/admin/js/wallpaper-picker.js')));
+
+  console.log('\n== 7. De punta a punta ==');
 
   require('../server.js');
   const SRV = 'http://localhost:3990';
@@ -158,7 +248,7 @@ async function registrar(SRV, usuario) {
   const quitado = await guardar({ wallpaper: null });
   ok('se puede quitar', quitado.datos.wallpaper === null, quitado.datos.wallpaper);
 
-  console.log('\n== 6. Se porta bien con quien no quiere movimiento ==');
+  console.log('\n== 8. Se porta bien con quien no quiere movimiento ==');
 
   ok('mira si el sistema pide menos movimiento', fuente.includes('prefers-reduced-motion'));
   ok('y aun así pinta un fotograma, no un hueco',

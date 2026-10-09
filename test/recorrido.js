@@ -114,8 +114,17 @@ async function registrar(SRV, usuario) {
   // Una opacidad sola es un parpadeo. Tres propiedades es algo que llega.
   ok('las entradas mueven tres propiedades',
     /opacity: 0/.test(entrada) && /translateY\(/.test(entrada) && /scale\(/.test(entrada), entrada);
-  // Todo a la vez se lee como un corte, no como una entrada.
-  ok('y van escalonadas entre hermanas', /calc\(var\(--paso, 0\) \* 60ms\)/.test(entrada));
+  // Todo a la vez se lee como un corte, no como una entrada. El retardo
+  // sale de una variable desde que cada fondo trae su propio escalonado,
+  // asi que lo que se comprueba es que el escalonado siga existiendo y que
+  // su valor de fabrica siga siendo 60ms: lo primero es la regla, lo
+  // segundo es que ningun estilo tenga que repetirla para tenerla.
+  const conRetardo = (entrada.match(/calc\(var\(--paso, 0\) \* var\(--salto, 60ms\)\)/g) || []).length;
+  const retardos = (entrada.match(/calc\(var\(--paso, 0\)/g) || []).length;
+  // Todas, no alguna: si una sola de las propiedades que se animan pierde
+  // el retardo, esa entra a destiempo y la entrada se parte por la mitad.
+  ok('y van escalonadas entre hermanas, las cuatro',
+    conRetardo > 0 && conRetardo === retardos, { conRetardo, retardos });
   ok('el escalonado lo reparte el controlador', /setProperty\('--paso', i\)/.test(ctrl));
   // Animar `top`, `height` o `width` obliga al navegador a recalcular la
   // página en cada fotograma; transform y opacity van en el compositor.

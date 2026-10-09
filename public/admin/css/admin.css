@@ -1129,6 +1129,17 @@ body {
   font-size: 1.4rem;
 }
 
+/* La baldosa de «Viva» cuando todavía no hay imagen que animar. Dice lo
+   que falta en vez de enseñar un recuadro vacío que parece roto. */
+.monitor-falta {
+  padding: 0 10px;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 /* Las lineas de barrido del monitor, y un brillo que lo recorre muy
    despacio. Las lineas van fijas y el brillo es lo unico que se mueve: dos
    movimientos a la vez en una miniatura de ciento cincuenta pixeles tapan

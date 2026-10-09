@@ -18,6 +18,15 @@
      o no llega no se descoloca nada. */
   --font-ui: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
+  /* Las dos caras de la pagina publica: la del nombre y los titulares, y la
+     del texto corrido. Por defecto las dos son la monoespaciada de arriba,
+     y el fondo elegido las cambia desde JavaScript escribiendo estas dos
+     variables. Ninguna hoja de estilos nombra una fuente concreta: la lista
+     de familias vive solo en public/js/estilos.js, que es lo que impide que
+     se separen dos listas. */
+  --font-titulo: var(--font-ui);
+  --font-cuerpo: var(--font-ui);
+
   /* El cristal, en cuatro piezas:
        brillo      la línea clara del filo de arriba, donde pega la luz —
                    es lo que hace que se lea como vidrio y no como un

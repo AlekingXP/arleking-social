@@ -21,6 +21,7 @@ const CLAVES = [
   'celdas',
   'rejilla',
   'polvo',
+  'viva',
 ];
 
 const CONJUNTO = new Set(CLAVES);
